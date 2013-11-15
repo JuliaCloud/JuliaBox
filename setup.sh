@@ -15,15 +15,15 @@ fi
 
 if test $# -eq 1; then
     # Stuff required for docker and openresty
-    sudo apt-get install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev netcat git
+    sudo apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev netcat git
 
     # INSTALL docker as per http://docs.docker.io/en/latest/installation/ubuntulinux/
-    sudo apt-get update
-    sudo apt-get install linux-image-extra-`uname -r`
+    sudo apt-get -y update
+    sudo apt-get -y install linux-image-extra-`uname -r`
     sudo sh -c "wget -qO- https://get.docker.io/gpg | apt-key add -"
     sudo sh -c "echo deb http://get.docker.io/ubuntu docker main > /etc/apt/sources.list.d/docker.list"
-    sudo apt-get update
-    sudo apt-get install lxc-docker
+    sudo apt-get -y update
+    sudo apt-get -y install lxc-docker
 
     # docker stuff
     sudo gpasswd -a $USER docker
