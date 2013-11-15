@@ -1,13 +1,23 @@
-## JDock - Hosting IJulia sessions in Docker containers
+## JDock - Docker'ed IJulia containers
+
+### What works
+
+- Runs each IJulia session in its own sandboxed container
+- File upload facility into a session's container
+- Basic admin screen to delete old/inacive sessions
+
+### What is pending
+- Resource limiting containers (cpu / disk)
+- Security improvements
+- More complete Admin interface
+- Prettier UI
+
 
 ### Installing
 
 - The setup script has been tested to work on a fresh Ubuntu 13.04 AMI - viz, ami-ef277b86, but should work on any 13.04 system
-
 - If on EC2, launch an instance from ami-ef277b86 . Make sure you open up ports 22 (ssh) and 80 (http) in your security group 
-
 - On a 13.04 system, make sure your id has `sudo` permissions
-
 - Run the following :
 ```
 sudo apt-get install git
@@ -15,11 +25,8 @@ git clone https://github.com/amitmurthy/JDock.git
 cd JDock
 ```
 - Run `./setup.sh <admin_key>` 
-
 - `admin_key` above is the session name for an "administration" session. Select something non-guessable.
-
 - Go get a coffee
-
 - NOTE : If you are just updating JDock and do not wish to reinstall packages on your host, do
 ```
 git pull
@@ -33,10 +40,11 @@ git pull
 ### Powering up
 
 - `cd <path to JDock>; ./start.sh`
-
 - point your browser to `http://<your_host_address>/`
-
 - `stop.sh` stops nginx, while `reload.sh` gets nginx to reload configuration and lua scripts 
+
+
+
 
 ### Notes
 
@@ -50,6 +58,8 @@ git pull
 - To update docker image `ijulia` with the latest Julia version run `sudo docker build -no-cache -t ijulia docker/IJulia/`
   
 ## ACKNOWLEDGEMENTS 
+
+- Code examples from the below projects/websites have been used
 
 - Docker - http://www.docker.io/
 - OpenResty - http://openresty.org/
