@@ -41,6 +41,7 @@ RUN echo "c.NotebookApp.ip = \"*\"" >> /home/juser/.ipython/profile_julia/ipytho
 RUN mkdir -p /home/juser/resty/logs /home/juser/resty/conf /home/juser/resty/lua /home/juser/resty/www /home/juser/upload
 
 ADD nginx.conf /home/juser/resty/conf/
+ADD mime.types /home/juser/resty/conf/
 ADD upload.lua /home/juser/resty/lua/
 ADD contutils.lua /home/juser/resty/lua/
 ADD ipnbupl.tpl /home/juser/resty/www/
