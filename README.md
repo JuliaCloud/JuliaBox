@@ -4,7 +4,7 @@
 
 - Runs each IJulia session in its own sandboxed container
 - File upload facility into a session's container
-- Basic admin screen to delete old/inacive sessions
+- Basic admin screen to delete old/inactive sessions
 
 ### What is pending
 - Resource limiting containers (cpu / disk)
@@ -60,7 +60,6 @@ git pull
 ## ACKNOWLEDGEMENTS 
 
 - Code examples from the below projects/websites have been used
-
 - Docker - http://www.docker.io/
 - OpenResty - http://openresty.org/
 - Lua Resty HTTP Client - https://github.com/bakins/lua-resty-http-simple
