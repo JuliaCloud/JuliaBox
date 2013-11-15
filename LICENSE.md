@@ -1,4 +1,4 @@
-HostedIJ.jl is licensed under the MIT License:
+JDock is licensed under the MIT License:
 
 > Copyright (c) 2013: Amit Murthy
 > and other contributors: https://github.com/amitmurthy/HostedIJ.jl/contributors

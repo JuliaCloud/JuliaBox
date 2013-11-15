@@ -37,9 +37,6 @@ if test $# -eq 1; then
     sudo cp -f libs/lua-resty-http-simple/lib/resty/http/simple.lua /usr/local/openresty/lualib/resty/http/
 fi
 
-echo "Building docker image ..."
-sudo docker build -t ijulia docker/IJulia/
-
 # The below are for using the ephemeral storage available on EC2 instances for storing containers
 if mount | grep /mnt/containers > /dev/null; then
     echo 
@@ -48,6 +45,9 @@ else
     sudo mkdir -p /var/lib/docker/containers /mnt/containers
     sudo mount -o bind /mnt/containers /var/lib/docker/containers
 fi
+
+echo "Building docker image ..."
+sudo docker build -t ijulia docker/IJulia/
 
 echo "Copying nginx.conf.sample to nginx.conf"
 sed  s/\$\$NGINX_USER/$USER/g host/nginx/conf/nginx.conf.sample > host/nginx/conf/nginx.conf
