@@ -13,7 +13,7 @@ RUN add-apt-repository -y ppa:staticfloat/julia-deps
 RUN apt-get -y update
 
 RUN apt-get -y install julia
-RUN apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev python-dev libgnutls28 shellinabox
+RUN apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev python-dev libgnutls28 shellinabox wget
 
 RUN apt-get -y install python-setuptools
 RUN easy_install ipython[all]
