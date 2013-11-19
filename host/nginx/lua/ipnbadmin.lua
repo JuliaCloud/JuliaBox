@@ -72,7 +72,7 @@ if admin_user then
         local html_row = '<tr><td>'.. string.sub(c.Id, 0, 12) .. '...' .. '</td>'
         html_row = html_row .. '<td>'.. c.Status .. '</td>'
         html_row = html_row .. '<td>'.. c.Names[1]  .. '</td>'
-        html_row = html_row .. '<td>/hostadmin/?delete_id='.. c.Id .. '</td></tr>'
+        html_row = html_row .. '<td><a href="/hostadmin/?delete_id='.. c.Id .. '">Delete</a></td></tr>'
         
         if (c.Ports == cjson.null) then 
             inactive_containers = inactive_containers .. html_row
