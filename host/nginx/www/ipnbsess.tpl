@@ -17,10 +17,14 @@
   <ul>
     <li><a href="#ijulia">IJulia</a></li>
     <li><a href="#fileman">File Manager</a></li>
+    <li><a href="#console">Console</a></li>
     <li><a href="#admin">Admin</a></li>
   </ul>
     <div id="ijulia">
         <iframe src="/hostipnbsession/" frameborder="0" width="100%" height="1000"></iframe>  
+    </div>
+    <div id="console">
+        <iframe src="/hostipnbupl/shellinabox" frameborder="0" width="100%" height="1000"></iframe>  
     </div>
     <div id="fileman">
         <iframe src="/hostipnbupl/" frameborder="0" width="100%" height="1000"></iframe>  

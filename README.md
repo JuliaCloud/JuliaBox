@@ -6,8 +6,9 @@
 - File upload facility into a session's container
 - Basic admin screen to delete old/inactive sessions
 
-### What is pending
+### Pending
 - Resource limiting containers (cpu / disk)
+- Upload .ipynb notebooks for URLs into the container
 - Security improvements
 - More complete Admin interface
 - Prettier UI

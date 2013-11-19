@@ -13,7 +13,7 @@ RUN add-apt-repository -y ppa:staticfloat/julia-deps
 RUN apt-get -y update
 
 RUN apt-get -y install julia
-RUN apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev python-dev libgnutls28
+RUN apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev python-dev libgnutls28 shellinabox
 
 RUN apt-get -y install python-setuptools
 RUN easy_install ipython[all]
@@ -52,6 +52,6 @@ EXPOSE  8998
 # ipython port for nginx
 EXPOSE  8000
 
-ENTRYPOINT /usr/local/openresty/nginx/sbin/nginx -p /home/juser/resty && ipython notebook --profile julia
+ENTRYPOINT /usr/local/openresty/nginx/sbin/nginx -p /home/juser/resty && shellinaboxd -b -t -s /:juser:juser:/home/juser:/bin/bash && ipython notebook --profile julia
 
 
