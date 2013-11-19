@@ -25,6 +25,7 @@
     </div>
     <div id="console">
         <iframe src="/hostipnbupl/shellinabox" frameborder="0" width="100%" height="800"></iframe>  
+        Tip: If you cannot see a blinking cursor above, please right-click and "reset" the terminal.
     </div>
     <div id="fileman">
         <iframe src="/hostipnbupl/" frameborder="0" width="100%" height="1000"></iframe>  
