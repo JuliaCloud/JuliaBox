@@ -24,8 +24,10 @@
         <iframe src="/hostipnbsession/" frameborder="0" width="100%" height="1000"></iframe>  
     </div>
     <div id="console">
+        This is a bash session. If you cannot see a blinking cursor below, please right-click, "reset" the terminal and hit "enter". <br>
+        Type "julia" to start a Julia REPL session.<br><br>
+        
         <iframe src="/hostipnbupl/shellinabox" frameborder="0" width="100%" height="800"></iframe>  
-        Tip: If you cannot see a blinking cursor above, please right-click and "reset" the terminal.
     </div>
     <div id="fileman">
         <iframe src="/hostipnbupl/" frameborder="0" width="100%" height="1000"></iframe>  

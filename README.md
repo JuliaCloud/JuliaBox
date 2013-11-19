@@ -3,6 +3,7 @@
 ### What works
 
 - Runs each IJulia session in its own sandboxed container
+- A bash session is aslo started in the container - can be used to run the Julia console REPL
 - File upload facility into a session's container
 - Basic admin screen to delete old/inactive sessions
 

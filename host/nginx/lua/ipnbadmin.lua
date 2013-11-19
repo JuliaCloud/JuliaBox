@@ -4,6 +4,7 @@ local cjson = require "cjson";
 local sessname = ngx.var.cookie_sessname
 local delete_all_inactive = false
 local delete_all = false
+local delete_id = ''
 local admin_user = false
 
 local args = ngx.req.get_uri_args()
@@ -13,6 +14,9 @@ for key, val in pairs(args) do
         break
     elseif key == "delete_all" then
         delete_all = true
+        break
+    elseif key == "delete_id" then
+        delete_id = val
         break
     end
 end
@@ -38,7 +42,10 @@ if delete_all_inactive or delete_all then
                 delete_container(c.Id)
             end
         end
-    end    
+    end
+elseif not (delete_id == '') then 
+    kill_container(delete_id)
+    delete_container(delete_id)
 end
 
 -- return a web page with the sessionname placeholder replaced
@@ -56,17 +63,26 @@ if admin_user then
     std_links = std_links .. '<a href="/hostadmin/?delete_all=1">Delete all containers</a><br><br>'
     out = string.gsub(out, "$$STANDARD_LINKS", std_links)
     
-    local active_containers = '<h3> Active containers </h3>'
-    local inactive_containers = '<h3> Inactive containers </h3>'
+    local table_header = '<table border="1">  <tr><th>Id</th><th>Status</th><th>Name</th><th>Action</th></tr>'
+    local active_containers = '<h3> Active containers </h3>' .. table_header
+    local inactive_containers = '<h3> Inactive containers </h3><table border="1">' .. table_header
     
     local json = get_all_containers()
     for i,c in pairs(json) do
+        local html_row = '<tr><td>'.. string.sub(c.Id, 0, 12) .. '...' .. '</td>'
+        html_row = html_row .. '<td>'.. c.Status .. '</td>'
+        html_row = html_row .. '<td>'.. c.Names[1]  .. '</td>'
+        html_row = html_row .. '<td>/hostadmin/?delete_id='.. c.Id .. '</td></tr>'
+        
         if (c.Ports == cjson.null) then 
-            inactive_containers = inactive_containers .. 'Id: ' .. c.Id .. ', Status : ' .. c.Status .. ', Name : ' .. c.Names[1]  .. '<br>'
+            inactive_containers = inactive_containers .. html_row
         else
-            active_containers = active_containers .. 'Id: ' .. c.Id .. ', Status : ' .. c.Status .. ', Name : ' .. c.Names[1]  .. '<br>'
+            active_containers = active_containers  .. html_row
         end
     end    
+
+    active_containers = active_containers .. '</table>'
+    inactive_containers = inactive_containers .. '</table>'
     
     out = string.gsub(out, "$$ACTIVE_CONTAINERS", active_containers)
     out = string.gsub(out, "$$INACTIVE_CONTAINERS", inactive_containers)
