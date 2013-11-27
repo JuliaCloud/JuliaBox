@@ -21,6 +21,7 @@
 - If on EC2, launch an instance from ami-ef277b86 . Make sure you open up ports 22 (ssh) and 80 (http) in your security group 
 - On a 13.04 system, make sure your id has `sudo` permissions
 - Run the following :
+
 ```
 sudo apt-get install git
 
@@ -28,10 +29,13 @@ git clone https://github.com/amitmurthy/JDock.git
 
 cd JDock
 ```
+
 - Run `./setup.sh <admin_key>` 
 - `admin_key` above is the session name for an "administration" session. Select something non-guessable.
 - Go get a coffee
 - NOTE : If you are just updating JDock and do not wish to reinstall packages on your host, do
+
+
 ```
 git pull
 
