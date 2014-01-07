@@ -1,0 +1,12 @@
+{
+  "port" : 8888,
+  "gauth" : $$GAUTH,
+  "dhostlocal" : True,
+  "numlocalmax" : $$NUM_LOCALMAX,
+  "sesskey" : "$$SESSKEY",
+  "expire" : $$EXPIRE,
+  "admin_user" : "$$ADMIN_USER",
+  "dummy" : "dummy"
+}
+
+

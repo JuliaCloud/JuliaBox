@@ -1,8 +1,0 @@
-- Don't store port information in cookies - only the session name
-- oauth support
-- security audit and improvements
-- Upload .ipynb from URLs
-- Change "boxcar/raring" to a 13.04 version built by us
-
-- JDock
-- ML post

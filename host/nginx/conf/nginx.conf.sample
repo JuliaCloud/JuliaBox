@@ -12,33 +12,31 @@ http {
     server {
         listen 80;
         root www;
+
+        set $SESSKEY '$$SESSKEY';
+        
+        location /favicon.ico {
+            include    mime.types;
+        }
+        
         
 # On the host, all locations will be specified explictly, i.e, with an "="
 # Everything else will be proxied to the appropriate container....
 # Cookie data will be used to identify the container for a session
         
         location = / {
-            default_type 'text/html';
+            proxy_pass          http://localhost:8888;
+            proxy_set_header    Host            $host;
+            proxy_set_header    X-Real-IP       $remote_addr;
+            proxy_set_header    X-Forwarded-for $remote_addr;        
         }        
 
-        location = /index.html {
-            default_type 'text/html';
+        location ~ \/(hostlaunchipnb|hostadmin)+\/  {
+            proxy_pass          http://localhost:8888;
+            proxy_set_header    Host            $host;
+            proxy_set_header    X-Real-IP       $remote_addr;
+            proxy_set_header    X-Forwarded-for $remote_addr;        
         }        
-        
-        location = /index.htm {
-            default_type 'text/html';
-        }        
-        
-        location = /hostlaunchipnb/ {
-            default_type 'text/html';
-            content_by_lua_file lua/launchipnb.lua;
-        }        
-
-        location /hostadmin/ {
-            default_type 'text/html';
-            set $admin_sessname "$$ADMIN_KEY";
-            content_by_lua_file lua/ipnbadmin.lua;
-        }
         
 
 # container locations
@@ -46,6 +44,8 @@ http {
 # file upload and listing....
 
         location /hostipnbupl/ {
+            access_by_lua_file 'lua/validate.lua';
+        
             rewrite /hostipnbupl/(.+) /$1 break;
             
             proxy_pass http://127.0.0.1:$cookie_hostupl;
@@ -59,13 +59,16 @@ http {
 # landing page
         location = /hostipnbsession/ {
             # wait for n seconds for the container's ipnb listener to be ready...
+            
             access_by_lua '
+                dofile(ngx.config.prefix() .. "lua/validate.lua")
+                
                 local http  = require "resty.http.simple"
                 local n = 20
                 local hostipnbport = ngx.var.cookie_hostipnb
                 local opts = {}
                 opts.path = "/"
-                
+
                 while (n > 0) do
                     local res, err = http.request("127.0.0.1", hostipnbport, opts)
                     if not res then
@@ -86,6 +89,8 @@ http {
 
 # everything else        
         location / {
+            access_by_lua_file 'lua/validate.lua';
+            
             proxy_pass http://127.0.0.1:$cookie_hostipnb;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header Host $host;
@@ -98,13 +103,5 @@ http {
         }
         
     }
-    
-    server {
-        listen 81;
-        location /docker/ {
-            proxy_pass http://unix:/var/run/docker.sock:/;        
-        }
-    }
-        
 }
 

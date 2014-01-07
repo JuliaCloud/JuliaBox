@@ -8,4 +8,6 @@ else
 fi
 
 
-sudo /usr/local/openresty/nginx/sbin/nginx -p ${PWD}/host/nginx      
+sudo /usr/local/openresty/nginx/sbin/nginx -p ${PWD}/host/nginx    
+sudo supervisord -c ${PWD}/host/tornado/supervisord.conf
+sudo supervisorctl -c ${PWD}/host/tornado/supervisord.conf start all

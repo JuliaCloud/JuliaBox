@@ -1,21 +1,64 @@
+#! /usr/bin/env bash
 # On Ubuntu 13.04, amd64, Ubuntu provided ami image 
 # ami-ef277b86
+#!/bin/bash
 
-if test $# -gt 0;then
-    echo 
-else
-    echo "Usage : ./setup.sh <admin_key> <env_only>"
-    echo
-    echo
-    echo "Mandatory alphanumeric admin_key."
-    echo "Optional env_only flag. If set (any character), no software is installed, only config/mounts are setup"
-    echo
-    exit
+function usage {
+  echo
+  echo 'Usage: ./setup.sh -u <admin_username> -d -g'
+  echo ' -u  <username> : Mandatory admin username. If -g option is used, this must be the complete Google email-id'
+  echo ' -d             : Only recreate docker image - do not install/update other software'
+  echo ' -g             : Use Google Openid for user authentication '
+  echo ' -n  <num>      : Maximum number of active containers. Deafult 10.'
+  echo ' -t  <seconds>  : Auto delete containers older than specified seconds. 0 means never expire. Default 0.'
+  exit 1
+}
+
+OPT_INSTALL=1
+OPT_GOOGLE=0
+NUM_LOCALMAX=10 
+EXPIRE=0
+
+while getopts  "u:dgn:t:" FLAG
+do
+  if test $FLAG == '?'
+     then
+        usage
+
+  elif test $FLAG == 'u'
+     then
+        ADMIN_USER=$OPTARG
+
+  elif test $FLAG == 'd'
+     then
+        OPT_INSTALL=0
+
+  elif test $FLAG == 'g'
+     then
+        OPT_GOOGLE=1
+
+  elif test $FLAG == 'n'
+     then
+        NUM_LOCALMAX=$OPTARG
+
+  elif test $FLAG == 't'
+     then
+        EXPIRE=$OPTARG
+
+  fi
+done
+
+if test -v $ADMIN_USER
+  then
+    usage
 fi
 
-if test $# -eq 1; then
+#echo $ADMIN_USER $OPT_INSTALL $OPT_GOOGLE
+
+
+if test $OPT_INSTALL -eq 1; then
     # Stuff required for docker and openresty
-    sudo apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev netcat git
+    sudo apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev netcat git python-setuptools supervisor
 
     # INSTALL docker as per http://docs.docker.io/en/latest/installation/ubuntulinux/
     sudo apt-get -y update
@@ -35,6 +78,16 @@ if test $# -eq 1; then
     sudo rm -Rf /tmp/resty
     sudo mkdir -p /usr/local/openresty/lualib/resty/http
     sudo cp -f libs/lua-resty-http-simple/lib/resty/http/simple.lua /usr/local/openresty/lualib/resty/http/
+
+    # python stuff
+    sudo easy_install tornado
+    sudo easy_install futures
+    
+    git clone https://github.com/dotcloud/docker-py 
+    cd docker-py
+    sudo python setup.py install
+    cd ..
+
 fi
 
 # The below are for using the ephemeral storage available on EC2 instances for storing containers
@@ -52,6 +105,21 @@ sudo docker build -t ijulia docker/IJulia/
 echo "Copying nginx.conf.sample to nginx.conf"
 sed  s/\$\$NGINX_USER/$USER/g host/nginx/conf/nginx.conf.sample > host/nginx/conf/nginx.conf
 sed  -i s/\$\$ADMIN_KEY/$1/g host/nginx/conf/nginx.conf
+
+echo "Generating random session validation key"
+SESSKEY=`< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c10`
+sed  -i s/\$\$SESSKEY/$SESSKEY/g host/nginx/conf/nginx.conf 
+sed  s/\$\$SESSKEY/$SESSKEY/g host/tornado/tornado.conf.sample > host/tornado/tornado.conf
+
+if test $OPT_INSTALL -eq 1; then
+    sed  -i s/\$\$GAUTH/True/g host/tornado/tornado.conf
+else
+    sed  -i s/\$\$GAUTH/False/g host/tornado/tornado.conf
+fi
+sed  -i s/\$\$ADMIN_USER/$ADMIN_USER/g host/tornado/tornado.conf
+sed  -i s/\$\$NUM_LOCALMAX/$NUM_LOCALMAX/g host/tornado/tornado.conf
+sed  -i s/\$\$EXPIRE/$EXPIRE/g host/tornado/tornado.conf
+
 
 echo
 echo "DONE!"

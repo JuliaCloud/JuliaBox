@@ -2,7 +2,7 @@
 # Docker file to have a complete Julia installation
 # Julia has some issues installing on the 12.04 image, hence using 13.04
 
-FROM boxcar/raring
+FROM saltstack/ubuntu-13.04-minimal
 
 MAINTAINER Amit Murthy
 
