@@ -17,7 +17,7 @@ $$ERRMSG
 <input type="submit" name="submit" value="Upload">
 </form>
 
-<iframe src="/hostipnbupl/home/juser/upload/" frameborder="0" width="100%" height="1000"></iframe>  
+<iframe src="/hostipnbupl/home/juser/" frameborder="0" width="100%" height="1000"></iframe>  
 
 </body>
 </html>

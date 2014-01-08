@@ -5,7 +5,9 @@
   "numlocalmax" : $$NUM_LOCALMAX,
   "sesskey" : "$$SESSKEY",
   "expire" : $$EXPIRE,
-  "admin_user" : "$$ADMIN_USER",
+  "admin_users" : ["$$ADMIN_USER"],
+  "dhosts" : [],
+  "protected_sessions" : [],
   "dummy" : "dummy"
 }
 

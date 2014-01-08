@@ -7,14 +7,14 @@ dckr = docker.Client()
 def get_num_active_containers():
     return len(dckr.containers(all=False))
 
-def terminate_expired_containers(cfg, admindockname):
+def terminate_expired_containers(cfg):
     if cfg["expire"] == 0:
         return
     
     jsonobj = dckr.containers(all=False)
     expired_at = calendar.timegm(time.gmtime()) - cfg["expire"]
     for c in jsonobj:
-        if (c[u"Created"] < expired_at) and not (admindockname == c[u"Names"][0]):
+        if (c[u"Created"] < expired_at) and not (c[u"Names"][0] in cfg["protected_docknames"]):
             dckr.kill(c[u"Id"])
             dckr.remove_container(c[u"Id"])
 
@@ -30,8 +30,12 @@ def is_container(name, all=True):
     return False, None
 
 
-def launch_container(name, clear_old_sess):
-    iscont, c = is_container(name)
+def launch_container(name, clear_old_sess, c):
+    if c == None:
+        iscont, c = is_container(name)
+    else:
+        iscont = True
+        
     id = ""
     
     # kill the container 

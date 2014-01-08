@@ -1,7 +1,7 @@
 dofile(ngx.config.prefix() .. "lua/contutils.lua")
 
 local upload = require "resty.upload"
-local upload_dir = '/home/juser/upload/'
+local upload_dir = '/home/juser/'
 
 local chunk_size = 8192
 local form = upload:new(chunk_size)

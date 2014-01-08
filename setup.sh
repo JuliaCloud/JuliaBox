@@ -1,7 +1,8 @@
 #! /usr/bin/env bash
 # On Ubuntu 13.04, amd64, Ubuntu provided ami image 
 # ami-ef277b86
-#!/bin/bash
+
+source ${PWD}/jdockcommon.sh
 
 function usage {
   echo
@@ -102,23 +103,23 @@ fi
 echo "Building docker image ..."
 sudo docker build -t ijulia docker/IJulia/
 
-echo "Copying nginx.conf.sample to nginx.conf"
-sed  s/\$\$NGINX_USER/$USER/g host/nginx/conf/nginx.conf.sample > host/nginx/conf/nginx.conf
-sed  -i s/\$\$ADMIN_KEY/$1/g host/nginx/conf/nginx.conf
+echo "Setting up nginx.conf"
+sed  s/\$\$NGINX_USER/$USER/g $NGINX_CONF_DIR/nginx.conf.tpl > $NGINX_CONF_DIR/nginx.conf
+sed  -i s/\$\$ADMIN_KEY/$1/g $NGINX_CONF_DIR/nginx.conf
 
 echo "Generating random session validation key"
 SESSKEY=`< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c10`
-sed  -i s/\$\$SESSKEY/$SESSKEY/g host/nginx/conf/nginx.conf 
-sed  s/\$\$SESSKEY/$SESSKEY/g host/tornado/tornado.conf.sample > host/tornado/tornado.conf
+sed  -i s/\$\$SESSKEY/$SESSKEY/g $NGINX_CONF_DIR/nginx.conf 
+sed  s/\$\$SESSKEY/$SESSKEY/g $TORNADO_CONF_DIR/tornado.conf.tpl > $TORNADO_CONF_DIR/tornado.conf
 
 if test $OPT_INSTALL -eq 1; then
-    sed  -i s/\$\$GAUTH/True/g host/tornado/tornado.conf
+    sed  -i s/\$\$GAUTH/True/g $TORNADO_CONF_DIR/tornado.conf
 else
-    sed  -i s/\$\$GAUTH/False/g host/tornado/tornado.conf
+    sed  -i s/\$\$GAUTH/False/g $TORNADO_CONF_DIR/tornado.conf
 fi
-sed  -i s/\$\$ADMIN_USER/$ADMIN_USER/g host/tornado/tornado.conf
-sed  -i s/\$\$NUM_LOCALMAX/$NUM_LOCALMAX/g host/tornado/tornado.conf
-sed  -i s/\$\$EXPIRE/$EXPIRE/g host/tornado/tornado.conf
+sed  -i s/\$\$ADMIN_USER/$ADMIN_USER/g $TORNADO_CONF_DIR/tornado.conf
+sed  -i s/\$\$NUM_LOCALMAX/$NUM_LOCALMAX/g $TORNADO_CONF_DIR/tornado.conf
+sed  -i s/\$\$EXPIRE/$EXPIRE/g $TORNADO_CONF_DIR/tornado.conf
 
 
 echo

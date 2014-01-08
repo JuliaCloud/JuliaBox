@@ -38,7 +38,7 @@ RUN julia -e 'Pkg.init(); Pkg.add("IJulia"); Pkg.add("PyPlot"); Pkg.add("Gadfly"
 RUN echo "c.NotebookApp.open_browser = False" >> /home/juser/.ipython/profile_julia/ipython_notebook_config.py
 RUN echo "c.NotebookApp.ip = \"*\"" >> /home/juser/.ipython/profile_julia/ipython_notebook_config.py
 
-RUN mkdir -p /home/juser/resty/logs /home/juser/resty/conf /home/juser/resty/lua /home/juser/resty/www /home/juser/upload
+RUN mkdir -p /home/juser/resty/logs /home/juser/resty/conf /home/juser/resty/lua /home/juser/resty/www 
 
 ADD nginx.conf /home/juser/resty/conf/
 ADD mime.types /home/juser/resty/conf/
