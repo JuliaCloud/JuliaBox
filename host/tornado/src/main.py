@@ -13,6 +13,7 @@ import hashlib
 import hmac
 import base64
 import os.path
+import sys
 
 
 f = open("conf/tornado.conf")
@@ -52,7 +53,7 @@ def launch_docker(rqst, sessname, clear=True):
     if (get_num_active_containers() > cfg["numlocalmax"]) and (not is_active_container) :
         rendertpl(rqst, "index.tpl", cfg=cfg, err="Maximum number of containers active. Please try after sometime.")
     else:
-        instid, uplport, ipnbport = launch_container(sessname, clear, c)
+        instid, uplport, ipnbport = launch_container(cfg, sessname, clear, c)
         rqst.set_cookie("sessname", sessname)
         rqst.set_cookie("hostupl", str(uplport))
         rqst.set_cookie("hostipnb", str(ipnbport))
@@ -132,7 +133,11 @@ class AdminHandler(tornado.web.RequestHandler):
             
             if delete["delete_all_inactive"] or delete["delete_all"] :
                 for c in jsonobj:
-                    if (not (dockname == c[u"Names"][0])) and (not (c[u"Names"][0] in cfg["protected_docknames"])) :
+                    if ("Names" not in c) or (c["Names"] == None):
+                        dckr.kill(c[u"Id"])
+                        dckr.remove_container(c[u"Id"])
+                        
+                    elif (dockname != c[u"Names"][0]) and (c[u"Names"][0] not in cfg["protected_docknames"]) :
                         if delete["delete_all"] or (c["Ports"] == None):
                             dckr.kill(c[u"Id"])
                             dckr.remove_container(c[u"Id"])
@@ -147,7 +152,10 @@ class AdminHandler(tornado.web.RequestHandler):
                 o = {}
                 o["Id"] = c["Id"][0:12]
                 o["Status"] = c["Status"]
-                o["Name"] = c["Names"][0]
+                if ("Names" in c) and (c["Names"] != None): 
+                    o["Name"] = c["Names"][0]
+                else:
+                    o["Name"] = "/None"
                 
                 if (c["Ports"] == None):
                     iac.append(o)
@@ -171,6 +179,7 @@ if __name__ == "__main__":
     ])
     application.settings["cookie_secret"] = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
     application.listen(cfg["port"])
+    
     tornado.ioloop.IOLoop.instance().start()
     
     

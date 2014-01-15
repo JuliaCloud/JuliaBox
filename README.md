@@ -69,6 +69,7 @@ Create a file called tornado.user in the installation's root directory. It shoul
   "protected_sessions" : ['amitm'],
   "numlocalmax" : 3,
   "admin_users" : [],
+  "mem_limit" : 1000000000,
   "dummy" : "dummy"
 }
 ```
@@ -78,6 +79,10 @@ where
 `protected_sessions` are those sessions which will not be timed out and auto-cleaned up
 `numlocalmax` is the maximum number of concurrent sessions to be allowed. Default is 10.
 `admin_users` is a list of users that have access to the admin tab. Empty means everyone has access.
+`mem_limit` is a maximum memory allowed per docker container (running a local nginx, ijulia, bash as well as the users julia sessions). Default is 1GB.
+
+NOTE: To be able to use mem_limit, the host kernel must be configured to support the same. 
+See http://docs.docker.io/en/latest/installation/kernel/#memory-and-swap-accounting-on-debian-ubuntu 
 
 
 

@@ -8,6 +8,7 @@
   "admin_users" : ["$$ADMIN_USER"],
   "dhosts" : [],
   "protected_sessions" : [],
+  "mem_limit" : 1073741824,
   "dummy" : "dummy"
 }
 

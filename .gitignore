@@ -40,4 +40,5 @@ Thumbs.db
 
 *.conf
 *.user
+*.pid
 
