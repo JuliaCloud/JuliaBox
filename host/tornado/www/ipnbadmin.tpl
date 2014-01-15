@@ -45,6 +45,18 @@
     Coming soon...
 {% end %}
 
+<script>
+    var myVar=setInterval(function(){sendKeepAlive()},60000);
+
+    function sendKeepAlive()
+    {
+        var xmlhttp=new XMLHttpRequest();
+        xmlhttp.open("GET","/ping/",true);
+        xmlhttp.send();
+
+    }
+</script>
+
 </body>
 </html>
 

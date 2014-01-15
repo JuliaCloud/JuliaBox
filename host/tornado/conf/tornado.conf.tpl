@@ -9,6 +9,7 @@
   "dhosts" : [],
   "protected_sessions" : [],
   "mem_limit" : 1073741824,
+  "inactivity_timeout" : 300,
   "dummy" : "dummy"
 }
 
