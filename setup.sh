@@ -6,7 +6,7 @@ source ${PWD}/jdockcommon.sh
 
 function usage {
   echo
-  echo 'Usage: ./setup.sh -u <admin_username> -d -g'
+  echo 'Usage: ./setup.sh -u <admin_username> optional_args'
   echo ' -u  <username> : Mandatory admin username. If -g option is used, this must be the complete Google email-id'
   echo ' -d             : Only recreate docker image - do not install/update other software'
   echo ' -g             : Use Google Openid for user authentication '
