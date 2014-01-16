@@ -12,6 +12,10 @@ function usage {
   echo ' -g             : Use Google Openid for user authentication '
   echo ' -n  <num>      : Maximum number of active containers. Deafult 10.'
   echo ' -t  <seconds>  : Auto delete containers older than specified seconds. 0 means never expire. Default 0.'
+  echo
+  echo 'Post setup, additional configuration parameters may be set in jdock.user '
+  echo 'Please see README.md for more details '
+  
   exit 1
 }
 

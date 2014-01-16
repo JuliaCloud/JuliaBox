@@ -4,14 +4,15 @@
 
 - Runs each IJulia session in its own sandboxed container
 - A bash session is aslo started in the container - can be used to run the Julia console REPL
-- File upload facility into a session's container
+- File transfer facility into a session's container
 - Basic admin screen to delete old/inactive sessions
 - Support Google auth
+- Auto cleanup of sessions based on inactivity
+- Limiting the memory usage by a user session
 
 ### Pending
 - Google drive integration
-- Auto cleanup of sessions based on inactivity
-- Resource limiting containers (cpu / disk)
+- Limiting disk usage by session
 - Upload .ipynb notebooks by URLs directly into the container
 - Security improvements
 - More complete Admin interface
@@ -61,8 +62,15 @@ git pull
 
 - This will just apply any changes to the scripts and nginx config files. Any changes to your nginx config file will be overwritten.
 
+### Powering up
+
+- `cd <path to JDock>; ./start.sh`
+- point your browser to `http://<your_host_address>/`
+- `stop.sh` stops nginx and tornado, while `reload.sh` restarts the servers
+
+
 ### Additional configuration
-Create a file called tornado.user in the installation's root directory. It should contain a JSON dictionary of the form
+Create a file called jdock.user in the installation's root directory. It should contain a JSON dictionary of the form
 
 ```
 {
@@ -70,6 +78,8 @@ Create a file called tornado.user in the installation's root directory. It shoul
   "numlocalmax" : 3,
   "admin_users" : [],
   "mem_limit" : 1000000000,
+  "inactivity_timeout" : 300,
+  "expire" : 0,
   "dummy" : "dummy"
 }
 ```
@@ -77,21 +87,20 @@ Create a file called tornado.user in the installation's root directory. It shoul
 where 
 
 `protected_sessions` are those sessions which will not be timed out and auto-cleaned up
-`numlocalmax` is the maximum number of concurrent sessions to be allowed. Default is 10.
+`numlocalmax` is the maximum number of concurrent sessions to be allowed. Default is 10 or the number specified while running ./setup.sh .
 `admin_users` is a list of users that have access to the admin tab. Empty means everyone has access.
 `mem_limit` is a maximum memory allowed per docker container (running a local nginx, ijulia, bash as well as the users julia sessions). Default is 1GB.
 
 NOTE: To be able to use mem_limit, the host kernel must be configured to support the same. 
 See http://docs.docker.io/en/latest/installation/kernel/#memory-and-swap-accounting-on-debian-ubuntu 
 
+`inactivity_timeout` specifies the time in seconds to wait before clearing an inactive session, for example, when the user closes the browser window . 
+                     Default is 300 seconds. protected_sessions are not affected.
+                     
+`expire` specifes an upper time limit for a user session before it is auto-deleted. 0 means never expire. protected_sessions are not affected.
 
 
-### Powering up
-
-- `cd <path to JDock>; ./start.sh`
-- point your browser to `http://<your_host_address>/`
-- `stop.sh` stops nginx and tornado, while `reload.sh` restarts the servers
-
+You will need to run `reload.sh` for any changed parameters to take affect.
 
 
 

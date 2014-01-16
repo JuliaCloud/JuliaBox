@@ -4,14 +4,15 @@ import time
 import sys
 import os
 
+
 dckr = docker.Client()
 
 f = open("conf/tornado.conf")
 cfg = eval(f.read())
 f.close()
 
-if os.path.isfile("conf/tornado.user"):
-    f = open("conf/tornado.user")
+if os.path.isfile("conf/jdock.user"):
+    f = open("conf/jdock.user")
     ucfg = eval(f.read())
     f.close()
     
@@ -33,15 +34,22 @@ for ps in cfg["protected_sessions"]:
 # Track the last ping time of active sessions
 map_dockname_ping = {}
 
+def log_info(s):
+    ts = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+    print (ts + "  " + s)
+    sys.stdout.flush()
 
-
-def kill_and_remove_id(Id):
-    c = dckr.inspect_container(id)
-    dckr.kill(Id)
-    dckr.remove_container(Id)
+def kill_and_remove_id(dockid):
+    c = dckr.inspect_container(dockid)
+    dckr.kill(dockid)
+    dckr.remove_container(dockid)
 
     if ("Name" in c) and (c["Name"] != None):
         map_dockname_ping.pop(c["Name"], None)
+        log_info("Deleted container : " + c["Name"] + ", Id : " + dockid)
+    else:
+        log_info("Deleted container id : " + dockid)
+
     
     
 def kill_and_remove(c):
@@ -50,6 +58,9 @@ def kill_and_remove(c):
     
     if ("Names" in c) and (c["Names"] != None):
         map_dockname_ping.pop(c["Names"][0], None)
+        log_info("Deleted container : " + c["Names"][0] + ", Id : " + c["Id"])
+    else:
+        log_info("Deleted container id : " + c["Id"])
     
     
 
@@ -124,7 +135,7 @@ def launch_container(name, clear_old_sess, c):
     else:
         iscont = True
         
-    id = ""
+    dockid = ""
     
     # kill the container 
     # if it exists and clear_old_sess
@@ -137,37 +148,32 @@ def launch_container(name, clear_old_sess, c):
         kill_and_remove(c)
     
     if ((not iscont) or clear_old_sess) :
-        id = create_new_container(name)
+        dockid = create_new_container(name)
     else:
-        id = c["Id"]
+        dockid = c["Id"]
     
-    uplport, ipnbport = get_container_ports_by_id(id)
+    uplport, ipnbport = get_container_ports_by_id(dockid)
     if ipnbport == None :
       return None, None, None
     
-    return id, uplport, ipnbport
-
-def get_container_id(name):
-    iscont, c = is_container(name)
-    if iscont:
-        return c.Id, c
-    else:
-        return None, None
+    return dockid, uplport, ipnbport
 
 
-def get_container_ports_by_id(id):
-    jsonobj = dckr.inspect_container(id)
+def get_container_ports_by_id(dockid):
+    jsonobj = dckr.inspect_container(dockid)
     
     # get the mapped ports
     return jsonobj["NetworkSettings"]["Ports"]["8000/tcp"][0]["HostPort"], jsonobj["NetworkSettings"]["Ports"]["8998/tcp"][0]["HostPort"]
 
 def create_new_container(name):
     jsonobj = dckr.create_container("ijulia", detach=True, mem_limit=cfg["mem_limit"], ports=[8998, 8000], name=name)
-    id = jsonobj["Id"]
-    dckr.start(id, port_bindings={8998: None, 8000: None})
-    map_dockname_ping["/" + name] = calendar.timegm(time.gmtime())
+    dockid = jsonobj["Id"]
+    dckr.start(dockid, port_bindings={8998: None, 8000: None})
+    dname = "/" + name
+    map_dockname_ping[dname] = calendar.timegm(time.gmtime())
+    log_info("Created container : " + dname + ", Id : " + dockid)
     
-    return id
+    return dockid
 
 
 def get_container_ports_by_name(name):

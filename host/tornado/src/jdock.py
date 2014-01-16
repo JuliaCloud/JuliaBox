@@ -68,8 +68,6 @@ class LaunchDocker(tornado.web.RequestHandler, tornado.auth.GoogleMixin):
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self):
-        terminate_expired_containers()
-        
         if cfg["gauth"]:
             if self.get_argument("openid.mode", None):
                 user = yield self.get_authenticated_user()
@@ -87,7 +85,6 @@ class LaunchDocker(tornado.web.RequestHandler, tornado.auth.GoogleMixin):
 
 class AdminHandler(tornado.web.RequestHandler):
     def get(self):
-        terminate_expired_containers()
         sessname = unquote(self.get_cookie("sessname"))
         dockname = "/" + sessname
         delete = {}
@@ -186,6 +183,7 @@ if __name__ == "__main__":
     application.listen(cfg["port"])
     
     record_active_containers()
+    terminate_expired_containers()
 
     ioloop = tornado.ioloop.IOLoop.instance()
     ct = tornado.ioloop.PeriodicCallback(do_housekeeping, 60000, ioloop)
