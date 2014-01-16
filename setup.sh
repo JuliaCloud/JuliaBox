@@ -97,6 +97,7 @@ fi
 
 # On EC2 we use the ephemeral storage for the images and the docker aufs filsystem store.
 sudo mkdir -p /mnt/docker
+sudo service docker stop
 if grep -q "^DOCKER_OPTS" /etc/default/docker ; then
   echo "/etc/default/docker has an entry for DOCKER_OPTS..."
   echo "Please ensure DOCKER_OPTS has option '-g /mnt/docker' to use ephemeral storage (on EC2) "
@@ -104,15 +105,8 @@ else
   echo "Configuring docker to use /mnt/docker for image/container storage"
   sudo sh -c "echo 'DOCKER_OPTS=\" -g /mnt/docker \"' >> /etc/default/docker"
 fi
+sudo service docker start
 
-
-if mount | grep /mnt/containers > /dev/null; then
-    echo 
-else     
-    echo "bind mounting /var/lib/docker/containers and /mnt/containers ...."
-    sudo mkdir -p /var/lib/docker/containers /mnt/containers
-    sudo mount -o bind /mnt/containers /var/lib/docker/containers
-fi
 
 echo "Building docker image ..."
 sudo docker build -t ijulia docker/IJulia/

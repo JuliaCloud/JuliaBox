@@ -17,6 +17,7 @@
 - Security improvements
 - More complete Admin interface
 - Prettier UI
+- Launching remote docker instances
 
 
 
