@@ -114,6 +114,9 @@ You will need to run `reload.sh` for any changed parameters to take affect.
 - To get the latest Julia build onto the docker image, you have have to build it with the `-no-cache` option. 
 - For example, ./setup.sh executes `sudo docker build -t ijulia docker/IJulia/`. 
 - To update docker image `ijulia` with the latest Julia version run `sudo docker build -no-cache -t ijulia docker/IJulia/`
+
+- docker is an evolving project, sometimes unwanted images take up unecessary disk space. To clear them run 
+  `sudo docker rmi $(sudo docker images | grep "^<none>" | tr -s ' ' | cut -d ' ' -f 3)`
   
 ## ACKNOWLEDGEMENTS 
 
