@@ -107,6 +107,8 @@ else
 fi
 sudo service docker start
 
+# Wait for the docker process to bind to the required ports
+sleep 1
 
 echo "Building docker image ..."
 sudo docker build -t ijulia docker/IJulia/
