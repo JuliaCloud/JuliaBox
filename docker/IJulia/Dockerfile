@@ -24,7 +24,8 @@ RUN bash -c "cd /build/resty; tar -xvzf ngx_openresty-1.4.3.3.tar.gz; cd ngx_ope
 RUN rm -Rf /build/resty/ngx_openresty-1.4.3.3*
 
 RUN groupadd juser
-RUN useradd -m -d /home/juser -s /bin/bash -g juser juser
+RUN useradd -m -d /home/juser -s /bin/bash -g staff juser
+#RUN usermod -a -G staff juser
 RUN echo "export HOME=/home/juser" >> /home/juser/.bashrc
 #RUN echo "juser ALL=NOPASSWD: ALL" >> /etc/sudoers
 USER juser
