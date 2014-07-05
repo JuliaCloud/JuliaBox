@@ -1,11 +1,13 @@
 #! /usr/bin/env bash
-# On Ubuntu 13.04, amd64, Ubuntu provided ami image 
-# ami-ef277b86
+# Setup for development. Only build nginx openresty and instal onto host/install folder.
+# Assumes all other required packages have been installed manually using appropriate apt-get / pip commands.
+# Tested on Ubuntu 14.04
 
 source ${PWD}/jdockcommon.sh
 NGINX_VER=1.7.0.1
-NGINX_INSTALL_DIR=/usr/local/openresty
+NGINX_INSTALL_DIR=${PWD}/host/install/openresty
 mkdir -p $NGINX_INSTALL_DIR
+
 
 function usage {
   echo
@@ -65,58 +67,19 @@ fi
 
 
 if test $OPT_INSTALL -eq 1; then
-    # Stuff required for docker and openresty
-    sudo apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev netcat git python-setuptools supervisor
-
-    # INSTALL docker as per http://docs.docker.io/en/latest/installation/ubuntulinux/
-    sudo apt-get -y update
-    sudo apt-get -y install linux-image-extra-`uname -r`
-    sudo sh -c "wget -qO- https://get.docker.io/gpg | apt-key add -"
-    sudo sh -c "echo deb http://get.docker.io/ubuntu docker main > /etc/apt/sources.list.d/docker.list"
-    sudo apt-get -y update
-    sudo apt-get -y install lxc-docker
-
-    # docker stuff
-    sudo gpasswd -a $USER docker
-
-    # nginx
     echo "Building nginx openresty for install at ${NGINX_INSTALL_DIR} ..."
-    sudo mkdir -p /tmp/resty
-    sudo wget -P /tmp/resty http://openresty.org/download/ngx_openresty-${NGINX_VER}.tar.gz
-    sudo bash -c "cd /tmp/resty; tar -xvzf ngx_openresty-${NGINX_VER}.tar.gz; cd ngx_openresty-${NGINX_VER}; ./configure --prefix=${NGINX_INSTALL_DIR}; make; make install"
-    sudo rm -Rf /tmp/resty
-    sudo mkdir -p ${NGINX_INSTALL_DIR}/lualib/resty/http
-    sudo cp -f libs/lua-resty-http-simple/lib/resty/http/simple.lua ${NGINX_INSTALL_DIR}/lualib/resty/http/
-
-    # python stuff
-    sudo easy_install tornado
-    sudo easy_install futures
-    
-    git clone https://github.com/dotcloud/docker-py 
-    cd docker-py
-    sudo python setup.py install
-    cd ..
-
+    # nginx
+    mkdir -p /tmp/resty
+    wget -P /tmp/resty http://openresty.org/download/ngx_openresty-${NGINX_VER}.tar.gz
+    bash -c "cd /tmp/resty; tar -xvzf ngx_openresty-${NGINX_VER}.tar.gz; cd ngx_openresty-${NGINX_VER}; ./configure --prefix=${NGINX_INSTALL_DIR}; make; make install"
+    rm -Rf /tmp/resty
+    mkdir -p ${NGINX_INSTALL_DIR}/lualib/resty/http
+    cp -f libs/lua-resty-http-simple/lib/resty/http/simple.lua ${NGINX_INSTALL_DIR}/lualib/resty/http/
 fi
 
-# On EC2 we use the ephemeral storage for the images and the docker aufs filsystem store.
-sudo mkdir -p /mnt/docker
-sudo service docker stop
-if grep -q "^DOCKER_OPTS" /etc/default/docker ; then
-  echo "/etc/default/docker has an entry for DOCKER_OPTS..."
-  echo "Please ensure DOCKER_OPTS has option '-g /mnt/docker' to use ephemeral storage (on EC2) "
-else
-  echo "Configuring docker to use /mnt/docker for image/container storage"
-  sudo sh -c "echo 'DOCKER_OPTS=\" -g /mnt/docker \"' >> /etc/default/docker"
-fi
-sudo service docker start
-
-# Wait for the docker process to bind to the required ports
-sleep 1
-
-DOCKER_IMAGE=ijulia
+DOCKER_IMAGE=dev_${USER}/ijulia
 echo "Building docker image ${DOCKER_IMAGE} ..."
-sudo docker build -t ${DOCKER_IMAGE} docker/IJulia/
+docker build -t ${DOCKER_IMAGE} docker/IJulia/
 
 echo "Setting up nginx.conf ..."
 sed  s/\$\$NGINX_USER/$USER/g $NGINX_CONF_DIR/nginx.conf.tpl > $NGINX_CONF_DIR/nginx.conf
