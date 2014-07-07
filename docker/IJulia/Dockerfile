@@ -19,8 +19,9 @@ RUN apt-get -y install python-setuptools
 RUN easy_install ipython[all]
 
 RUN mkdir -p /build/resty
-RUN wget -P /build/resty/ http://openresty.org/download/ngx_openresty-1.7.0.1.tar.gz 
-RUN bash -c "cd /build/resty; tar -xvzf ngx_openresty-1.7.0.1.tar.gz; cd ngx_openresty-1.7.0.1; ./configure ; make; make install"
+RUN wget -P /build/resty/ http://openresty.org/download/ngx_openresty-1.7.0.1.tar.gz
+RUN wget -P /build/resty http://github.com/aperezdc/ngx-fancyindex/archive/v0.3.3.tar.gz
+RUN bash -c "cd /build/resty; tar -xvzf ngx_openresty-1.7.0.1.tar.gz; cd ngx_openresty-1.7.0.1; tar -xzvf ../v0.3.3.tar.gz; ./configure --add-module=ngx-fancyindex-0.3.3; make; make install"
 RUN rm -Rf /build/resty/ngx_openresty-1.7.0.1*
 
 RUN groupadd juser

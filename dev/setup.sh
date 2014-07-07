@@ -70,7 +70,16 @@ if test $OPT_INSTALL -eq 1; then
     echo "Building nginx openresty for install at ${NGINX_INSTALL_DIR} ..."
     # nginx
     mkdir -p /tmp/resty
-    wget -P /tmp/resty http://openresty.org/download/ngx_openresty-${NGINX_VER}.tar.gz
+
+    # keep a local copy of nginx sources 
+    if [ -e ngx_openresty-${NGINX_VER}.tar.gz ]
+    then
+        cp ngx_openresty-${NGINX_VER}.tar.gz /tmp/resty/
+    else
+        wget -P /tmp/resty http://openresty.org/download/ngx_openresty-${NGINX_VER}.tar.gz
+        cp /tmp/resty/ngx_openresty-${NGINX_VER}.tar.gz .
+    fi
+
     bash -c "cd /tmp/resty; tar -xvzf ngx_openresty-${NGINX_VER}.tar.gz; cd ngx_openresty-${NGINX_VER}; ./configure --prefix=${NGINX_INSTALL_DIR}; make; make install"
     rm -Rf /tmp/resty
     mkdir -p ${NGINX_INSTALL_DIR}/lualib/resty/http
