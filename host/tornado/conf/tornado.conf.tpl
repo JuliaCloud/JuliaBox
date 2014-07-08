@@ -10,6 +10,7 @@
   "protected_sessions" : [],
   "mem_limit" : 1073741824,
   "inactivity_timeout" : 300,
+  "docker_image" : "$$DOCKER_IMAGE",
   "dummy" : "dummy"
 }
 

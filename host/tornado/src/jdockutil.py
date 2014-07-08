@@ -166,7 +166,7 @@ def get_container_ports_by_id(dockid):
     return jsonobj["NetworkSettings"]["Ports"]["8000/tcp"][0]["HostPort"], jsonobj["NetworkSettings"]["Ports"]["8998/tcp"][0]["HostPort"]
 
 def create_new_container(name):
-    jsonobj = dckr.create_container("ijulia", detach=True, mem_limit=cfg["mem_limit"], ports=[8998, 8000], name=name)
+    jsonobj = dckr.create_container(cfg["docker_image"], detach=True, mem_limit=cfg["mem_limit"], ports=[8998, 8000], name=name)
     dockid = jsonobj["Id"]
     dckr.start(dockid, port_bindings={8998: None, 8000: None})
     dname = "/" + name
