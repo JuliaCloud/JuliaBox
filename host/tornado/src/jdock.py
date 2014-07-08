@@ -17,6 +17,7 @@ import sys
 import calendar
 import time
 import sys
+import json
 
 
 def signstr(s, k):
@@ -64,19 +65,34 @@ def unquote(s):
         return s
 
 
-class LaunchDocker(tornado.web.RequestHandler, tornado.auth.GoogleMixin):
+class LaunchDocker(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self):
         if cfg["gauth"]:
-            if self.get_argument("openid.mode", None):
-                user = yield self.get_authenticated_user()
+            #self_redirect_uri should be similar to  'http://<host>/hostlaunchipnb/'
+            self_redirect_uri = self.request.full_url()
+            idx = self_redirect_uri.index("hostlaunchipnb/")
+            self_redirect_uri = self_redirect_uri[0:(idx + len("hostlaunchipnb/"))]
+            if self.get_argument('code', False):
+                user = yield self.get_authenticated_user(redirect_uri=self_redirect_uri, code=self.get_argument('code'))
+                #log_info(str(user))
+
+                # get user info
+                http = tornado.httpclient.AsyncHTTPClient()
+                auth_string = "%s %s" % (user['token_type'], user['access_token'])
+                response = yield http.fetch('https://www.googleapis.com/userinfo/v2/me', headers={"Authorization": auth_string})
+                user = json.loads(response.body)
+
+                #log_info(str(user))
                 sessname = esc_sessname(user['email'])
                 launch_docker(self, sessname, is_clear_sess_set(self)) 
-
             else:
-                yield self.authenticate_redirect(callback_uri = self.request.uri)
-                
+                yield self.authorize_redirect(redirect_uri=self_redirect_uri,
+                                client_id=self.settings['google_oauth']['key'],
+                                scope=['profile', 'email'],
+                                response_type='code',
+                                extra_params={'approval_prompt': 'auto'})
         else:
             sessname = unquote(self.get_argument("sessname"))
             launch_docker(self, sessname, is_clear_sess_set(self)) 
@@ -180,6 +196,7 @@ if __name__ == "__main__":
         (r"/ping/", PingHandler)
     ])
     application.settings["cookie_secret"] = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
+    application.settings["google_oauth"] = cfg["google_oauth"]
     application.listen(cfg["port"])
     
     record_active_containers()

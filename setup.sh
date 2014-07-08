@@ -12,9 +12,11 @@ function usage {
   echo 'Usage: ./setup.sh -u <admin_username> optional_args'
   echo ' -u  <username> : Mandatory admin username. If -g option is used, this must be the complete Google email-id'
   echo ' -d             : Only recreate docker image - do not install/update other software'
-  echo ' -g             : Use Google Openid for user authentication '
+  echo ' -g             : Use Google Openid for user authentication. Options -k and -s must be specified.'
   echo ' -n  <num>      : Maximum number of active containers. Deafult 10.'
   echo ' -t  <seconds>  : Auto delete containers older than specified seconds. 0 means never expire. Default 0.'
+  echo ' -k  <key>      : Google OAuth2 key (client id).'
+  echo ' -s  <secret>   : Google OAuth2 client secret.'
   echo
   echo 'Post setup, additional configuration parameters may be set in jdock.user '
   echo 'Please see README.md for more details '
@@ -53,6 +55,13 @@ do
      then
         EXPIRE=$OPTARG
 
+  elif test $FLAG == 'k'
+     then
+        CLIENT_ID=$OPTARG
+
+  elif test $FLAG == 's'
+     then
+        CLIENT_SECRET=$OPTARG
   fi
 done
 
@@ -136,6 +145,8 @@ sed  -i s/\$\$ADMIN_USER/$ADMIN_USER/g $TORNADO_CONF_DIR/tornado.conf
 sed  -i s/\$\$NUM_LOCALMAX/$NUM_LOCALMAX/g $TORNADO_CONF_DIR/tornado.conf
 sed  -i s/\$\$EXPIRE/$EXPIRE/g $TORNADO_CONF_DIR/tornado.conf
 sed  -i s,\$\$DOCKER_IMAGE,$DOCKER_IMAGE,g $TORNADO_CONF_DIR/tornado.conf
+sed  -i s,\$\$CLIENT_SECRET,$CLIENT_SECRET,g $TORNADO_CONF_DIR/tornado.conf
+sed  -i s,\$\$CLIENT_ID,$CLIENT_ID,g $TORNADO_CONF_DIR/tornado.conf
 
 
 echo
