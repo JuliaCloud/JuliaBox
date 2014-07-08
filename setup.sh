@@ -29,7 +29,7 @@ OPT_GOOGLE=0
 NUM_LOCALMAX=10 
 EXPIRE=0
 
-while getopts  "u:dgn:t:" FLAG
+while getopts  "u:dgn:t:k:s:" FLAG
 do
   if test $FLAG == '?'
      then
