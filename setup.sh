@@ -136,7 +136,7 @@ SESSKEY=`< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c10`
 sed  -i s/\$\$SESSKEY/$SESSKEY/g $NGINX_CONF_DIR/nginx.conf 
 sed  s/\$\$SESSKEY/$SESSKEY/g $TORNADO_CONF_DIR/tornado.conf.tpl > $TORNADO_CONF_DIR/tornado.conf
 
-if test $OPT_INSTALL -eq 1; then
+if test $OPT_GOOGLE -eq 1; then
     sed  -i s/\$\$GAUTH/True/g $TORNADO_CONF_DIR/tornado.conf
 else
     sed  -i s/\$\$GAUTH/False/g $TORNADO_CONF_DIR/tornado.conf
