@@ -56,7 +56,7 @@
               <iframe src="/hostipnbupl/" id="upload-frame" frameborder="0" width="100%"></iframe>
             </td>
             <td width="50%" valign="top">
-              <iframe src="/hostipnbupl/home/juser/" id="filelist-frame" frameborder="0" width="50%" height="300"></iframe>
+              <iframe src="/hostipnbupl/home/juser/" id="filelist-frame" frameborder="0" width="100%"></iframe>
             </td>
 	  </tr>
 	</table>
