@@ -1,4 +1,50 @@
-## JDock - Docker'ed IJulia containers
+## JDock - Docker'ed IJulia Containers
+
+### Packages installed
+
+Following packages are installed by default. Additional packages can be installed and existing packages can be upgraded by users as desired.
+
+- 10 required packages:
+    - DataFrames
+    - DataStructures
+    - Gadfly
+    - HDF5
+    - IJulia
+    - Iterators
+    - MCMC
+    - NumericExtensions
+    - Optim
+    - PyPlot
+- 29 additional packages:
+    - ArrayViews
+    - BinDeps
+    - Calculus
+    - Codecs
+    - Color
+    - Compose
+    - Contour
+    - DataArrays
+    - Datetime
+    - Distance
+    - Distributions
+    - DualNumbers
+    - GZip
+    - Hexagons
+    - ImmutableArrays
+    - JSON
+    - Loess
+    - Nettle
+    - NumericFuns
+    - Options
+    - PDMats
+    - PyCall
+    - REPLCompletions
+    - Reexport
+    - ReverseDiffSource
+    - SortingAlgorithms
+    - StatsBase
+    - URIParser
+    - ZMQ
 
 ### What works
 
