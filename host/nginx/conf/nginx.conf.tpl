@@ -87,7 +87,7 @@ http {
         }
 
         location /assets/ {
-            # Serve these files as they are
+            include    mime.types;
         }
 
 # everything else        
