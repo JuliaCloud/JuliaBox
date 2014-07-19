@@ -25,6 +25,7 @@
 	    <li><a href="#console" data-toggle="tab">Console</a></li>
 	    <li><a href="#fileman" data-toggle="tab">File Manager</a></li>
 	    <li><a href="#admin" data-toggle="tab">Admin</a></li>
+	    <li><a href="#docs" data-toggle="tab">Docs</a></li>
 	  </ul>
 	</div>
       </div><!-- row -->
@@ -41,6 +42,9 @@
         Type "julia" to start a Julia REPL session.<br/><br/>
         
         <iframe src="/hostipnbupl/shellinabox" id="console-frame" frameborder="0" height="86%" width="100%"></iframe>
+      </div>
+      <div id="docs" class="tab-pane">
+	<iframe id="docs-frame" src="http://julia.readthedocs.org/en/latest/" frameborder="0" height="100%" width="100%"></iframe>
       </div>
       <div id="fileman" class="tab-pane container">
 	Your work directory on this machine is &quot;/home/juser&quot;.<br/>

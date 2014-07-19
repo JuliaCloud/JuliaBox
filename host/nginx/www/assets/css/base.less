@@ -8,6 +8,9 @@ body {
 iframe {
     display: none; /* initally keep hidden */
 }
+#docs-frame {
+    display: block;
+}
 .brand-title {
     font-size: 1.5em;
 }
@@ -19,18 +22,23 @@ iframe {
     box-shadow: 0 0 8px #aaa;
 }
 .header-row {
+    height: 3em;
     margin-top: 1em;
     margin-bottom: 0.5em;
 }
 .tab-content {
+    z-index: -10;
     position: absolute;
-    top: 6em;
+    top: 4.5em;
     bottom: 0;
     left: 0;
     right: 0;
 }
 .tab-pane {
     height: 100%;
+}
+.tab-pane.container {
+    padding-top: 2em;
 }
 .nav > li > a {
     padding: 0.5em 1em;
