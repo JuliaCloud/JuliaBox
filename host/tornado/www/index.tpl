@@ -7,55 +7,17 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Hosted IJulia</title>
+    <title>JuliaBox</title>
 
     <!-- Bootstrap core CSS -->
     <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+    {% if cfg["env_type"] == "dev" %}
+    <link rel="stylesheet/less" type="text/css" href="/assets/css/index.less" />
+    <script src="//cdnjs.cloudflare.com/ajax/libs/less.js/1.7.3/less.min.js"></script>
+    {% else %}
+    <link rel="stylesheet" type="text/css" href="/assets/css/index.css" />
+    {% end %}
 
-    <!-- Custom styles for this template -->
-    <style>
-        body {
-        padding-top: 40px;
-        padding-bottom: 40px;
-        background-color: #eee;
-        }
-
-        .form-signin {
-        max-width: 330px;
-        padding: 15px;
-        margin: 0 auto;
-        }
-        .form-signin .form-signin-heading,
-        .form-signin .checkbox {
-        margin-bottom: 10px;
-        }
-        .form-signin .checkbox {
-        font-weight: normal;
-        }
-        .form-signin .form-control {
-        position: relative;
-        font-size: 16px;
-        height: auto;
-        padding: 10px;
-        -webkit-box-sizing: border-box;
-            -moz-box-sizing: border-box;
-                box-sizing: border-box;
-        }
-        .form-signin .form-control:focus {
-        z-index: 2;
-        }
-        .form-signin input[type="text"] {
-        margin-bottom: -1px;
-        border-bottom-left-radius: 0;
-        border-bottom-right-radius: 0;
-        }
-        .form-signin input[type="password"] {
-        margin-bottom: 10px;
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;
-        }
-    </style>
-    
     <!-- Just for debugging purposes. Don't actually copy this line! -->
     <!--[if lt IE 9]><script src="../../docs-assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
 
@@ -63,74 +25,57 @@
     <!--[if lt IE 9]>
       <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
       <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
-    <![endif]-->
+      <![endif]-->
   </head>
 
   <body>
-
-    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-      <div class="container">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="#">Hosted IJulia</a>
-        </div>
-        <div class="collapse navbar-collapse">
-          <ul class="nav navbar-nav">
-            <li class="active"><a href="#">Home</a></li>
-            <li><a href="#about">About</a></li>
-            <li><a href="#contact">Contact</a></li>
-          </ul>
-        </div><!--/.nav-collapse -->
-      </div>
-    </div>
-
     <div class="container">
-    
+	<table class="page-wrap">
+	  <tbody>
+	    <tr>
+	      <td class="banner">
+		<div class="description">
+		  <img src="/assets/img/juliacloudlogo.png">
+		  <h1 class="title">JuliaBox</h1>
+		  <p class="subtitle">Try Julia in your own docker image.</p>
+		</div>
+	      </td>
+	      <td>
+		<form class="form-signin" role="form" action="/hostlaunchipnb/">
+		  <h2 class="form-signin-heading">Sign in</h2>
+		  {% if cfg["gauth"] == True %}
+		  Please sign in using your Google id.<br> 
+		  {% else %}
+		  Please enter a name for your JuliaBox session. <br> 
+		  {% end %}
+		  {% if cfg["gauth"] == False %}
+		  <input type="text" class="form-control" name="sessname" required autofocus>
+		  {% end %}
+		  <label class="checkbox" for="clear_old_sess">
+		    <input type="checkbox" name="clear_old_sess" value="true"> Force new session
+		  </label>
+		  <button class="btn btn-lg btn-primary btn-block" type="submit"  value="Launch">Launch JuliaBox</button>
+		  <h3 style="color:Red">{{ err }}</h3>    
 
-    
-     <form class="form-signin" role="form" action="/hostlaunchipnb/">
-        <h2 class="form-signin-heading">Try IJulia!</h2>
-        {% if cfg["gauth"] == True %}
-            Please sign in using your Google id.<br> 
-        {% else %}
-            Please enter a name for your IPNB session. <br> 
-        {% end %}
-        {% if cfg["gauth"] == False %}
-        <input type="text" class="form-control" name="sessname" required autofocus>
-        {% end %}
-        
-        <label class="checkbox">
-          <input type="checkbox" name="clear_old_sess" value="true"> Force new session
-        </label>
-        <button class="btn btn-lg btn-primary btn-block" type="submit"  value="Launch">Launch IJulia</button>
-        <h3 style="color:Red">{{ err }}</h3>    
-        
-        {% if cfg["gauth"] == False %}
-            <b>NOTE : </b> <br>
-            <b>Session Names : </b> Please use alphanumeric characters only. Underscores are OK. 
-        {% end %}
-
-            <br>
-            <br>
-            <b>Rejoing existing sessions : </b> By default, existing sessions with the same name (if found) are reconnected to. <br> 
-            If "Force new" is checked, any old sessions are deleted and a new one instantiated.  
-            <br>
-        
-        
-      </form>
-      
-    </div><!-- /.container -->
-
-
-    <!-- Bootstrap core JavaScript
-    ================================================== -->
-    <!-- Placed at the end of the document so the pages load faster -->
-    <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+		  <p class="instructions">
+		    
+		    {% if cfg["gauth"] == False %}
+		    <b>Session Names: </b> Please use alphanumeric characters only. Underscores are OK.<br><br>
+		    {% end %}
+		    <b>Rejoing existing sessions: </b> By default, existing sessions with the same name (if found) are reconnected to. <br> 
+		    If "Force new" is checked, any old sessions are deleted and a new one instantiated.  
+		  </p>
+		</form>
+              </td>
+	    </tr>
+	  </tbody>
+	</table>
+    </div>
+</div><!-- /.container -->
+      <!-- Bootstrap core JavaScript
+	   ================================================== -->
+      <!-- Placed at the end of the document so the pages load faster -->
+      <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
     <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
 </body>
 </html>

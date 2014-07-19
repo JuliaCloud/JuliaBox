@@ -45,8 +45,8 @@
       <div id="fileman" class="tab-pane container">
 	Your work directory on this machine is &quot;/home/juser&quot;.<br/>
 	All uploaded files would be placed here.<br/><br/>
-	<iframe src="/hostipnbupl/" id="upload-frame" frameborder="0" scrolling="no" height="86%" style="float: left" width="49%"></iframe>
-	<iframe src="/hostipnbupl/home/juser/" id="filelist-frame" scrolling="no" frameborder="0" height="86%" width="49%"></iframe>
+	<iframe src="/hostipnbupl/" id="upload-frame" frameborder="0" height="86%" style="float: left" width="49%"></iframe>
+	<iframe src="/hostipnbupl/home/juser/" id="filelist-frame" frameborder="0" height="86%" width="49%"></iframe>
       </div>
       <div id="admin" class="tab-pane container">
         <iframe src="/hostadmin/" id="admin-frame" frameborder="0" height="100%" width="100%"></iframe>
