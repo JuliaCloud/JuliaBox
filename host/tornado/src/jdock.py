@@ -41,7 +41,7 @@ def launch_docker(rqst, sessname, clear=True):
         sign = signstr(sessname + str(uplport) + str(ipnbport), cfg["sesskey"])
         
         rqst.set_cookie("sign", sign)
-        rendertpl(rqst, "ipnbsess.tpl", cfg=cfg)
+        rendertpl(rqst, "ipnbsess.tpl", sessname=sessname, cfg=cfg)
     
 
 
