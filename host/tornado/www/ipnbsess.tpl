@@ -1,7 +1,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>$$SESSNAME &mdash; JuliaBox</title>
+  <title>{{sessname}} &mdash; JuliaBox</title>
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
   <link href='http://fonts.googleapis.com/css?family=Raleway|Inconsolata' rel='stylesheet' type='text/css'>
   {% if cfg["env_type"] == "dev" %}
