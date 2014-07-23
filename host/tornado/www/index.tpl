@@ -37,24 +37,24 @@
 		<div class="description">
 		  <img src="/assets/img/juliacloudlogo.png">
 		  <h1 class="title">JuliaBox</h1>
-		  <p class="subtitle">Try Julia in your own docker image.</p>
+		  <p class="subtitle">Run Julia without the fuss of installation.</p>
 		</div>
 	      </td>
 	      <td>
 		<form class="form-signin" role="form" action="/hostlaunchipnb/">
 		  <h2 class="form-signin-heading">Sign in</h2>
 		  {% if cfg["gauth"] == True %}
-		  Please sign in using your Google id.<br> 
+		  (with your Google id)<br/><br/>
 		  {% else %}
 		  Please enter a name for your JuliaBox session. <br> 
 		  {% end %}
 		  {% if cfg["gauth"] == False %}
 		  <input type="text" class="form-control" name="sessname" required autofocus>
 		  {% end %}
+		  <button class="btn btn-lg btn-primary btn-block" type="submit"  value="Launch">Launch JuliaBox</button>
 		  <label class="checkbox" for="clear_old_sess">
 		    <input type="checkbox" name="clear_old_sess" value="true"> Force new session
 		  </label>
-		  <button class="btn btn-lg btn-primary btn-block" type="submit"  value="Launch">Launch JuliaBox</button>
 		  <h3 style="color:Red">{{ err }}</h3>    
 
 		  <p class="instructions">

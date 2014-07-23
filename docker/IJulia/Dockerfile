@@ -2,7 +2,7 @@
 # Docker file to have a complete Julia installation
 # Julia has some issues installing on the 12.04 image, hence using 13.04
 
-FROM saltstack/ubuntu-13.04-minimal
+FROM saltstack/ubuntu-13.10-minimal
 
 MAINTAINER Amit Murthy
 
@@ -16,6 +16,7 @@ RUN apt-get -y install julia
 RUN apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev python-dev libgnutls28 shellinabox wget file
 
 RUN apt-get -y install python-setuptools
+RUN apt-get -y install python-numpy python-scipy python-matplotlib 
 RUN easy_install ipython[all]
 
 RUN mkdir -p /build/resty
