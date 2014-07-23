@@ -15,7 +15,7 @@
         "key": "$$CLIENT_ID", 
         "secret": "$$CLIENT_SECRET"
     },
-    "env_type" : "dev",
+    "env_type" : "prod",
     "dummy" : "dummy"
 }
 
