@@ -65,11 +65,15 @@ http {
                 local http  = require "resty.http.simple"
                 local n = 20
                 local hostipnbport = ngx.var.cookie_hostipnb
+                local hostuplport = ngx.var.cookie_hostupl
                 local opts = {}
                 opts.path = "/"
 
                 while (n > 0) do
                     local res, err = http.request("127.0.0.1", hostipnbport, opts)
+                    if res then
+                        res, err = http.request("127.0.0.1", hostuplport, opts)
+                    end
                     if not res then
                         ngx.sleep(1.0)
                     else
