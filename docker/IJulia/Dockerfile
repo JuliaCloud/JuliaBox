@@ -12,11 +12,9 @@ RUN add-apt-repository -y ppa:staticfloat/julia-deps
 
 RUN apt-get -y update
 
-RUN apt-get -y install julia
-RUN apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev python-dev libgnutls28 shellinabox wget file
+RUN apt-get -y install julia build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev python-dev libgnutls28 shellinabox wget file
+RUN apt-get -y install python-setuptools python-numpy python-scipy python-matplotlib 
 
-RUN apt-get -y install python-setuptools
-RUN apt-get -y install python-numpy python-scipy python-matplotlib 
 RUN easy_install ipython[all]
 
 RUN mkdir -p /build/resty
@@ -36,10 +34,7 @@ WORKDIR /home/juser
 
 RUN ipython profile create julia
 #RUN apt-get -y install libzmq-dev
-RUN julia -e 'Pkg.init();'
-RUN julia -e 'Pkg.add("IJulia"); Pkg.add("PyPlot"); Pkg.add("Gadfly");'
-RUN julia -e 'Pkg.add("DataFrames"); Pkg.add("DataStructures"); Pkg.add("HDF5");'
-RUN julia -e 'Pkg.add("Iterators"); Pkg.add("MCMC"); Pkg.add("NumericExtensions"); Pkg.add("Optim"); Pkg.add("JuMP");'
+RUN julia -e 'Pkg.init(); Pkg.add("IJulia"); Pkg.add("PyPlot"); Pkg.add("Gadfly"); Pkg.add("DataFrames"); Pkg.add("DataStructures"); Pkg.add("HDF5"); Pkg.add("Iterators"); Pkg.add("MCMC"); Pkg.add("NumericExtensions"); Pkg.add("Optim"); Pkg.add("JuMP");'
 
 RUN echo "c.NotebookApp.open_browser = False" >> /home/juser/.ipython/profile_julia/ipython_notebook_config.py
 RUN echo "c.NotebookApp.ip = \"*\"" >> /home/juser/.ipython/profile_julia/ipython_notebook_config.py
