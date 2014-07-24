@@ -36,7 +36,10 @@ WORKDIR /home/juser
 
 RUN ipython profile create julia
 #RUN apt-get -y install libzmq-dev
-RUN julia -e 'Pkg.init(); Pkg.add("IJulia"); Pkg.add("PyPlot"); Pkg.add("Gadfly"); Pkg.add("DataFrames"); Pkg.add("DataStructures"); Pkg.add("HDF5"); Pkg.add("Iterators"); Pkg.add("MCMC"); Pkg.add("NumericExtensions"); Pkg.add("Optim");'
+RUN julia -e 'Pkg.init();'
+RUN julia -e 'Pkg.add("IJulia"); Pkg.add("PyPlot"); Pkg.add("Gadfly");'
+RUN julia -e 'Pkg.add("DataFrames"); Pkg.add("DataStructures"); Pkg.add("HDF5");'
+RUN julia -e 'Pkg.add("Iterators"); Pkg.add("MCMC"); Pkg.add("NumericExtensions"); Pkg.add("Optim"); Pkg.add("JuMP");'
 
 RUN echo "c.NotebookApp.open_browser = False" >> /home/juser/.ipython/profile_julia/ipython_notebook_config.py
 RUN echo "c.NotebookApp.ip = \"*\"" >> /home/juser/.ipython/profile_julia/ipython_notebook_config.py
