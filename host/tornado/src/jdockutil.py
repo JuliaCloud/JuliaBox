@@ -1,187 +1,226 @@
 import docker
-import calendar
-import time
-import sys
-import os
-
-
-dckr = docker.Client()
-
-f = open("conf/tornado.conf")
-cfg = eval(f.read())
-f.close()
-
-if os.path.isfile("conf/jdock.user"):
-    f = open("conf/jdock.user")
-    ucfg = eval(f.read())
-    f.close()
-    
-    cfg.update(ucfg)
-
-
-def esc_sessname(s):
-    return s.replace("@", "_at_").replace(".", "_")
-
-cfg["admin_sessnames"]=[]
-for ad in cfg["admin_users"]:
-    cfg["admin_sessnames"].append(esc_sessname(ad))
-
-cfg["protected_docknames"]=[]
-for ps in cfg["protected_sessions"]:
-    cfg["protected_docknames"].append("/" + esc_sessname(ps))
-
-
-# Track the last ping time of active sessions
-map_dockname_ping = {}
+import calendar, os, sys, time
 
 def log_info(s):
     ts = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
     print (ts + "  " + s)
     sys.stdout.flush()
 
-def kill_and_remove_id(dockid):
-    c = dckr.inspect_container(dockid)
-    dckr.kill(dockid)
-    dckr.remove_container(dockid)
+def esc_sessname(s):
+    return s.replace("@", "_at_").replace(".", "_")
 
-    if ("Name" in c) and (c["Name"] != None):
-        map_dockname_ping.pop(c["Name"], None)
-        log_info("Deleted container : " + c["Name"] + ", Id : " + dockid)
-    else:
-        log_info("Deleted container id : " + dockid)
+def read_config():
+    with open("conf/tornado.conf") as f:
+        cfg = eval(f.read())
 
-    
-    
-def kill_and_remove(c):
-    dckr.kill(c["Id"])
-    dckr.remove_container(c["Id"])
-    
-    if ("Names" in c) and (c["Names"] != None):
-        map_dockname_ping.pop(c["Names"][0], None)
-        log_info("Deleted container : " + c["Names"][0] + ", Id : " + c["Id"])
-    else:
-        log_info("Deleted container id : " + c["Id"])
-    
-    
+    if os.path.isfile("conf/jdock.user"):
+        with open("conf/jdock.user") as f:
+            ucfg = eval(f.read())
+        cfg.update(ucfg)
 
-def get_num_active_containers():
-    return len(dckr.containers(all=False))
+    cfg["admin_sessnames"]=[]
+    for ad in cfg["admin_users"]:
+        cfg["admin_sessnames"].append(esc_sessname(ad))
 
+    cfg["protected_docknames"]=[]
+    for ps in cfg["protected_sessions"]:
+        cfg["protected_docknames"].append("/" + esc_sessname(ps))
 
+    return cfg
 
-def isactive(c):
-    if ("Names" not in c) or (c["Names"] == None) or ("Ports" not in c) or (c["Ports"] == None):
-        return False
-    else:
-        return True
+class JDockContainer:
+    CONTAINER_PORT_BINDINGS = {8000: ('127.0.0.1',), 8998: ('127.0.0.1',)}
+    DCKR = None
+    PINGS = {}
+    DCKR_IMAGE = None
+    MEM_LIMIT = None
+    PORTS = [8000, 8998]
 
-# remove container if 
-# inactive and greater than inactive timeout(if found) or expiry time
-# active, not protected and inactive for more than inactive timeout 
-# active, not protected and running for more than expiry time
-# active and protected, leave as is.
-# If active, but not in active_docknames, drop it.
+    def __init__(self, dockid):
+        self.dockid = dockid
+        self.refresh()
 
+    def refresh(self):
+        self.props = None
+        self.dbgstr = None
+        self.host_ports = None
+   
+    def get_props(self):
+        if None == self.props:
+            self.props = JDockContainer.DCKR.inspect_container(self.dockid)
+        return self.props
+         
+    def get_host_ports(self):
+        if None == self.host_ports:
+            props = self.get_props()
+            ports = props['NetworkSettings']['Ports']
+            port_map = []
+            for port in JDockContainer.PORTS:
+                tcp_port = str(port) + '/tcp'
+                port_map.append(ports[tcp_port][0]['HostPort'])
+            self.host_ports = tuple(port_map)
+        return self.host_ports
 
-def terminate_expired_containers():
-    tnow = calendar.timegm(time.gmtime())
-    if cfg["expire"] == 0:
-        # nobody is expired
-        expire_before = 0
-    else:
-        expire_before = tnow - cfg["expire"]
+    def debug_str(self):
+        if None == self.dbgstr:
+            self.dbgstr = "JDockContainer id=" + str(self.dockid) + ", name=" + str(self.get_name())
+        return self.dbgstr
         
-    jsonobj = dckr.containers(all=True)
-    for c in jsonobj:
-        if isactive(c):
-            cn = c["Names"][0]
-            if cn in cfg["protected_docknames"]:
+    def get_name(self):
+        props = self.get_props()
+        return props['Name'] if ('Name' in props) else None
+
+    @staticmethod
+    def configure(dckr, image, mem_limit):
+        JDockContainer.DCKR = dckr
+        JDockContainer.DCKR_IMAGE = image
+        JDockContainer.MEM_LIMIT = mem_limit
+
+    @staticmethod
+    def create_new(name):
+        jsonobj = JDockContainer.DCKR.create_container(JDockContainer.DCKR_IMAGE, detach=True, mem_limit=JDockContainer.MEM_LIMIT, ports=JDockContainer.PORTS, name=name)
+        dockid = jsonobj["Id"]
+        cont = JDockContainer(dockid)
+        log_info("Created " + cont.debug_str())
+        return cont
+
+    @staticmethod
+    def launch_by_name(name, reuse=True):
+        log_info("Launching container: " + name)
+
+        cont = JDockContainer.get_by_name(name)
+
+        if (None != cont) and not reuse:
+            cont.delete()
+            cont = None
+
+        if (None == cont):
+            cont = JDockContainer.create_new(name)
+
+        if not cont.is_running():
+            cont.start()
+
+        return cont
+    
+    @staticmethod    
+    def maintain(delete_timeout=0, stop_timeout=0, protected_names=[]):
+        log_info("Starting container maintenance...")
+        tnow = calendar.timegm(time.gmtime())
+
+        delete_before = (tnow - delete_timeout) if (delete_timeout > 0) else 0
+        stop_before = (tnow - stop_timeout) if (stop_timeout > 0) else 0
+
+        all_containers = JDockContainer.DCKR.containers(all=True)
+
+        for cdesc in all_containers:
+            cont = JDockContainer(cdesc['Id'])
+            cname = cont.get_name()
+
+            if (cname == None) or (cname in protected_names):
+                log_info("Ignoring " + cont.debug_str())
                 continue
-            
-            elif cn not in map_dockname_ping:
-                kill_and_remove(c)
-                
-            elif (c["Created"] < expire_before):
-                kill_and_remove(c)
-                
-            elif (cn in map_dockname_ping) and (map_dockname_ping[cn] < (tnow - cfg["inactivity_timeout"])):
-                kill_and_remove(c)
+
+            c_is_active = cont.is_running()
+            last_ping = JDockContainer.get_last_ping(cname)
+
+            # if we don't have a ping record, create one (we must have restarted) 
+            if (None == last_ping) and c_is_active:
+                log_info("Discovered new container " + cont.debug_str())
+                JDockContainer.record_ping(cname)
+
+            if cont.time_started() < delete_before:
+                # don't allow running beyond the limit for long running sessions
+                log_info("time_started " + str(cont.time_started()) + " delete_before: " + str(delete_before) + " cond: " + str(cont.time_started() < delete_before))
+                log_info("Running beyond allowed time " + cont.debug_str())
+                cont.delete()
+            elif (None != last_ping) and c_is_active and (last_ping < stop_before):
+                # if inactive for too long, stop it
+                log_info("last_ping " + str(last_ping) + " stop_before: " + str(stop_before) + " cond: " + str(last_ping < stop_before))
+                log_info("Inactive beyond allowed time " + cont.debug_str())
+                cont.stop()
+        log_info("Finished container maintenance.")
+
+    @staticmethod
+    def num_active():
+        active_containers = JDockContainer.DCKR.containers(all=False)
+        return len(active_containers)
+
+    @staticmethod
+    def get_by_name(name):
+        nname = "/" + unicode(name)
+
+        for c in JDockContainer.DCKR.containers(all=True):
+            if ('Names' in c) and (c['Names'] != None) and (c['Names'][0] == nname):
+                return JDockContainer(c['Id'])
+        return None
+
+    @staticmethod
+    def record_ping(name):
+        JDockContainer.PINGS[name] = calendar.timegm(time.gmtime())
+        #log_info("Recorded ping for " + name)
+
+    @staticmethod
+    def get_last_ping(name):
+        return JDockContainer.PINGS[name] if (name in JDockContainer.PINGS) else None
+
+    def is_running(self):
+        props = self.get_props()
+        state = props['State']
+        return state['Running'] if 'Running' in state else False
+
+    def time_started(self):
+        props = self.get_props()
+        return props['State']['StartedAt']
+
+    def time_finished(self):
+        props = self.get_props()
+        return props['State']['FinishedAt']
+
+    def time_created(self):
+        props = self.get_props()
+        return props['Created']
+
+    def stop(self):
+        log_info("Stopping " + self.debug_str())
+        self.refresh()
+        if self.is_running():
+            JDockContainer.DCKR.stop(self.dockid)
+            self.refresh()
+            log_info("Stopped " + self.debug_str())
         else:
-            if ("Names" in c) and (c["Names"] != None):
-                kill_and_remove(c)
-            
-            elif (c["Created"] < expire_before) :
-                kill_and_remove(c)
-                 
+            log_info("Already stopped " + self.debug_str())
 
-def record_active_containers():
-    for c in dckr.containers(all=True):
-        if isactive(c):
-            map_dockname_ping[c["Names"][0]] = calendar.timegm(time.gmtime())
+    def start(self):
+        self.refresh()
+        log_info("Starting " + self.debug_str())
+        if self.is_running():
+            log_info("Already started " + self.debug_str())
+            return
+        JDockContainer.DCKR.start(self.dockid, port_bindings=JDockContainer.CONTAINER_PORT_BINDINGS)
+        self.refresh()
+        log_info("Started " + self.debug_str())
+        cname = self.get_name()
+        if None != cname:
+            JDockContainer.record_ping(cname)
 
-def is_container(name, all=True):
-    nname = "/" + unicode(name)
-    
-    for c in dckr.containers(all=all):
-        if ("Names" in c) and (c["Names"] != None) and (c["Names"][0] == nname) :
-            return True, c
-        
-    return False, None
+    def kill(self):
+        log_info("Killing " + self.debug_str())
+        JDockContainer.DCKR.kill(self.dockid)
+        self.refresh()
+        log_info("Killed " + self.debug_str())
 
-
-def launch_container(name, clear_old_sess, c):
-    if c == None:
-        iscont, c = is_container(name)
-    else:
-        iscont = True
-        
-    dockid = ""
-    
-    # kill the container 
-    # if it exists and clear_old_sess
-    # if it exists and is not in a running state
-    
-    if iscont and (("Ports" not in c) or (c["Ports"] == None)):
-        clear_old_sess = True
-    
-    if (iscont and clear_old_sess):
-        kill_and_remove(c)
-    
-    if ((not iscont) or clear_old_sess) :
-        dockid = create_new_container(name)
-    else:
-        dockid = c["Id"]
-    
-    uplport, ipnbport = get_container_ports_by_id(dockid)
-    if ipnbport == None :
-      return None, None, None
-    
-    return dockid, uplport, ipnbport
+    def delete(self):
+        self.refresh()
+        cname = self.get_name()
+        if self.is_running():
+            self.kill()
+        JDockContainer.DCKR.remove_container(self.dockid)
+        if cname != None:
+            JDockContainer.PINGS.pop(cname, None)
+        log_info("Deleted " + self.debug_str())
 
 
-def get_container_ports_by_id(dockid):
-    jsonobj = dckr.inspect_container(dockid)
-    
-    # get the mapped ports
-    return jsonobj["NetworkSettings"]["Ports"]["8000/tcp"][0]["HostPort"], jsonobj["NetworkSettings"]["Ports"]["8998/tcp"][0]["HostPort"]
-
-def create_new_container(name):
-    jsonobj = dckr.create_container(cfg["docker_image"], detach=True, mem_limit=cfg["mem_limit"], ports=[8998, 8000], name=name)
-    dockid = jsonobj["Id"]
-    dckr.start(dockid, port_bindings={8998: None, 8000: None})
-    dname = "/" + name
-    map_dockname_ping[dname] = calendar.timegm(time.gmtime())
-    log_info("Created container : " + dname + ", Id : " + dockid)
-    
-    return dockid
-
-
-def get_container_ports_by_name(name):
-    iscont, c = is_container(name)
-    
-    if not iscont:
-        raise Exception ("ERROR: Could not find session : " + name)
-    
-    return get_container_ports_by_id(c["Id"])
-
+dckr = docker.Client()
+cfg = read_config()
+JDockContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'])
 
