@@ -1,4 +1,4 @@
-## JDock - Docker'ed IJulia Containers
+## JuliaBox - Docker'ed IJulia Containers
 
 ### Packages installed
 
@@ -77,9 +77,9 @@ Following packages are installed by default. Additional packages can be installe
 ```
 sudo apt-get install git
 
-git clone https://github.com/amitmurthy/JDock.git
+git clone https://github.com/JuliaLang/JuliaBox.git
 
-cd JDock
+cd JuliaBox
 ```
 
 setup.sh has the following options:
@@ -96,7 +96,7 @@ Usage: ./setup.sh  -u <admin_username> optional_args
 
 - `admin_username` above is the session name for an "administration" session. If not using Google auth, select something non-guessable.
 - Go get a coffee, this while take a while
-- NOTE : If you are just updating JDock and do not wish to reinstall packages on your host, use the `-d` option
+- NOTE : If you are just updating JuliaBox and do not wish to reinstall packages on your host, use the `-d` option
 
 
 ```
@@ -111,7 +111,7 @@ git pull
 
 ### Powering up
 
-- `cd <path to JDock>; ./start.sh`
+- `cd <path to JuliaBox>; ./start.sh`
 - point your browser to `http://<your_host_address>/`
 - `stop.sh` stops nginx and tornado, while `reload.sh` restarts the servers
 
@@ -157,7 +157,7 @@ You will need to run `reload.sh` for any changed parameters to take affect.
 - NGINX and embedded Lua (from http://openresty.org/) and tornado have been used to build the web interface
 - Not recommended to host on the public internet just yet. 
 - Security is mostly a TODO at this time.
-- Docker itself is undergoing changes in its API. Since we pull in the latest docker, changes in the docker API may break JDock at any time.
+- Docker itself is undergoing changes in its API. Since we pull in the latest docker, changes in the docker API may break JuliaBox at any time.
 - To get the latest Julia build onto the docker image, you have have to build it with the `-no-cache` option. 
 - For example, ./setup.sh executes `sudo docker build -t ijulia docker/IJulia/`. 
 - To update docker image `ijulia` with the latest Julia version run `sudo docker build -no-cache -t ijulia docker/IJulia/`
