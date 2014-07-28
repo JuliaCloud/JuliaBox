@@ -16,6 +16,7 @@
         "secret": "$$CLIENT_SECRET"
     },
     "env_type" : "prod",
+    "backup_location" : "~/juliabox_backup",
     "dummy" : "dummy"
 }
 

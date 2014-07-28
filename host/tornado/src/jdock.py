@@ -5,7 +5,7 @@ from functools import partial, wraps
 from jdockutil import *
 
 import tornado.ioloop, tornado.web, tornado.auth
-import base64, calendar, hashlib, hmac, json, os.path, random, string, sys, time
+import base64, hashlib, hmac, json, os, os.path, random, string, sys, time, errno
 
 
 def signstr(s, k):
@@ -22,6 +22,12 @@ def unquote(s):
 def rendertpl(rqst, tpl, **kwargs):
     rqst.render("../www/" + tpl, **kwargs)
 
+def make_sure_path_exists(path):
+    try:
+        os.makedirs(path)
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -173,6 +179,13 @@ class PingHandler(tornado.web.RequestHandler):
 def do_housekeeping():
     JDockContainer.maintain(delete_timeout=cfg['expire'], stop_timeout=cfg['inactivity_timeout'], protected_names=cfg['protected_docknames'])
 
+def do_backups():
+    backup_location = path.expanduser(cfg['backup_location'])
+    make_sure_path_exists(backup_location)
+    JDockContainer.backup_all(backup_location)
+
+    
+
 if __name__ == "__main__":
     application = tornado.web.Application([
         (r"/", MainHandler),
@@ -185,8 +198,14 @@ if __name__ == "__main__":
     application.listen(cfg["port"])
     
     ioloop = tornado.ioloop.IOLoop.instance()
+
+    # run container maintainence every 10 minutes
     ct = tornado.ioloop.PeriodicCallback(do_housekeeping, 10*60*1000, ioloop)
     ct.start()
+
+    # backup user files every 1 hour
+    cbackup = tornado.ioloop.PeriodicCallback(do_backups, 60*60*1000, ioloop)
+    cbackup.start()
     
     ioloop.start()
 

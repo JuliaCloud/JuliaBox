@@ -1,5 +1,5 @@
 import docker
-import calendar, os, sys, time
+import os, sys, time, gzip, isodate, datetime, pytz
 
 def log_info(s):
     ts = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
@@ -35,6 +35,7 @@ class JDockContainer:
     DCKR_IMAGE = None
     MEM_LIMIT = None
     PORTS = [8000, 8998]
+    LOCAL_TZ_OFFSET = 0
 
     def __init__(self, dockid):
         self.dockid = dockid
@@ -75,6 +76,7 @@ class JDockContainer:
         JDockContainer.DCKR = dckr
         JDockContainer.DCKR_IMAGE = image
         JDockContainer.MEM_LIMIT = mem_limit
+        JDockContainer.LOCAL_TZ_OFFSET = JDockContainer.local_time_offset()
 
     @staticmethod
     def create_new(name):
@@ -105,10 +107,11 @@ class JDockContainer:
     @staticmethod    
     def maintain(delete_timeout=0, stop_timeout=0, protected_names=[]):
         log_info("Starting container maintenance...")
-        tnow = calendar.timegm(time.gmtime())
+        tnow = datetime.datetime.now(pytz.utc)
+        tmin = datetime.datetime(datetime.MINYEAR, 1, 1, tzinfo=pytz.utc)
 
-        delete_before = (tnow - delete_timeout) if (delete_timeout > 0) else 0
-        stop_before = (tnow - stop_timeout) if (stop_timeout > 0) else 0
+        delete_before = (tnow - datetime.timedelta(seconds=delete_timeout)) if (delete_timeout > 0) else tmin
+        stop_before = (tnow - datetime.timedelta(seconds=stop_timeout)) if (stop_timeout > 0) else tmin
 
         all_containers = JDockContainer.DCKR.containers(all=True)
 
@@ -141,6 +144,44 @@ class JDockContainer:
         log_info("Finished container maintenance.")
 
     @staticmethod
+    def backup_all(loc, name=None):
+        log_info("Starting container backup...")
+
+        if name == None:
+            all_containers = JDockContainer.DCKR.containers(all=True)
+            for cdesc in all_containers:
+                cont = JDockContainer(cdesc['Id'])
+                cont.backup(loc)
+        else:
+            cont = JDockContainer.get_by_name(name)
+            if None == cont:
+                log_info("No container by name " + str(name))
+            else:
+                cont.backup(loc)
+
+    def backup(self, loc):
+        log_info("Backing up " + self.debug_str() + " at " + str(loc))
+        cname = self.get_name()
+        if cname == None:
+            return
+
+        bkup_file = os.path.join(loc, cname[1:] + ".tar.gz")
+        if os.path.exists(bkup_file):
+            bkup_file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(bkup_file), pytz.utc) + datetime.timedelta(seconds=JDockContainer.LOCAL_TZ_OFFSET)
+            tstart = self.time_started()
+            tstop = self.time_stopped()
+            tcomp = tstart if ((tstop == None) or (tstart > tstop)) else tstop
+            if tcomp <= bkup_file_mtime:
+                log_info("Already backed up " + self.debug_str())
+                return
+
+        bkup_resp = JDockContainer.DCKR.copy(self.dockid, '/home/juser')
+        bkup_data = bkup_resp.read(decode_content=True)
+        with gzip.open(bkup_file, 'w') as f:
+            f.write(bkup_data)
+        log_info("Backed up " + self.debug_str() + " into " + bkup_file)
+
+    @staticmethod
     def num_active():
         active_containers = JDockContainer.DCKR.containers(all=False)
         return len(active_containers)
@@ -156,12 +197,26 @@ class JDockContainer:
 
     @staticmethod
     def record_ping(name):
-        JDockContainer.PINGS[name] = calendar.timegm(time.gmtime())
+        JDockContainer.PINGS[name] = datetime.datetime.now(pytz.utc)
         #log_info("Recorded ping for " + name)
 
     @staticmethod
     def get_last_ping(name):
         return JDockContainer.PINGS[name] if (name in JDockContainer.PINGS) else None
+
+    @staticmethod
+    def parse_docker_time(tm):
+        if None != tm:
+            tm = isodate.parse_datetime(tm)
+        return tm
+
+    @staticmethod
+    def local_time_offset():
+        """Return offset of local zone from GMT"""
+        if time.localtime().tm_isdst and time.daylight:
+            return time.altzone
+        else:
+            return time.timezone
 
     def is_running(self):
         props = self.get_props()
@@ -170,15 +225,15 @@ class JDockContainer:
 
     def time_started(self):
         props = self.get_props()
-        return props['State']['StartedAt']
+        return JDockContainer.parse_docker_time(props['State']['StartedAt'])
 
     def time_finished(self):
         props = self.get_props()
-        return props['State']['FinishedAt']
+        return JDockContainer.parse_docker_time(props['State']['FinishedAt'])
 
     def time_created(self):
         props = self.get_props()
-        return props['Created']
+        return JDockContainer.parse_docker_time(props['Created'])
 
     def stop(self):
         log_info("Stopping " + self.debug_str())
