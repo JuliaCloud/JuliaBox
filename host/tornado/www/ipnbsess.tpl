@@ -61,7 +61,7 @@
 <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
 <script type="text/javascript">
 $(window).load(function() {
-  var frames = ["ijulia", "console", "upload", "filelist"];
+  var frames = ["ijulia", "console", "filelist"];
   for(var i=0, l=frames.length; i < l; i++) {
     var frame = $("#" + frames[i] +"-frame"),
         head = frame.contents().find("head");

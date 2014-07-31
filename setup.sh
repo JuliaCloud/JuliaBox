@@ -123,9 +123,12 @@ sudo service docker start
 # Wait for the docker process to bind to the required ports
 sleep 1
 
-DOCKER_IMAGE=ijulia
-echo "Building docker image ${DOCKER_IMAGE} ..."
-sudo docker build -t ${DOCKER_IMAGE} docker/IJulia/
+DOCKER_IMAGE=juliabox/juliabox
+DOCKER_IMAGE_VER=1
+echo "Building docker image ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ..."
+DOCKER_IMAGE_ID=$(sudo docker build docker/IJulia/)
+sudo docker tag ${DOCKER_IMAGE_ID} ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER}
+sudo docker tag ${DOCKER_IMAGE_ID} ${DOCKER_IMAGE}:latest
 
 echo "Setting up nginx.conf ..."
 sed  s/\$\$NGINX_USER/$USER/g $NGINX_CONF_DIR/nginx.conf.tpl > $NGINX_CONF_DIR/nginx.conf

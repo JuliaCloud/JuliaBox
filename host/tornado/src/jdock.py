@@ -5,7 +5,7 @@ from functools import partial, wraps
 from jdockutil import *
 
 import tornado.ioloop, tornado.web, tornado.auth
-import base64, hashlib, hmac, json, os, os.path, random, string, sys, time, errno
+import base64, hashlib, hmac, json, os, os.path, random, string, sys, time
 
 
 def signstr(s, k):
@@ -21,13 +21,6 @@ def unquote(s):
 
 def rendertpl(rqst, tpl, **kwargs):
     rqst.render("../www/" + tpl, **kwargs)
-
-def make_sure_path_exists(path):
-    try:
-        os.makedirs(path)
-    except OSError as exception:
-        if exception.errno != errno.EEXIST:
-            raise
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -180,9 +173,7 @@ def do_housekeeping():
     JDockContainer.maintain(delete_timeout=cfg['expire'], stop_timeout=cfg['inactivity_timeout'], protected_names=cfg['protected_docknames'])
 
 def do_backups():
-    backup_location = path.expanduser(cfg['backup_location'])
-    make_sure_path_exists(backup_location)
-    JDockContainer.backup_all(backup_location)
+    JDockContainer.backup_all()
 
     
 
