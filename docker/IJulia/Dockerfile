@@ -12,8 +12,8 @@ RUN add-apt-repository -y ppa:staticfloat/julia-deps
 
 RUN apt-get -y update
 
-RUN apt-get -y install julia build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev python-dev libgnutls28 shellinabox wget file
-RUN apt-get -y install python-setuptools python-numpy python-scipy python-matplotlib 
+RUN apt-get -y install julia build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev python-dev libgnutls28 shellinabox wget file supervisor
+RUN apt-get -y install python-setuptools python-numpy python-scipy python-matplotlib python-git
 
 RUN easy_install ipython[all]
 
@@ -39,20 +39,20 @@ RUN julia -e 'Pkg.init(); Pkg.add("IJulia"); Pkg.add("PyPlot"); Pkg.add("Gadfly"
 RUN echo "c.NotebookApp.open_browser = False" >> /home/juser/.ipython/profile_julia/ipython_notebook_config.py
 RUN echo "c.NotebookApp.ip = \"*\"" >> /home/juser/.ipython/profile_julia/ipython_notebook_config.py
 
-RUN mkdir -p /home/juser/resty/logs /home/juser/resty/conf /home/juser/resty/lua /home/juser/resty/www 
+RUN mkdir -p /home/juser/.resty/logs /home/juser/.resty/conf /home/juser/.resty/lua /home/juser/.resty/www /home/juser/.juliabox
 
-ADD nginx.conf /home/juser/resty/conf/
-ADD mime.types /home/juser/resty/conf/
-ADD upload.lua /home/juser/resty/lua/
-ADD contutils.lua /home/juser/resty/lua/
-ADD ipnbupl.tpl /home/juser/resty/www/
+ADD nginx.conf /home/juser/.resty/conf/
+ADD mime.types /home/juser/.resty/conf/
+ADD upload.lua /home/juser/.resty/lua/
+ADD contutils.lua /home/juser/.resty/lua/
+ADD ipnbupl.tpl /home/juser/.resty/www/
+ADD juliabox.sh /home/juser/.juliabox/
+ADD supervisord.conf /home/juser/.juliabox/
 
-# ipython port for julia
-EXPOSE  8998
+# 8000: http port for nginx
+# 8998: ipython port for julia
+EXPOSE  8000 8998
 
-# ipython port for nginx
-EXPOSE  8000
-
-ENTRYPOINT /usr/local/openresty/nginx/sbin/nginx -p /home/juser/resty && shellinaboxd -b -t -s /:juser:juser:/home/juser:/bin/bash && ipython notebook --profile julia
-
+VOLUME ["/juliabox"]
+ENTRYPOINT /usr/bin/supervisord -n -c /home/juser/.juliabox/supervisord.conf -l /home/juser/.juliabox/supervisord.log -j /home/juser/.juliabox/supervisord.pid -q /home/juser/.juliabox
 

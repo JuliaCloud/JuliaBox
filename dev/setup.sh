@@ -95,9 +95,11 @@ if test $OPT_INSTALL -eq 1; then
     cp -f libs/lua-resty-http-simple/lib/resty/http/simple.lua ${NGINX_INSTALL_DIR}/lualib/resty/http/
 fi
 
-DOCKER_IMAGE=dev_${USER}/ijulia
-echo "Building docker image ${DOCKER_IMAGE} ..."
-docker build -t ${DOCKER_IMAGE} docker/IJulia/
+DOCKER_IMAGE=dev_${USER}/juliabox
+DOCKER_IMAGE_VER=1
+echo "Building docker image ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ..."
+docker build -t ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} docker/IJulia/
+docker tag ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:latest
 
 echo "Setting up nginx.conf ..."
 sed  s/\$\$NGINX_USER/$USER/g $NGINX_CONF_DIR/nginx.conf.tpl > $NGINX_CONF_DIR/nginx.conf
@@ -108,7 +110,7 @@ SESSKEY=`< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c10`
 sed  -i s/\$\$SESSKEY/$SESSKEY/g $NGINX_CONF_DIR/nginx.conf 
 sed  s/\$\$SESSKEY/$SESSKEY/g $TORNADO_CONF_DIR/tornado.conf.tpl > $TORNADO_CONF_DIR/tornado.conf
 
-if test $OPT_INSTALL -eq 1; then
+if test $OPT_GOOGLE -eq 1; then
     sed  -i s/\$\$GAUTH/True/g $TORNADO_CONF_DIR/tornado.conf
 else
     sed  -i s/\$\$GAUTH/False/g $TORNADO_CONF_DIR/tornado.conf

@@ -1,5 +1,5 @@
 import docker
-import os, sys, time, gzip, isodate, datetime, pytz
+import os, sys, time, gzip, isodate, datetime, pytz, tarfile, errno
 
 def log_info(s):
     ts = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
@@ -28,14 +28,24 @@ def read_config():
 
     return cfg
 
+def make_sure_path_exists(path):
+    try:
+        os.makedirs(path)
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
+
 class JDockContainer:
     CONTAINER_PORT_BINDINGS = {8000: ('127.0.0.1',), 8998: ('127.0.0.1',)}
+    HOST_VOLUMES = None
     DCKR = None
     PINGS = {}
     DCKR_IMAGE = None
     MEM_LIMIT = None
     PORTS = [8000, 8998]
+    VOLUMES = ['/juliabox']
     LOCAL_TZ_OFFSET = 0
+    BACKUP_LOC = None
 
     def __init__(self, dockid):
         self.dockid = dockid
@@ -72,18 +82,21 @@ class JDockContainer:
         return props['Name'] if ('Name' in props) else None
 
     @staticmethod
-    def configure(dckr, image, mem_limit):
+    def configure(dckr, image, mem_limit, host_volumes, backup_loc):
         JDockContainer.DCKR = dckr
         JDockContainer.DCKR_IMAGE = image
         JDockContainer.MEM_LIMIT = mem_limit
         JDockContainer.LOCAL_TZ_OFFSET = JDockContainer.local_time_offset()
+        JDockContainer.HOST_VOLUMES = host_volumes
+        JDockContainer.BACKUP_LOC = backup_loc
 
     @staticmethod
     def create_new(name):
-        jsonobj = JDockContainer.DCKR.create_container(JDockContainer.DCKR_IMAGE, detach=True, mem_limit=JDockContainer.MEM_LIMIT, ports=JDockContainer.PORTS, name=name)
+        jsonobj = JDockContainer.DCKR.create_container(JDockContainer.DCKR_IMAGE, detach=True, mem_limit=JDockContainer.MEM_LIMIT, ports=JDockContainer.PORTS, volumes=JDockContainer.VOLUMES, name=name)
         dockid = jsonobj["Id"]
         cont = JDockContainer(dockid)
         log_info("Created " + cont.debug_str())
+        cont.create_restore_file()
         return cont
 
     @staticmethod
@@ -144,42 +157,68 @@ class JDockContainer:
         log_info("Finished container maintenance.")
 
     @staticmethod
-    def backup_all(loc, name=None):
+    def backup_all():
         log_info("Starting container backup...")
+        all_containers = JDockContainer.DCKR.containers(all=True)
+        for cdesc in all_containers:
+            cont = JDockContainer(cdesc['Id'])
+            cont.backup()
 
-        if name == None:
-            all_containers = JDockContainer.DCKR.containers(all=True)
-            for cdesc in all_containers:
-                cont = JDockContainer(cdesc['Id'])
-                cont.backup(loc)
-        else:
-            cont = JDockContainer.get_by_name(name)
-            if None == cont:
-                log_info("No container by name " + str(name))
-            else:
-                cont.backup(loc)
-
-    def backup(self, loc):
-        log_info("Backing up " + self.debug_str() + " at " + str(loc))
+    def backup(self):
+        log_info("Backing up " + self.debug_str() + " at " + str(JDockContainer.BACKUP_LOC))
         cname = self.get_name()
         if cname == None:
             return
 
-        bkup_file = os.path.join(loc, cname[1:] + ".tar.gz")
+        bkup_file = os.path.join(JDockContainer.BACKUP_LOC, cname[1:] + ".tar.gz")
         if os.path.exists(bkup_file):
             bkup_file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(bkup_file), pytz.utc) + datetime.timedelta(seconds=JDockContainer.LOCAL_TZ_OFFSET)
             tstart = self.time_started()
-            tstop = self.time_stopped()
+            tstop = self.time_finished()
             tcomp = tstart if ((tstop == None) or (tstart > tstop)) else tstop
             if tcomp <= bkup_file_mtime:
                 log_info("Already backed up " + self.debug_str())
                 return
 
-        bkup_resp = JDockContainer.DCKR.copy(self.dockid, '/home/juser')
+        bkup_resp = JDockContainer.DCKR.copy(self.dockid, '/home/juser/')
         bkup_data = bkup_resp.read(decode_content=True)
         with gzip.open(bkup_file, 'w') as f:
             f.write(bkup_data)
         log_info("Backed up " + self.debug_str() + " into " + bkup_file)
+
+    def create_restore_file(self):
+        cname = self.get_name()
+        if cname == None:
+            return
+
+        src = os.path.join(JDockContainer.BACKUP_LOC, cname[1:] + ".tar.gz")
+        if not os.path.exists(src):
+            return
+
+        dest = os.path.join(JDockContainer.BACKUP_LOC, cname[1:], "restore.tar.gz")
+        log_info("Filtering out restore info from backup " + src + " to " + dest)
+
+        dest_dir = os.path.dirname(dest)
+        if not os.path.exists(dest_dir):
+            os.makedirs(dest_dir)
+            os.chmod(dest_dir, 0777)
+
+        src_tar = tarfile.open(src, 'r:gz')
+        dest_tar = tarfile.open(dest, 'w:gz')
+        for info in src_tar.getmembers():
+            if info.name.startswith('juser/.') and not info.name.startswith('juser/.ssh'):
+                continue
+            if info.name.startswith('juser/resty'):
+                continue
+            info.name = info.name[6:]
+            if len(info.name) == 0:
+                continue
+            dest_tar.addfile(info, src_tar.extractfile(info))
+        src_tar.close()
+        dest_tar.close()
+        os.chmod(dest, 0666)
+        log_info("Created restore file " + dest)
+
 
     @staticmethod
     def num_active():
@@ -251,7 +290,13 @@ class JDockContainer:
         if self.is_running():
             log_info("Already started " + self.debug_str())
             return
-        JDockContainer.DCKR.start(self.dockid, port_bindings=JDockContainer.CONTAINER_PORT_BINDINGS)
+
+        vols = {}
+        for hvol,cvol in zip(JDockContainer.HOST_VOLUMES, JDockContainer.VOLUMES):
+            hvol = hvol.replace('${CNAME}', self.get_name())
+            vols[hvol] = {'bind': cvol, 'ro': False}
+
+        JDockContainer.DCKR.start(self.dockid, port_bindings=JDockContainer.CONTAINER_PORT_BINDINGS, binds=vols)
         self.refresh()
         log_info("Started " + self.debug_str())
         cname = self.get_name()
@@ -277,5 +322,7 @@ class JDockContainer:
 
 dckr = docker.Client()
 cfg = read_config()
-JDockContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'])
+backup_location = os.path.expanduser(cfg['backup_location'])
+make_sure_path_exists(backup_location)
+JDockContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], [os.path.join(backup_location, '${CNAME}')], backup_location)
 

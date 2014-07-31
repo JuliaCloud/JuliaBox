@@ -43,12 +43,31 @@ http {
 # file upload and listing....
 
         location /hostipnbupl/ {
-            access_by_lua_file 'lua/validate.lua';
+            # wait for n seconds for the container's upl listener to be ready...
+            access_by_lua '
+                dofile(ngx.config.prefix() .. "lua/validate.lua")
+                
+                local http  = require "resty.http.simple"
+                local n = 20
+                local hostuplport = ngx.var.cookie_hostupl
+                local opts = {}
+                opts.path = "/home/juser/"
+
+                while (n > 0) do
+                    local res, err = http.request("127.0.0.1", hostuplport, opts)
+                    if not res then
+                        ngx.sleep(1.0)
+                    else
+                        return
+                    end
+                    n = n - 1
+                end
+                return
+            ';
         
             rewrite /hostipnbupl/(.+) /$1 break;
             
             proxy_pass http://127.0.0.1:$cookie_hostupl;
-            
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header Host $host;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -58,7 +77,6 @@ http {
 # landing page
         location = /hostipnbsession/ {
             # wait for n seconds for the container's ipnb listener to be ready...
-            
             access_by_lua '
                 dofile(ngx.config.prefix() .. "lua/validate.lua")
                 
@@ -71,9 +89,6 @@ http {
 
                 while (n > 0) do
                     local res, err = http.request("127.0.0.1", hostipnbport, opts)
-                    if res then
-                        res, err = http.request("127.0.0.1", hostuplport, opts)
-                    end
                     if not res then
                         ngx.sleep(1.0)
                     else
