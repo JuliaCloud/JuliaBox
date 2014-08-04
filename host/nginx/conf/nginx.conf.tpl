@@ -41,17 +41,16 @@ http {
 # container locations
 
 # file upload and listing....
-
-        location /hostipnbupl/ {
+        location /hostupload/ {
             # wait for n seconds for the container's upl listener to be ready...
             access_by_lua '
                 dofile(ngx.config.prefix() .. "lua/validate.lua")
                 
                 local http  = require "resty.http.simple"
                 local n = 20
-                local hostuplport = ngx.var.cookie_hostupl
+                local hostuplport = ngx.var.cookie_hostupload
                 local opts = {}
-                opts.path = "/home/juser/"
+                opts.path = "/ping"
 
                 while (n > 0) do
                     local res, err = http.request("127.0.0.1", hostuplport, opts)
@@ -65,9 +64,24 @@ http {
                 return
             ';
         
-            rewrite /hostipnbupl/(.+) /$1 break;
+            rewrite /hostupload/(.+) /$1 break;
             
-            proxy_pass http://127.0.0.1:$cookie_hostupl;
+            proxy_pass http://127.0.0.1:$cookie_hostupload/$1$is_args$query_string;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+# shell....
+        location /hostshell/ {
+            access_by_lua '
+                dofile(ngx.config.prefix() .. "lua/validate.lua")
+                return
+            ';
+        
+            rewrite /hostshell/(.+) /$1 break;
+            
+            proxy_pass http://127.0.0.1:$cookie_hostshell/$1$is_args$query_string;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header Host $host;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -83,7 +97,6 @@ http {
                 local http  = require "resty.http.simple"
                 local n = 20
                 local hostipnbport = ngx.var.cookie_hostipnb
-                local hostuplport = ngx.var.cookie_hostupl
                 local opts = {}
                 opts.path = "/"
 

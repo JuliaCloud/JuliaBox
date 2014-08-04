@@ -36,13 +36,13 @@ def make_sure_path_exists(path):
             raise
 
 class JDockContainer:
-    CONTAINER_PORT_BINDINGS = {8000: ('127.0.0.1',), 8998: ('127.0.0.1',)}
+    CONTAINER_PORT_BINDINGS = {4200: ('127.0.0.1',), 8000: ('127.0.0.1',), 8998: ('127.0.0.1',)}
     HOST_VOLUMES = None
     DCKR = None
     PINGS = {}
     DCKR_IMAGE = None
     MEM_LIMIT = None
-    PORTS = [8000, 8998]
+    PORTS = [4200, 8000, 8998]
     VOLUMES = ['/juliabox']
     LOCAL_TZ_OFFSET = 0
     BACKUP_LOC = None

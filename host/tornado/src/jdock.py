@@ -74,10 +74,11 @@ class LaunchDocker(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
             rendertpl(self, "index.tpl", cfg=cfg, err="Maximum number of containers active. Please try after sometime.")
         else:
             cont = JDockContainer.launch_by_name(sessname, reuse)
-            (uplport, ipnbport) = cont.get_host_ports()
-            sign = signstr(sessname + str(uplport) + str(ipnbport), cfg["sesskey"])
+            (shellport, uplport, ipnbport) = cont.get_host_ports()
+            sign = signstr(sessname + str(shellport) + str(uplport) + str(ipnbport), cfg["sesskey"])
             self.set_cookie("sessname", sessname)
-            self.set_cookie("hostupl", str(uplport))
+            self.set_cookie("hostshell", str(shellport))
+            self.set_cookie("hostupload", str(uplport))
             self.set_cookie("hostipnb", str(ipnbport))
             self.set_cookie("sign", sign)
             rendertpl(self, "ipnbsess.tpl", sessname=sessname, cfg=cfg)
@@ -155,11 +156,12 @@ class PingHandler(tornado.web.RequestHandler):
     def get(self):
         #validate the request
         sessname = self.get_cookie("sessname").replace('"', '')
-        hostupl = self.get_cookie("hostupl").replace('"', '')
+        hostshell = self.get_cookie("hostshell").replace('"', '')
+        hostupl = self.get_cookie("hostupload").replace('"', '')
         hostipnb = self.get_cookie("hostipnb").replace('"', '')
         signval = self.get_cookie("sign").replace('"', '')
         
-        sign = signstr(sessname + hostupl + hostipnb, cfg["sesskey"])
+        sign = signstr(sessname + hostshell + hostupl + hostipnb, cfg["sesskey"])
         if sign != signval:
             log_info("Invalid ping request for " + str(sessname))
             self.send_error(status_code=403)
