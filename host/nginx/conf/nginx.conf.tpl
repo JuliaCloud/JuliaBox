@@ -76,6 +76,22 @@ http {
         location /hostshell/ {
             access_by_lua '
                 dofile(ngx.config.prefix() .. "lua/validate.lua")
+                
+                local http  = require "resty.http.simple"
+                local n = 20
+                local hostshellport = ngx.var.cookie_hostshell
+                local opts = {}
+                opts.path = "/"
+
+                while (n > 0) do
+                    local res, err = http.request("127.0.0.1", hostshellport, opts)
+                    if not res then
+                        ngx.sleep(1.0)
+                    else
+                        return
+                    end
+                    n = n - 1
+                end
                 return
             ';
         

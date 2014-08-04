@@ -52,6 +52,7 @@
 		  <input type="text" class="form-control" name="sessname" required autofocus>
 		  {% end %}
 		  <button class="btn btn-lg btn-primary btn-block" type="submit"  value="Launch">Launch JuliaBox</button>
+            <!--
 		  <label class="checkbox" for="clear_old_sess">
 		    <input type="checkbox" name="clear_old_sess" value="true"> Force new session
 		  </label>
@@ -65,6 +66,7 @@
 		    <b>Rejoing existing sessions: </b> By default, existing sessions with the same name (if found) are reconnected to. <br> 
 		    If "Force new" is checked, any old sessions are deleted and a new one instantiated.  
 		  </p>
+            -->
 		</form>
               </td>
 	    </tr>
