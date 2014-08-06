@@ -36,13 +36,13 @@ def make_sure_path_exists(path):
             raise
 
 class JDockContainer:
-    CONTAINER_PORT_BINDINGS = {8000: ('127.0.0.1',), 8998: ('127.0.0.1',)}
+    CONTAINER_PORT_BINDINGS = {4200: ('127.0.0.1',), 8000: ('127.0.0.1',), 8998: ('127.0.0.1',)}
     HOST_VOLUMES = None
     DCKR = None
     PINGS = {}
     DCKR_IMAGE = None
     MEM_LIMIT = None
-    PORTS = [8000, 8998]
+    PORTS = [4200, 8000, 8998]
     VOLUMES = ['/juliabox']
     LOCAL_TZ_OFFSET = 0
     BACKUP_LOC = None
@@ -81,6 +81,14 @@ class JDockContainer:
         props = self.get_props()
         return props['Name'] if ('Name' in props) else None
 
+    def get_image_names(self):
+        props = self.get_props()
+        img_id = props['Image']
+        for img in JDockContainer.DCKR.images():
+            if img['Id'] == img_id:
+                return img['RepoTags']
+        return []
+        
     @staticmethod
     def configure(dckr, image, mem_limit, host_volumes, backup_loc):
         JDockContainer.DCKR = dckr
@@ -310,6 +318,7 @@ class JDockContainer:
         log_info("Killed " + self.debug_str())
 
     def delete(self):
+        log_info("Deleting " + self.debug_str())
         self.refresh()
         cname = self.get_name()
         if self.is_running():
