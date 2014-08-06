@@ -91,64 +91,98 @@ class AdminHandler(tornado.web.RequestHandler):
         if len(sessname) == 0:
             self.send_error()
 
-        dockname = "/" + sessname
+        cont = JDockContainer.get_by_name(sessname)
+
+        juliaboxver, upgrade_available = self.get_upgrade_available(cont)
+        if self.do_upgrade(cont, upgrade_available):
+            response = {'code': 0, 'data': ''}
+            self.write(response)
+            return
+
         admin_user = (sessname in cfg["admin_sessnames"]) or (cfg["admin_sessnames"] == [])
 
-        delete_id = self.get_argument("delete_id", '')
-        stop_id = self.get_argument("stop_id", '')
-        stop_all = (self.get_argument('stop_all', None) != None)
-
-        iac = []
-        ac = []
-        sections = [["Active", ac], ["Inactive", iac]]
-        
-        cont = JDockContainer.get_by_name(sessname)
+        sections = []        
         d = {
                 "admin_user" : admin_user,
                 "sessname" : sessname, 
                 "created" : cont.time_created(), 
                 "started" : cont.time_started(),
-                "sections" : sections
+                "sections" : sections,
+                "juliaboxver" : juliaboxver,
+                "upgrade_available" : upgrade_available
             }
 
         if admin_user:
-            if stop_all:
-                all_containers = dckr.containers(all=False)
-                for c in all_containers:
-                    cont = JDockContainer(c['Id'])
-                    cname = cont.get_name()
-
-                    if None == cname:
-                        log_info("Admin: Not stopping unknown " + cont.debug_str())
-                    elif cname not in cfg["protected_docknames"]:
-                        cont.stop()
-                            
-            elif not (stop_id == ''):
-                cont = JDockContainer(stop_id)
-                cont.stop()
-            elif not (delete_id == ''):
-                cont = JDockContainer(stop_id)
-                cont.delete()
-
-            # get them all again (in case we deleted some)
-            jsonobj = dckr.containers(all=all)
-            for c in jsonobj:
-                o = {}
-                o["Id"] = c["Id"][0:12]
-                o["Status"] = c["Status"]
-                if ("Names" in c) and (c["Names"] != None): 
-                    o["Name"] = c["Names"][0]
-                else:
-                    o["Name"] = "/None"
-                
-                if (c["Ports"] == None) or (c["Ports"] == []):
-                    iac.append(o)
-                else:
-                    ac.append(o)
+            self.do_admin(sections)
 
         rendertpl(self, "ipnbadmin.tpl", d=d, cfg=cfg)
+    
+    def do_upgrade(self, cont, upgrade_available):
+        upgrade_id = self.get_argument("upgrade_id", '')
+        if (upgrade_id == 'me') and (upgrade_available != None):
+            if upgrade_available != None:
+                cont.stop()
+                cont.backup()
+                cont.delete()
+            response = {'code': 0, 'data': ''}
+            self.write(response)
+            return True
+        return False
 
+    def get_upgrade_available(self, cont):
+        cont_images = cont.get_image_names()
+        juliaboxver = cont_images[0]
+        if (JDockContainer.DCKR_IMAGE in cont_images) or ((JDockContainer.DCKR_IMAGE + ':latest') in cont_images):
+            upgrade_available = None
+        else:
+            upgrade_available = JDockContainer.DCKR_IMAGE
+            if ':' not in upgrade_available:
+                upgrade_available = upgrade_available + ':latest'
+        return (juliaboxver, upgrade_available)
+        
+    def do_admin(self, sections):
+        iac = []
+        ac = []
+        sections.append(["Active", ac])
+        sections.append(["Inactive", iac])
+        
+        delete_id = self.get_argument("delete_id", '')
+        stop_id = self.get_argument("stop_id", '')
+        stop_all = (self.get_argument('stop_all', None) != None)
+        
+        if stop_all:
+            all_containers = JDockContainer.DCKR.containers(all=False)
+            for c in all_containers:
+                cont = JDockContainer(c['Id'])
+                cname = cont.get_name()
 
+                if None == cname:
+                    log_info("Admin: Not stopping unknown " + cont.debug_str())
+                elif cname not in cfg["protected_docknames"]:
+                    cont.stop()
+                        
+        elif not (stop_id == ''):
+            cont = JDockContainer(stop_id)
+            cont.stop()
+        elif not (delete_id == ''):
+            cont = JDockContainer(delete_id)
+            cont.delete()
+
+        # get them all again (in case we deleted some)
+        jsonobj = JDockContainer.DCKR.containers(all=all)
+        for c in jsonobj:
+            o = {}
+            o["Id"] = c["Id"][0:12]
+            o["Status"] = c["Status"]
+            if ("Names" in c) and (c["Names"] != None): 
+                o["Name"] = c["Names"][0]
+            else:
+                o["Name"] = "/None"
+            
+            if (c["Ports"] == None) or (c["Ports"] == []):
+                iac.append(o)
+            else:
+                ac.append(o)
 
 class PingHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous

@@ -11,6 +11,7 @@
   <link rel="stylesheet" type="text/css" href="/assets/css/base.css" />
   {% end %}
 </head>
+{% set admin_user = (sessname in cfg["admin_sessnames"]) or (cfg["admin_sessnames"] == []) %}
 <body>
     <div class="header-wrap">
         <div class="container">
@@ -24,7 +25,12 @@
                     <li class="active"><a href="#ijulia" data-toggle="tab">IJulia</a></li>
                     <li><a href="#console" data-toggle="tab">Console</a></li>
                     <li><a href="#fileman" data-toggle="tab">File Manager</a></li>
+                    <li><a href="#filesync" data-toggle="tab">Sync &amp; Share</a></li>
+{% if admin_user %}
                     <li><a href="#admin" data-toggle="tab">Admin</a></li>
+{% else %}
+                    <li><a href="#admin" data-toggle="tab">Account</a></li>
+{% end %}
                     <li><a href="#docs" data-toggle="tab">Docs</a></li>
                     </ul>
                 </div>
@@ -43,8 +49,11 @@
         
             <iframe src="/hostshell/" id="console-frame" frameborder="0" height="86%" width="100%"></iframe>
         </div>
-        <div id="docs" class="tab-pane">
+        <div id="docs" class="tab-pane container">
             <iframe id="docs-frame" src="http://julia.readthedocs.org/en/latest/" frameborder="0" height="100%" width="100%"></iframe>
+        </div>
+        <div id="filesync" class="tab-pane container">
+            <iframe src="/hostupload/sync" id="filesync-frame" frameborder="0" height="86%" style="float: left" width="100%"></iframe>
         </div>
         <div id="fileman" class="tab-pane container">
             <iframe src="/hostupload/" id="upload-frame" frameborder="0" height="86%" style="float: left" width="100%"></iframe>

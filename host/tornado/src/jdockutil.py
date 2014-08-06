@@ -81,6 +81,14 @@ class JDockContainer:
         props = self.get_props()
         return props['Name'] if ('Name' in props) else None
 
+    def get_image_names(self):
+        props = self.get_props()
+        img_id = props['Image']
+        for img in JDockContainer.DCKR.images():
+            if img['Id'] == img_id:
+                return img['RepoTags']
+        return []
+        
     @staticmethod
     def configure(dckr, image, mem_limit, host_volumes, backup_loc):
         JDockContainer.DCKR = dckr
@@ -310,6 +318,7 @@ class JDockContainer:
         log_info("Killed " + self.debug_str())
 
     def delete(self):
+        log_info("Deleting " + self.debug_str())
         self.refresh()
         cname = self.get_name()
         if self.is_running():
