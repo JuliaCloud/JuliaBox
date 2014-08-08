@@ -75,7 +75,7 @@ fi
 
 if test $OPT_INSTALL -eq 1; then
     # Stuff required for docker and openresty
-    sudo apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev netcat git python-setuptools supervisor python-dev python-isodate
+    sudo apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev netcat git python-setuptools supervisor python-dev python-isodate python-pip
 
     # INSTALL docker as per http://docs.docker.io/en/latest/installation/ubuntulinux/
     sudo apt-get -y update
@@ -100,6 +100,8 @@ if test $OPT_INSTALL -eq 1; then
     # python stuff
     sudo easy_install tornado
     sudo easy_install futures
+    sudo easy_install google-api-python-client
+    sudo pip install PyDrive
     
     git clone https://github.com/dotcloud/docker-py 
     cd docker-py

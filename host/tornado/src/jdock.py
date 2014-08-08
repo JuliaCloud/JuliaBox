@@ -53,7 +53,7 @@ class LaunchDocker(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
             else:
                 yield self.authorize_redirect(redirect_uri=self_redirect_uri,
                                 client_id=self.settings['google_oauth']['key'],
-                                scope=['profile', 'email'],
+                                scope=['profile', 'email', 'drive'],
                                 response_type='code',
                                 extra_params={'approval_prompt': 'auto'})
         else:
@@ -120,12 +120,9 @@ class AdminHandler(tornado.web.RequestHandler):
     def do_upgrade(self, cont, upgrade_available):
         upgrade_id = self.get_argument("upgrade_id", '')
         if (upgrade_id == 'me') and (upgrade_available != None):
-            if upgrade_available != None:
-                cont.stop()
-                cont.backup()
-                cont.delete()
-            response = {'code': 0, 'data': ''}
-            self.write(response)
+            cont.stop()
+            cont.backup()
+            cont.delete()
             return True
         return False
 

@@ -104,7 +104,15 @@ class SyncHandler(tornado.web.RequestHandler):
         action = self.get_argument('action', None)
         msg = None
         if None != action:
-            if action == "addgit":
+            if action == 'addgdrive':
+                gfolder = self.get_argument('gfolder', '').strip()
+                loc = self.get_argument('loc', '').strip()
+                try:
+                    pass
+                except:
+                    traceback.print_exc()
+                    msg = ('danger', 'Error adding repository')                    
+            elif action == "addgit":
                 git_url = self.get_argument('repo', '').strip()
                 git_branch = self.get_argument('branch', '').strip()
                 loc = self.get_argument('loc', '').strip()
