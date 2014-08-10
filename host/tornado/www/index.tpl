@@ -26,82 +26,71 @@
       <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
       <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
       <![endif]-->
+    <script type="text/javascript" src="//use.typekit.net/cpz5ogz.js"></script>
+    <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
   </head>
 
   <body>
-    <div class="container">
-	<table class="page-wrap">
-	  <tbody>
-	    <tr>
-	      <td class="banner">
-		<div class="description">
-		  <img src="/assets/img/juliacloudlogo.png">
-		  <h1 class="title">JuliaBox</h1>
-		  <p class="subtitle">Run Julia without the fuss of installation.</p>
-		</div>
-	      </td>
-	      <td>
-		<form class="form-signin" role="form" action="/hostlaunchipnb/">
-		  <h2 class="form-signin-heading">Sign in</h2>
-		  {% if cfg["gauth"] == True %}
-		  (with your Google id)<br/><br/>
-		  {% else %}
-		  Please enter a name for your JuliaBox session. <br> 
-		  {% end %}
-		  {% if cfg["gauth"] == False %}
-		  <input type="text" class="form-control" name="sessname" required autofocus>
-		  {% end %}
-		  <button class="btn btn-lg btn-primary btn-block" type="submit"  value="Launch">Launch JuliaBox</button>
-            <!--
-		  <label class="checkbox" for="clear_old_sess">
-		    <input type="checkbox" name="clear_old_sess" value="true"> Force new session
-		  </label>
-		  <h3 style="color:Red">{{ err }}</h3>    
-
-		  <p class="instructions">
-		    
-		    {% if cfg["gauth"] == False %}
-		    <b>Session Names: </b> Please use alphanumeric characters only. Underscores are OK.<br><br>
-		    {% end %}
-		    <b>Rejoing existing sessions: </b> By default, existing sessions with the same name (if found) are reconnected to. <br> 
-		    If "Force new" is checked, any old sessions are deleted and a new one instantiated.  
-		  </p>
-            -->
-		</form>
-              </td>
-	    </tr>
-	  </tbody>
-	</table>
+    <div class="container banner-container">
+      <div class="col-md-2">
+	<img class="logo" src="/assets/img/juliacloudlogo.png">
+      </div>
+      <div class="col-md-3">
+	<h1>Julia<span>Box</span></h1>
+      </div>
+      <div class="description col-md-7">Run Julia from the Browser. No setup.</div>
     </div>
-</div><!-- /.container -->
-      <!-- Bootstrap core JavaScript
-	   ================================================== -->
-      <!-- Placed at the end of the document so the pages load faster -->
-      <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+    <div class="dark-wings">
+      <div class="container">
+	<div class="col-md-6">
+	<div class="punchline line-1">The Julia community is doing amazing things.</div>
+	<div class="punchline line-2">We want you in on it!</div>
+	</div>
+	<div class="col-md-6">
+	  <div class="big-button col-md-8 col-md-offset-2 col-sm-offset-0">
+	    <form class="form-signin" role="form" action="/hostlaunchipnb/">
+	      {% if cfg["gauth"] %}
+	      <button class="btn btn-lg btn-primary btn-block gauth-btn" type="submit"  value="Launch">Sign in via Google. <span>It's free!</span></button>
+	      {% else %}
+	      <input type="text" placeholder="Choose a session name. Hit Return &#x23ce;" class="form-control sessname-box" name="sessname" required autofocus>
+	      <input style="display:none" type="submit"  value="Launch">
+	      {% end %}
+	    </form>
+	  </div>
+	</div><!-- 6 col -->
+      </div>
+    </div>
+    <div class="container features-container">
+      <div class="col-md-3 col-sm-6">
+	<img class="icon" src="/assets/img/ipynblogo.png">
+	<h3>IJulia</h3>
+	<p class="feature-desc">
+	  Create IJulia Notebooks<br> and share them.
+	</p>
+      </div>
+      <div class="col-md-3 col-sm-6">
+	<img class="icon" src="/assets/img/consoleicon.png">
+	<h3>Console</h3>
+	<p class="feature-desc">
+	  Use in-browser terminal <br> emulator to fully control<br> your Docker instance.
+	</p>
+      </div>
+      <div class="col-md-3 col-sm-6">
+	<img class="icon" src="/assets/img/drivelogo.png">
+	<h3>Google Drive</h3>
+	<p class="feature-desc">
+	  Collaborate with others. <br> Sync notebooks and data <br> via Google Drive.
+	</p>
+      </div>
+      <div class="col-md-3 col-sm-6">
+	<img class="icon" src="/assets/img/syncicon.png">
+	<h3>Sync &amp; Share</h3>
+	<p class="feature-desc">
+	  Setup folders to sync with <br> remote git repositories.
+	</p>
+      </div>
+    </div>
+    <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
     <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
