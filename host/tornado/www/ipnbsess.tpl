@@ -4,10 +4,10 @@
 	<title>{{sessname}} &mdash; JuliaBox</title>
 
 	<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
-	<link href='http://fonts.googleapis.com/css?family=Raleway|Inconsolata' rel='stylesheet' type='text/css'>
+	<link href='//fonts.googleapis.com/css?family=Raleway|Inconsolata' rel='stylesheet' type='text/css'>
 	<link rel="stylesheet" type="text/css" href="/assets/css/base.css" />
 	
-    <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+    <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
     <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/bootbox.js/4.2.0/bootbox.min.js"></script>
     <script src="//apis.google.com/js/client.js"></script>
@@ -37,6 +37,9 @@
             });
             
         	JuliaBox.init_inpage_alert($('#msg_body'), $('#in_page_alert'));
+	    	{%if None != creds %}
+	    	JuliaBox.init_gauth_tok("{{creds}}");
+	    	{% end %}
 	    	var myVar = setInterval(function(){JuliaBox.send_keep_alive()}, 60000);
         });
     </script>  

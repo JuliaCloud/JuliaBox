@@ -3,10 +3,10 @@
     <meta charset="utf-8" />
     <title>IPNB Session {{ d["sessname"] }} </title>
     <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
-    <link href='http://fonts.googleapis.com/css?family=Raleway|Inconsolata' rel='stylesheet' type='text/css'>
+    <link href='//fonts.googleapis.com/css?family=Raleway|Inconsolata' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" type="text/css" href="/assets/css/frames.css">
 
-	<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+	<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
 	<script type="text/javascript">
 	    $(document).ready(function() {
 	    	$('#showsshkey').click(function(event){

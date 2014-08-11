@@ -2,8 +2,9 @@
  
 import tornado.ioloop
 import tornado.web
-import os, time, sys, shutil, traceback
+import os, time, sys, shutil, traceback, re
 from gitsync import GitSync
+from gdrivesync import GDriveSync
 
 rel_dir = '/'
 
@@ -98,76 +99,123 @@ class SyncHandler(tornado.web.RequestHandler):
     LOC = '~/'
     #LOC = '/tmp/x'
     DEFAULT_BRANCH = 'master'
+
     def get(self):
         log_info('synchandler ' + str(self.request.uri))
         gitrepos = self.get_git_repos()
+        gdrive_repos = self.get_gdrive_repos()
+        rendertpl(self, "sync.tpl", gitrepos=gitrepos, gdrive_repos=gdrive_repos)
+
+    def post(self):
+        log_info('synchandler ' + str(self.request.uri))
         action = self.get_argument('action', None)
-        msg = None
+        retcode = 0
         if None != action:
-            if action == 'addgdrive':
-                gfolder = self.get_argument('gfolder', '').strip()
-                loc = self.get_argument('loc', '').strip()
-                try:
-                    pass
-                except:
-                    traceback.print_exc()
-                    msg = ('danger', 'Error adding repository')                    
-            elif action == "addgit":
-                git_url = self.get_argument('repo', '').strip()
-                git_branch = self.get_argument('branch', '').strip()
-                loc = self.get_argument('loc', '').strip()
-                try:
-                    if len(git_url) > 0:
-                        if len(git_branch) == 0:
-                            git_branch = SyncHandler.DEFAULT_BRANCH
-                        if len(loc) == 0:
-                            loc = git_url[(git_url.rindex('/')+1):git_url.rindex('.')]
-                        loc = os.path.join(os.path.expanduser(SyncHandler.LOC), loc)
-                        gs = GitSync.clone(git_url, loc, True)
-                        gs.checkout(git_branch, from_remote=True)
-                        gitrepos[gs.repo_hash()] = gs
+            try:
+                if action == 'addgdrive':
+                    retcode = self.action_addgdrive()
+                elif action == 'delgdrive':
+                    retcode = self.action_delgdrive()
+                elif action == 'syncgdrive':
+                    retcode = self.action_syncgdrive()
+                elif action == "addgit":
+                    retcode = self.action_addgit()
+                elif action == 'delgit':
+                    retcode = self.action_delgit()
+                elif action == 'syncgit':
+                    retcode = self.action_syncgit()
+            except:
+                traceback.print_exc()
+                retcode = -1
+        response = {'code': retcode, 'data': ''}
+        self.write(response)
+
+    def action_addgdrive(self):
+        self.set_gdrive_auth_tok()
+        retcode = 0
+        gfolder = self.get_argument('repo', '').strip()
+        loc = SyncHandler.sanitize_loc(self.get_argument('loc', '').strip())
+        loc = os.path.join(os.path.expanduser(SyncHandler.LOC), loc)
+        GDriveSync.clone(gfolder, loc, True)
+        return retcode
+    
+    def action_delgdrive(self):
+        self.set_gdrive_auth_tok()
+        repo_id = self.get_argument('repo', None)
+        repo = self.get_gdrive_repo(repo_id)
+        if (None != repo) and os.path.exists(repo.loc):
+            shutil.rmtree(repo.loc)
+        return 0
+    
+    def action_syncgdrive(self):
+        self.set_gdrive_auth_tok()
+        retcode = 0
+        repo_id = self.get_argument('repo', None)
+        repo = self.get_gdrive_repo(repo_id)
+        if None != repo:
+            repo.sync()
+        return retcode
+    
+    def action_syncgit(self):
+        retcode = 0
+        repo_id = self.get_argument('repo', None)
+        gitrepo = self.get_git_repo(repo_id)
+        if None != gitrepo:
+            if gitrepo.sync():
+                retcode = 1 # has conflicts
+        return retcode
+    
+    def action_delgit(self):
+        repo_id = self.get_argument('repo', None)
+        gitrepo = self.get_git_repo(repo_id)
+        if (None != gitrepo) and os.path.exists(gitrepo.loc):
+            shutil.rmtree(gitrepo.loc)
+        return 0
                         
-                        # remove duplicates resulting from modified entries if any
-                        delkeys = []
-                        for repokey,gs in gitrepos.iteritems():
-                            if gs.repo_hash() != repokey:
-                                delkeys.append(repokey)
-                        for repokey in delkeys:
-                            gitrepos.pop(repokey)
-                    if git_url.startswith('https://'):
-                        msg = ('warning', 'Repository added successfully. Pushing changes to remote repository not supported with HTTP URLs.')
-                    else:
-                        msg = ('success', 'Repository added successfully')
-                except:
-                    traceback.print_exc()
-                    msg = ('danger', 'Error adding repository')
-            elif action == 'delgit':
-                try:
-                    repo_id = self.get_argument('repo', None)
-                    gitrepo = self.get_git_repo(repo_id, gitrepos=gitrepos)
-                    if (None != gitrepo) and os.path.exists(gitrepo.loc):
-                        shutil.rmtree(gitrepo.loc)
-                        gitrepos.pop(repo_id)
-                    msg = ('success', 'Repository deleted successfully')
-                except:
-                    traceback.print_exc()
-                    msg = ('danger', 'Error deleting repository')
-            elif action == 'syncgit':
-                try:
-                    repo_id = self.get_argument('repo', None)
-                    gitrepo = self.get_git_repo(repo_id, gitrepos=gitrepos)
-                    if None != gitrepo:
-                        conflicts = gitrepo.sync()
-                    if conflicts:
-                        msg = ('warning', 'Repository synchronized with some conflicts')
-                    else:
-                        msg = ('success', 'Repository synchronized successfully')
-                except:
-                    traceback.print_exc()
-                    msg = ('danger', 'Error synchronizing repository')
+    def action_addgit(self):
+        retcode = 0
+        git_url = self.get_argument('repo', '').strip()
+        git_branch = self.get_argument('branch', '').strip()
+        loc = SyncHandler.sanitize_loc(self.get_argument('loc', '').strip())
+        if len(git_url) == 0:
+            retcode = -1
+        if (retcode == 0) and (not git_url.startswith('https://')) and (self.add_to_ssh_knownhosts(git_url) < 0):
+            retcode = -1
+        if retcode == 0:
+            if len(git_branch) == 0:
+                git_branch = SyncHandler.DEFAULT_BRANCH
+            if len(loc) == 0:
+                loc = git_url[(git_url.rindex('/')+1):git_url.rindex('.')]
+            loc = os.path.join(os.path.expanduser(SyncHandler.LOC), loc)
+            gs = GitSync.clone(git_url, loc, True)
+            gs.checkout(git_branch, from_remote=True)
 
-        rendertpl(self, "sync.tpl", gitrepos=gitrepos, msg=msg)
-
+            if git_url.startswith('https://'):
+                retcode = 1
+        return retcode
+        
+    def add_to_ssh_knownhosts(self, git_url):
+        hostname = git_url.split('@')[1].split(':')[0]
+        khfile = os.path.expanduser('~/.ssh/known_hosts')
+        lines = []
+        fopenmode = 'w'
+        if os.path.exists(khfile):
+            fopenmode = 'a'
+            with open(khfile) as f:
+                lines = f.readlines()
+                for line in lines:
+                    if hostname in line:
+                        return 1
+        hostname_lines = os.popen('ssh-keyscan -t rsa,dsa ' + hostname).readlines()
+        if len(hostname_lines) == 0:
+            return -1
+        with open(khfile, fopenmode) as f:
+            for line in hostname_lines:
+                f.write(line)
+        if fopenmode == 'w':
+            os.chmod(khfile, 0644)
+        return 0
+        
     def get_git_repos(self):
         gitrepo_paths = GitSync.scan_repo_paths([os.path.expanduser(SyncHandler.LOC)])
         gitrepos = {}
@@ -182,6 +230,30 @@ class SyncHandler(tornado.web.RequestHandler):
         if repokey in gitrepos:
             return gitrepos[repokey]
         return None
+    
+    def get_gdrive_repos(self):
+        gdriverepo_paths = GDriveSync.scan_repo_paths([os.path.expanduser(SyncHandler.LOC)])
+        gdriverepos = {}
+        for repopath in gdriverepo_paths:
+            gs = GDriveSync(repopath)
+            gdriverepos[gs.repo_hash()] = gs
+        return gdriverepos
+
+    def get_gdrive_repo(self, repokey, gdriverepos=None):
+        if None == gdriverepos:
+            gdriverepos = self.get_gdrive_repos()
+        if repokey in gdriverepos:
+            return gdriverepos[repokey]
+        return None
+
+    def set_gdrive_auth_tok(self):
+        gauth = self.get_argument('gauth', '')
+        if len(gauth) > 0:
+            GDriveSync.init_creds(gauth)
+    
+    @staticmethod
+    def sanitize_loc(loc):
+        return re.sub(r'^[\.\\\/]*', '', loc)
  
 cfg = read_config()
  

@@ -75,7 +75,7 @@ fi
 
 if test $OPT_INSTALL -eq 1; then
     # Stuff required for docker and openresty
-    sudo apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev netcat git python-setuptools supervisor python-dev python-isodate python-pip
+    sudo apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev netcat git python-setuptools supervisor python-dev python-isodate python-pip python-tz
 
     # INSTALL docker as per http://docs.docker.io/en/latest/installation/ubuntulinux/
     sudo apt-get -y update
@@ -128,9 +128,8 @@ sleep 1
 DOCKER_IMAGE=juliabox/juliabox
 DOCKER_IMAGE_VER=1
 echo "Building docker image ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ..."
-DOCKER_IMAGE_ID=$(sudo docker build docker/IJulia/)
-sudo docker tag ${DOCKER_IMAGE_ID} ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER}
-sudo docker tag ${DOCKER_IMAGE_ID} ${DOCKER_IMAGE}:latest
+sudo docker build -t ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} docker/IJulia/
+sudo docker tag ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:latest
 
 echo "Setting up nginx.conf ..."
 sed  s/\$\$NGINX_USER/$USER/g $NGINX_CONF_DIR/nginx.conf.tpl > $NGINX_CONF_DIR/nginx.conf
