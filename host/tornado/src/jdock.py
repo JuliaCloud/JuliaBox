@@ -5,7 +5,11 @@ from functools import partial, wraps
 from jdockutil import *
 
 import tornado.ioloop, tornado.web, tornado.auth
-import base64, hashlib, hmac, json, os, os.path, random, string, sys, time
+import base64, hashlib, hmac, json, os, os.path, random, string, sys, time, urllib
+
+import datetime
+from oauth2client import GOOGLE_REVOKE_URI, GOOGLE_TOKEN_URI
+from oauth2client.client import OAuth2Credentials, _extract_id_token
 
 
 def signstr(s, k):
@@ -20,6 +24,7 @@ def unquote(s):
         return s
 
 def rendertpl(rqst, tpl, **kwargs):
+    #log_info('rendering template: ' + tpl)
     rqst.render("../www/" + tpl, **kwargs)
 
 
@@ -37,9 +42,12 @@ class LaunchDocker(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
             self_redirect_uri = self.request.full_url()
             idx = self_redirect_uri.index("hostlaunchipnb/")
             self_redirect_uri = self_redirect_uri[0:(idx + len("hostlaunchipnb/"))]
-            if self.get_argument('code', False):
-                user = yield self.get_authenticated_user(redirect_uri=self_redirect_uri, code=self.get_argument('code'))
+            code = self.get_argument('code', False)
+            if code != False:
+                user = yield self.get_authenticated_user(redirect_uri=self_redirect_uri, code=code)
+                creds = self.make_credentials(user)
                 #log_info(str(user))
+                #log_info(creds.to_json())
 
                 # get user info
                 http = tornado.httpclient.AsyncHTTPClient()
@@ -47,33 +55,49 @@ class LaunchDocker(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
                 response = yield http.fetch('https://www.googleapis.com/userinfo/v2/me', headers={"Authorization": auth_string})
                 user = json.loads(response.body)
 
-                #log_info(str(user))
                 sessname = esc_sessname(user['email'])
-                self.chk_and_launch_docker(sessname, self.can_reuse_session())
+                self.chk_and_launch_docker(sessname, creds) #reuse=self.can_reuse_session())
             else:
                 yield self.authorize_redirect(redirect_uri=self_redirect_uri,
                                 client_id=self.settings['google_oauth']['key'],
-                                scope=['profile', 'email'],
+                                scope=['profile', 'email', 'https://www.googleapis.com/auth/drive'],
                                 response_type='code',
-                                extra_params={'approval_prompt': 'auto'})
+                                extra_params={'approval_prompt': 'force', 'access_type': 'offline'})
         else:
             sessname = unquote(self.get_argument("sessname"))
-            self.chk_and_launch_docker(sessname, self.can_reuse_session())
+            self.chk_and_launch_docker(sessname, None) #reuse=self.can_reuse_session())
 
-    def can_reuse_session(self):
-        clear_old_sess = self.get_argument("clear_old_sess", False)
-        if clear_old_sess != False:
-            clear_old_sess = True
-        
-        return (not clear_old_sess)
+    def make_credentials(self, user):
+        #return AccessTokenCredentials(user['access_token'], "juliabox")
+        token_expiry = datetime.datetime.utcnow() + datetime.timedelta(seconds=int(user['expires_in']))
+        id_token = _extract_id_token(user['id_token'])
+        credential = OAuth2Credentials(
+            access_token = user['access_token'],
+            client_id = self.settings['google_oauth']['key'],
+            client_secret = self.settings['google_oauth']['secret'],
+            refresh_token = user['refresh_token'],
+            token_expiry = token_expiry,
+            token_uri = GOOGLE_TOKEN_URI,
+            user_agent = None,
+            revoke_uri = GOOGLE_REVOKE_URI,
+            id_token = id_token,
+            token_response = user)
+        return credential
+                
+#     def can_reuse_session(self):
+#         clear_old_sess = self.get_argument("clear_old_sess", False)
+#         if clear_old_sess != False:
+#             clear_old_sess = True
+#         
+#         return (not clear_old_sess)
 
-    def chk_and_launch_docker(self, sessname, reuse=True):
+    def chk_and_launch_docker(self, sessname, creds):
         cont = JDockContainer.get_by_name(sessname)
-
+        
         if (None != cont) and (not cont.is_running()) and (JDockContainer.num_active() > cfg['numlocalmax']):
-            rendertpl(self, "index.tpl", cfg=cfg, err="Maximum number of containers active. Please try after sometime.")
-        else:
-            cont = JDockContainer.launch_by_name(sessname, reuse)
+            rendertpl(self, "index.tpl", cfg=cfg, err="Maximum number of JuliaBox instances active. Please try after sometime.")
+        else:            
+            cont = JDockContainer.launch_by_name(sessname, True)
             (shellport, uplport, ipnbport) = cont.get_host_ports()
             sign = signstr(sessname + str(shellport) + str(uplport) + str(ipnbport), cfg["sesskey"])
             self.set_cookie("sessname", sessname)
@@ -81,7 +105,11 @@ class LaunchDocker(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
             self.set_cookie("hostupload", str(uplport))
             self.set_cookie("hostipnb", str(ipnbport))
             self.set_cookie("sign", sign)
-            rendertpl(self, "ipnbsess.tpl", sessname=sessname, cfg=cfg)
+
+            if None != creds:
+                creds=base64.b64encode(creds.to_json())
+
+            rendertpl(self, "ipnbsess.tpl", sessname=sessname, cfg=cfg, creds=creds)
 
 
 class AdminHandler(tornado.web.RequestHandler):
@@ -120,12 +148,9 @@ class AdminHandler(tornado.web.RequestHandler):
     def do_upgrade(self, cont, upgrade_available):
         upgrade_id = self.get_argument("upgrade_id", '')
         if (upgrade_id == 'me') and (upgrade_available != None):
-            if upgrade_available != None:
-                cont.stop()
-                cont.backup()
-                cont.delete()
-            response = {'code': 0, 'data': ''}
-            self.write(response)
+            cont.stop()
+            cont.backup()
+            cont.delete()
             return True
         return False
 
