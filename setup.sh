@@ -126,7 +126,7 @@ sudo service docker start
 sleep 1
 
 DOCKER_IMAGE=juliabox/juliabox
-DOCKER_IMAGE_VER=1
+DOCKER_IMAGE_VER=2
 echo "Building docker image ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ..."
 sudo docker build -t ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} docker/IJulia/
 sudo docker tag ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:latest

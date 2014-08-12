@@ -14,22 +14,6 @@
     <script src="/assets/js/jquery-gdrive.js"></script>
     <script src="/assets/js/juliabox.js"></script>
     <script type="text/javascript">
-		function inject_frame() {
-			var frames = ["ijulia"];
-			for(var i=0, l=frames.length; i < l; i++) {
-				var frame = $("#" + frames[i] +"-frame");
-				head = frame.contents().find("head");
-				frame.ready(function () {
-					head.append('<link rel="stylesheet" type="text/css" href="/assets/css/frames.css"/>');
-        			frame.show();
-    			});
-  			}
-		};
-		
-		$(window).load(function(){
-        	inject_frame();			
-		});
-		
 		$(document).ready(function() {
 			var tab_init = {
 				'#ijulia': {'status': true},
