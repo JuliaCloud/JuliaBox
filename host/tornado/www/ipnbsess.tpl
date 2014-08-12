@@ -15,7 +15,7 @@
     <script src="/assets/js/juliabox.js"></script>
     <script type="text/javascript">
 		function inject_frame() {
-			var frames = ["ijulia", "console"];
+			var frames = ["ijulia"];
 			for(var i=0, l=frames.length; i < l; i++) {
 				var frame = $("#" + frames[i] +"-frame");
 				head = frame.contents().find("head");
@@ -31,6 +31,22 @@
 		});
 		
 		$(document).ready(function() {
+			var tab_init = {
+				'#ijulia': {'status': true},
+				'#console': {'status': false, 'content': '<iframe src="/hostshell/" id="console-frame" frameborder="0" height="100%" width="100%"></iframe>'},
+				'#docs': {'status': false, 'content': '<iframe id="docs-frame" src="http://julia.readthedocs.org/en/latest/" frameborder="0" height="100%" width="100%"></iframe>'},
+				'#admin': {'status': false, 'content': '<iframe src="/hostadmin/" id="admin-frame" frameborder="0" height="100%" width="100%"></iframe>'},
+				'#filesync': {'status': false, 'content': '<iframe src="/hostupload/sync" id="filesync-frame" frameborder="0" height="100%" style="float: left" width="100%"></iframe>'},
+				'#fileman': {'status': false, 'content': '<iframe src="/hostupload/" id="upload-frame" frameborder="0" height="100%" style="float: left" width="100%"></iframe>'}
+			};
+			
+			$('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+				var target = $(e.target).attr("href");
+				if(!tab_init[target].status) {
+					$(target).append(tab_init[target].content);
+					tab_init[target].status = true;
+				}
+			});			
             $().gdrive('init', {
                 'devkey': 'AIzaSyADAHw6De_orDrpcP9_hC9utXqESDpaut8',
                 'appid': '64159081293-43o683d0pcgdq6gn7ms86liljoeklvh3.apps.googleusercontent.com'
@@ -76,24 +92,11 @@
         <div id="ijulia" class="tab-pane active">
             <iframe src="/hostipnbsession/" id="ijulia-frame" frameborder="0" height="100%" width="100%"></iframe>
         </div>
-        <div id="console" class="tab-pane container">
-            This is a bash session. If you cannot see a blinking cursor below, please right-click, "reset" the terminal and hit "enter". <br/>
-            Type "julia" to start a Julia REPL session.<br/><br/>
-        
-            <iframe src="/hostshell/" id="console-frame" frameborder="0" height="86%" width="100%"></iframe>
-        </div>
-        <div id="docs" class="tab-pane container">
-            <iframe id="docs-frame" src="http://julia.readthedocs.org/en/latest/" frameborder="0" height="100%" width="100%"></iframe>
-        </div>
-        <div id="filesync" class="tab-pane container">
-            <iframe src="/hostupload/sync" id="filesync-frame" frameborder="0" height="86%" style="float: left" width="100%"></iframe>
-        </div>
-        <div id="fileman" class="tab-pane container">
-            <iframe src="/hostupload/" id="upload-frame" frameborder="0" height="86%" style="float: left" width="100%"></iframe>
-        </div>
-        <div id="admin" class="tab-pane container">
-            <iframe src="/hostadmin/" id="admin-frame" frameborder="0" height="100%" width="100%"></iframe>
-        </div>
+        <div id="console" class="tab-pane container"></div>
+        <div id="docs" class="tab-pane container"></div>
+        <div id="filesync" class="tab-pane container"></div>
+        <div id="fileman" class="tab-pane container"></div>
+        <div id="admin" class="tab-pane container"></div>
     </div>
 
 	<div id="in_page_alert" class="alert alert-warning alert-dismissible container juliaboxmsg" role="alert" style="display: none;">

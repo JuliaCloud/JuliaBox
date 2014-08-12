@@ -12,11 +12,15 @@ RUN add-apt-repository -y ppa:staticfloat/julia-deps
 
 RUN apt-get -y update
 
-RUN apt-get -y install julia build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev python-dev libgnutls28 shellinabox wget file supervisor
+RUN apt-get -y install julia build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev python-dev libgnutls28 wget file supervisor
 RUN apt-get -y install python-setuptools python-numpy python-scipy python-matplotlib python-isodate python-git python-pip
 RUN pip install PyDrive google-api-python-client
 
 RUN easy_install ipython[all]
+
+RUN git clone https://github.com/tanmaykm/shellinabox_fork.git; cd shellinabox_fork; ./configure; make install; cd ..; rm -rf shellinabox_fork
+
+RUN apt-get -y install hdf5-tools
 
 RUN groupadd juser
 RUN useradd -m -d /home/juser -s /bin/bash -g juser -G staff juser
@@ -40,7 +44,7 @@ ADD tornado /home/juser/.juliabox/tornado/
 ADD juliabox.sh /home/juser/.juliabox/
 ADD supervisord.conf /home/juser/.juliabox/
 
-# 4200: http port for shellinabox
+# 4200: http port for console
 # 8000: http port for tornado
 # 8998: ipython port for julia
 EXPOSE  4200 8000 8998
