@@ -1,47 +1,90 @@
-body, html {
-    height: 100%;
-    color: #444;
-}
-
-.container, .container table {
-    height: 100%;
-}
-
 body {
-    font-size: 11pt;
-    font-family: Raleway, 'Trebuchet MS', Arial, sans-serif !important;
+    font-size: 10pt;
 }
-.page-wrap {
-    max-width: 720px;
-    margin: 0 auto;
+ h2, h3 {
+     font-family: museo-slab;
+     font-weight: 100;
+ }
+.banner-container {
+    h1 {
+	font-family: ff-enzo-web;
+	font-size: 3em;
+	font-weight: 100;
+	color: #6f6f6f;
+	display: inline;
+    }
+    img.logo {
+	margin-top: -1.5em;
+	height: 6.67em;
+	width: auto;
+    }
+    .description {
+	text-align: center;
+	font-family: museo-slab;
+	font-weight: 100;
+	font-size: 2em;
+	color: #a1a1a1;
+    }
 }
-td.banner {
-    width: 60%;
+.dark-wings {
+    padding: 4em 0;
+    width: 100%;
+    background: #2a2a2a;
+    color: white;
 }
-.page-wrap td {
-    padding: 0.5em;
-    width: 40%;
-    virtical-align: middle;
+.punchline {
+    font-weight: 300;
+}
+.line-1 {
+    font-family: Raleway;
+    color: #cacaca;
+    font-size: 20px;
+}
+.line-2 {
+    font-family: ff-enzo-web;
+    font-size: 50px;
+}
+.line-3 {
+    font-family: museo-slab;
+    font-size: 1.99em;
+}
+.big-button {
+    margin-top: 2.25em;
+}
+.sessname-box, .gauth-btn {
+    margin-top: 0.2em;
+    font-size: 1.3em;
+    font-family: Raleway;
+    padding: 0.5em 1em;
 }
 
-.description {
-    text-align: center;
-    .subtitle {
-	font-size: 1.25em;
+.gauth-btn span {
+    opacity: 0.5;
+}
+
+.banner-container {
+    margin-top: 5em;
+    margin-bottom: 3.5em;
+}
+
+.features-container {
+    > div {
+	margin-top: 2em;
+    }
+    h3 {
+	text-align: center;
+    }
+    .icon {
+	height: 32px;
+	width: auto;
+	display: block;
+	margin: 1em auto;
+	width: auto;
     }
 }
 
-.banner h1 {
-    font-size: 4em;
-    color: #777;
+.feature-desc {
+    text-align: center;
     font-family: Raleway;
-}
-.form-signin {
-    display: block;
-    float: right;
-}
-
-.instructions {
-    font-size: 0.8em;
-    color: #888;
+    font-size: 1.2em;
 }
