@@ -1,4 +1,5 @@
 worker_processes  2;
+daemon off;
 error_log logs/error.log warn;
 user $$NGINX_USER $$NGINX_USER; 
 
