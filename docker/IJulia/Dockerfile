@@ -13,7 +13,7 @@ RUN add-apt-repository -y ppa:staticfloat/julia-deps
 RUN apt-get -y update
 
 RUN apt-get -y install julia build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev python-dev libgnutls28 wget file supervisor
-RUN apt-get -y install python-setuptools python-numpy python-scipy python-matplotlib python-isodate python-git python-pip
+RUN apt-get -y install python-setuptools python-numpy python-scipy python-matplotlib python-sympy python-isodate python-git python-pip
 RUN pip install PyDrive google-api-python-client
 
 RUN easy_install ipython[all]
