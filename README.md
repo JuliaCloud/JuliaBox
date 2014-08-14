@@ -77,10 +77,10 @@ Following packages are installed by default. Additional packages can be installe
     - `cd JuliaBox`
 - Run `setup.sh` with appropriate options.
     - `admin_username` above is the session name for an "administration" session. If not using Google auth, select something non-guessable.
-    - Go get a coffee, this while take a while
+    - Go get a coffee, this will take a while
 
 
-setup.sh has the following options:
+Options available with `setup.sh`:
 
 ```
 Usage: ./setup.sh -u <admin_username> optional_args
@@ -171,7 +171,7 @@ Unwanted/old images take up unecessary disk space. To clear them run `sudo docke
   
 ## Acknowledgements 
 
-- Code examples from the below projects/websites have been used
+Code examples from the below projects/websites have been used:
 - Docker - http://www.docker.io/
 - OpenResty - http://openresty.org/
 - Lua Resty HTTP Client - https://github.com/bakins/lua-resty-http-simple

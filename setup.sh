@@ -3,7 +3,7 @@
 # ami-80778be8
 
 source ${PWD}/jdockcommon.sh
-NGINX_VER=1.7.0.1
+NGINX_VER=1.7.2.1
 NGINX_INSTALL_DIR=/usr/local/openresty
 NGINX_SUDO=sudo
 mkdir -p $NGINX_INSTALL_DIR
@@ -38,7 +38,7 @@ function sysinstall_pystuff {
     sudo rm -Rf docker-py
 }
 
-function sysinstall_nginx {
+function sysinstall_resty {
     echo "Building nginx openresty for install at ${NGINX_INSTALL_DIR} ..."
     mkdir -p resty
     wget -P resty http://openresty.org/download/ngx_openresty-${NGINX_VER}.tar.gz
@@ -92,7 +92,7 @@ function configure_docker {
 
 function build_docker_image {
     DOCKER_IMAGE=juliabox/juliabox
-    DOCKER_IMAGE_VER=2
+    DOCKER_IMAGE_VER=3
     echo "Building docker image ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ..."
     sudo docker build -t ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} docker/IJulia/
     sudo docker tag ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:latest
