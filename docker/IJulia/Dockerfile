@@ -1,26 +1,54 @@
 
-# Docker file to have a complete Julia installation
-# Julia has some issues installing on the 12.04 image, hence using 13.04
+# Docker file for JuliaBox
 
-FROM saltstack/ubuntu-13.10-minimal
+FROM stackbrew/ubuntu:saucy
 
 MAINTAINER Amit Murthy
 
-RUN apt-get -y install software-properties-common
-RUN add-apt-repository -y ppa:staticfloat/julianightlies
-RUN add-apt-repository -y ppa:staticfloat/julia-deps
+# Enable the necessary sources and upgrade to latest
+RUN echo "deb http://archive.ubuntu.com/ubuntu saucy main universe multiverse restricted" > /etc/apt/sources.list && \
+  apt-get update && \
+  apt-get upgrade -y -o DPkg::Options::=--force-confold
 
-RUN apt-get -y update
+# Add the Julia PPA
+RUN apt-get install -y -o DPkg::Options::=--force-confold apt-utils python-software-properties software-properties-common && \
+  apt-add-repository -y ppa:staticfloat/julianightlies && \
+  add-apt-repository -y ppa:staticfloat/julia-deps && \
+  apt-get update
 
-RUN apt-get -y install julia build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev python-dev libgnutls28 wget file supervisor
-RUN apt-get -y install python-setuptools python-numpy python-scipy python-matplotlib python-sympy python-isodate python-git python-pip
-RUN pip install PyDrive google-api-python-client
-
-RUN easy_install ipython[all]
+RUN apt-get install -y \
+  build-essential \
+  wget \
+  file \
+  vim \
+  libreadline-dev \
+  libncurses-dev \
+  libpcre3-dev \
+  libgnutls28 \
+  hdf5-tools \
+  python \
+  python-yaml \
+  python-m2crypto \
+  python-crypto \
+  msgpack-python \
+  python-zmq \
+  python-jinja2 \
+  python-requests \
+  python-dev \
+  python-setuptools \
+  python-numpy \
+  python-scipy \
+  python-matplotlib \
+  python-sympy \
+  python-isodate \
+  python-git \
+  python-pip \
+  supervisor \
+  julia
+  
+RUN pip install --upgrade PyDrive google-api-python-client ipython[all]
 
 RUN git clone https://github.com/tanmaykm/shellinabox_fork.git; cd shellinabox_fork; ./configure; make install; cd ..; rm -rf shellinabox_fork
-
-RUN apt-get -y install hdf5-tools
 
 RUN groupadd juser
 RUN useradd -m -d /home/juser -s /bin/bash -g juser -G staff juser
@@ -33,7 +61,7 @@ WORKDIR /home/juser
 
 RUN ipython profile create julia
 #RUN apt-get -y install libzmq-dev
-RUN julia -e 'Pkg.init(); Pkg.add("IJulia"); Pkg.add("PyPlot"); Pkg.add("Gadfly"); Pkg.add("DataFrames"); Pkg.add("DataStructures"); Pkg.add("HDF5"); Pkg.add("Iterators"); Pkg.add("MCMC"); Pkg.add("NumericExtensions"); Pkg.add("Optim"); Pkg.add("JuMP");'
+RUN julia -e 'Pkg.init(); Pkg.add("IJulia"); Pkg.add("PyPlot"); Pkg.add("Gadfly"); Pkg.add("DataFrames"); Pkg.add("DataStructures"); Pkg.add("HDF5"); Pkg.add("Iterators"); Pkg.add("MCMC"); Pkg.add("NumericExtensions"); Pkg.add("Optim"); Pkg.add("JuMP"); Pkg.add("SymPy");'
 
 RUN echo "c.NotebookApp.open_browser = False" >> /home/juser/.ipython/profile_julia/ipython_notebook_config.py
 RUN echo "c.NotebookApp.ip = \"*\"" >> /home/juser/.ipython/profile_julia/ipython_notebook_config.py
