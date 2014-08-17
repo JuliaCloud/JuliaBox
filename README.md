@@ -102,7 +102,7 @@ Usage: ./setup.sh -u <admin_username> optional_args
 
 
 ### Additional configuration
-Create a file called jdock.user in the installation's root directory. It should contain a JSON dictionary of the form
+Create a file called jbox.user in the installation's root directory. It should contain a JSON dictionary of the form
 
 ```
 {

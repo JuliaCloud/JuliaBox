@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-from jdockutil import *
+from jbox_util import *
 import errno
 
 def make_sure_path_exists(path):
@@ -11,5 +11,5 @@ def make_sure_path_exists(path):
             raise
 
 if __name__ == "__main__":
-    JDockContainer.backup_all()
+    JBoxContainer.backup_all()
 

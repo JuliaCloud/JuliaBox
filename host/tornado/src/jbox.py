@@ -2,7 +2,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial, wraps
-from jdockutil import *
+from jbox_util import *
 
 import tornado.ioloop, tornado.web, tornado.auth
 import base64, hashlib, hmac, json, os, os.path, random, string, sys, time, urllib
@@ -92,12 +92,12 @@ class LaunchDocker(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
 #         return (not clear_old_sess)
 
     def chk_and_launch_docker(self, sessname, creds):
-        cont = JDockContainer.get_by_name(sessname)
+        cont = JBoxContainer.get_by_name(sessname)
         
-        if (None != cont) and (not cont.is_running()) and (JDockContainer.num_active() > cfg['numlocalmax']):
+        if (None != cont) and (not cont.is_running()) and (JBoxContainer.num_active() > cfg['numlocalmax']):
             rendertpl(self, "index.tpl", cfg=cfg, err="Maximum number of JuliaBox instances active. Please try after sometime.")
         else:            
-            cont = JDockContainer.launch_by_name(sessname, True)
+            cont = JBoxContainer.launch_by_name(sessname, True)
             (shellport, uplport, ipnbport) = cont.get_host_ports()
             sign = signstr(sessname + str(shellport) + str(uplport) + str(ipnbport), cfg["sesskey"])
             self.set_cookie("sessname", sessname)
@@ -119,7 +119,7 @@ class AdminHandler(tornado.web.RequestHandler):
         if len(sessname) == 0:
             self.send_error()
 
-        cont = JDockContainer.get_by_name(sessname)
+        cont = JBoxContainer.get_by_name(sessname)
 
         juliaboxver, upgrade_available = self.get_upgrade_available(cont)
         if self.do_upgrade(cont, upgrade_available):
@@ -157,10 +157,10 @@ class AdminHandler(tornado.web.RequestHandler):
     def get_upgrade_available(self, cont):
         cont_images = cont.get_image_names()
         juliaboxver = cont_images[0]
-        if (JDockContainer.DCKR_IMAGE in cont_images) or ((JDockContainer.DCKR_IMAGE + ':latest') in cont_images):
+        if (JBoxContainer.DCKR_IMAGE in cont_images) or ((JBoxContainer.DCKR_IMAGE + ':latest') in cont_images):
             upgrade_available = None
         else:
-            upgrade_available = JDockContainer.DCKR_IMAGE
+            upgrade_available = JBoxContainer.DCKR_IMAGE
             if ':' not in upgrade_available:
                 upgrade_available = upgrade_available + ':latest'
         return (juliaboxver, upgrade_available)
@@ -176,9 +176,9 @@ class AdminHandler(tornado.web.RequestHandler):
         stop_all = (self.get_argument('stop_all', None) != None)
         
         if stop_all:
-            all_containers = JDockContainer.DCKR.containers(all=False)
+            all_containers = JBoxContainer.DCKR.containers(all=False)
             for c in all_containers:
-                cont = JDockContainer(c['Id'])
+                cont = JBoxContainer(c['Id'])
                 cname = cont.get_name()
 
                 if None == cname:
@@ -187,14 +187,14 @@ class AdminHandler(tornado.web.RequestHandler):
                     cont.stop()
                         
         elif not (stop_id == ''):
-            cont = JDockContainer(stop_id)
+            cont = JBoxContainer(stop_id)
             cont.stop()
         elif not (delete_id == ''):
-            cont = JDockContainer(delete_id)
+            cont = JBoxContainer(delete_id)
             cont.delete()
 
         # get them all again (in case we deleted some)
-        jsonobj = JDockContainer.DCKR.containers(all=all)
+        jsonobj = JBoxContainer.DCKR.containers(all=all)
         for c in jsonobj:
             o = {}
             o["Id"] = c["Id"][0:12]
@@ -225,16 +225,16 @@ class PingHandler(tornado.web.RequestHandler):
             log_info("Invalid ping request for " + str(sessname))
             self.send_error(status_code=403)
         else:
-            JDockContainer.record_ping("/" + esc_sessname(sessname))
+            JBoxContainer.record_ping("/" + esc_sessname(sessname))
             self.set_status(status_code=204)
             self.finish()
 
 
 def do_housekeeping():
-    JDockContainer.maintain(delete_timeout=cfg['expire'], stop_timeout=cfg['inactivity_timeout'], protected_names=cfg['protected_docknames'])
+    JBoxContainer.maintain(delete_timeout=cfg['expire'], stop_timeout=cfg['inactivity_timeout'], protected_names=cfg['protected_docknames'])
 
 def do_backups():
-    JDockContainer.backup_all()
+    JBoxContainer.backup_all()
 
     
 

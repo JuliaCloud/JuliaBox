@@ -6,10 +6,10 @@ NGINX_CONF_DIR=$NGINX_DIR/conf
 
 function cp_tornado_userconf {
     # copy user configuration files to appropriate places
-    if [ -e "jdock.user" ]
+    if [ -e "jbox.user" ]
     then
-        cp -f ${PWD}/jdock.user ${PWD}/${TORNADO_DIR}/conf
+        cp -f ${PWD}/jbox.user ${PWD}/${TORNADO_DIR}/conf
     else
-        rm -f ${PWD}/${TORNADO_CONF_DIR}/jdock.user
+        rm -f ${PWD}/${TORNADO_CONF_DIR}/jbox.user
     fi
 }
