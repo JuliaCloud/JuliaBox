@@ -7,7 +7,7 @@ from jbox_util import *
 import tornado.ioloop, tornado.web, tornado.auth
 import base64, hashlib, hmac, json, os, os.path, random, string, sys, time, urllib
 
-import datetime
+import datetime, traceback
 from oauth2client import GOOGLE_REVOKE_URI, GOOGLE_TOKEN_URI
 from oauth2client.client import OAuth2Credentials, _extract_id_token
 
@@ -27,13 +27,52 @@ def rendertpl(rqst, tpl, **kwargs):
     #log_info('rendering template: ' + tpl)
     rqst.render("../www/" + tpl, **kwargs)
 
+def is_valid_req(req):
+    sessname = req.get_cookie("sessname").replace('"', '')
+    hostshell = req.get_cookie("hostshell").replace('"', '')
+    hostupl = req.get_cookie("hostupload").replace('"', '')
+    hostipnb = req.get_cookie("hostipnb").replace('"', '')
+    signval = req.get_cookie("sign").replace('"', '')
+    
+    sign = signstr(sessname + hostshell + hostupl + hostipnb, cfg["sesskey"])
+    return (sign == signval)
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        rendertpl(self, "index.tpl", cfg=cfg, err='')
+        jbox_cookie = AuthHandler.fetch_auth_results(self)
+        if None == jbox_cookie:
+            rendertpl(self, "index.tpl", cfg=cfg, err='')
+        else:
+            self.chk_and_launch_docker(jbox_cookie['s'], jbox_cookie['creds'])
+            
+
+    def chk_and_launch_docker(self, sessname, creds):
+        cont = JBoxContainer.get_by_name(sessname)
+        
+        if (None != cont) and (not cont.is_running()) and (JBoxContainer.num_active() > cfg['numlocalmax']):
+            rendertpl(self, "index.tpl", cfg=cfg, err="Maximum number of JuliaBox instances active. Please try after sometime.")
+        else:            
+            cont = JBoxContainer.launch_by_name(sessname, True)
+            (shellport, uplport, ipnbport) = cont.get_host_ports()
+            sign = signstr(sessname + str(shellport) + str(uplport) + str(ipnbport), cfg["sesskey"])
+            self.set_cookie("sessname", sessname)
+            self.set_cookie("hostshell", str(shellport))
+            self.set_cookie("hostupload", str(uplport))
+            self.set_cookie("hostipnb", str(ipnbport))
+            self.set_cookie("sign", sign)
+
+            if None != creds:
+                creds=base64.b64encode(creds)
+
+            rendertpl(self, "ipnbsess.tpl", sessname=sessname, cfg=cfg, creds=creds)
 
 
-class LaunchDocker(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
+
+class AuthHandler(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
+    AUTH_COOKIE = 'juliabox'
+    AUTH_VALID_DAYS = 30
+    AUTH_VALID_SECS = (AUTH_VALID_DAYS * 24 * 60 * 60)
+    CRED_STORE = {}
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self):
@@ -56,7 +95,9 @@ class LaunchDocker(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
                 user = json.loads(response.body)
 
                 sessname = esc_sessname(user['email'])
-                self.chk_and_launch_docker(sessname, creds) #reuse=self.can_reuse_session())
+                self.store_auth_results(sessname, creds)
+                #self.chk_and_launch_docker(sessname, creds) #reuse=self.can_reuse_session())
+                self.redirect('/')
             else:
                 yield self.authorize_redirect(redirect_uri=self_redirect_uri,
                                 client_id=self.settings['google_oauth']['key'],
@@ -65,7 +106,10 @@ class LaunchDocker(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
                                 extra_params={'approval_prompt': 'force', 'access_type': 'offline'})
         else:
             sessname = unquote(self.get_argument("sessname"))
-            self.chk_and_launch_docker(sessname, None) #reuse=self.can_reuse_session())
+            self.store_auth_results(sessname, '')
+            #self.chk_and_launch_docker(sessname, None) #reuse=self.can_reuse_session())
+            self.redirect('/')
+        
 
     def make_credentials(self, user):
         #return AccessTokenCredentials(user['access_token'], "juliabox")
@@ -91,25 +135,37 @@ class LaunchDocker(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
 #         
 #         return (not clear_old_sess)
 
-    def chk_and_launch_docker(self, sessname, creds):
-        cont = JBoxContainer.get_by_name(sessname)
+    def store_auth_results(self, sessname, creds):
+        t = datetime.datetime.now(pytz.utc).isoformat()
+        sign = signstr(sessname + t, cfg['sesskey'])
+        AuthHandler.CRED_STORE[sessname] = creds
         
-        if (None != cont) and (not cont.is_running()) and (JBoxContainer.num_active() > cfg['numlocalmax']):
-            rendertpl(self, "index.tpl", cfg=cfg, err="Maximum number of JuliaBox instances active. Please try after sometime.")
-        else:            
-            cont = JBoxContainer.launch_by_name(sessname, True)
-            (shellport, uplport, ipnbport) = cont.get_host_ports()
-            sign = signstr(sessname + str(shellport) + str(uplport) + str(ipnbport), cfg["sesskey"])
-            self.set_cookie("sessname", sessname)
-            self.set_cookie("hostshell", str(shellport))
-            self.set_cookie("hostupload", str(uplport))
-            self.set_cookie("hostipnb", str(ipnbport))
-            self.set_cookie("sign", sign)
-
-            if None != creds:
-                creds=base64.b64encode(creds.to_json())
-
-            rendertpl(self, "ipnbsess.tpl", sessname=sessname, cfg=cfg, creds=creds)
+        jbox_cookie = { 's': sessname, 't': t, 'x': sign }
+        self.set_cookie(AuthHandler.AUTH_COOKIE, base64.b64encode(json.dumps(jbox_cookie)))
+ 
+    @staticmethod
+    def fetch_auth_results(req):
+        try:
+            jbox_cookie = req.get_cookie(AuthHandler.AUTH_COOKIE)
+            if jbox_cookie == None:
+                return None
+            jbox_cookie = json.loads(base64.b64decode(jbox_cookie))
+            sign = signstr(jbox_cookie['s'] + jbox_cookie['t'], cfg['sesskey'])
+            if sign != jbox_cookie['x']:
+                log_info("signature mismatch for " + jbox_cookie['s'])
+    
+            d = isodate.parse_datetime(jbox_cookie['t'])
+            age = (datetime.datetime.now(pytz.utc) - d).total_seconds()
+            if age > AuthHandler.AUTH_VALID_SECS:
+                log_info("cookie older than allowed days: " + jbox_cookie['t'])
+                return None
+            
+            jbox_cookie['creds'] = AuthHandler.CRED_STORE[jbox_cookie['s']].to_json()
+            return jbox_cookie
+        except:
+            log_info("exception while converting cookie to auth results")
+            traceback.print_exc()
+            return None
 
 
 class AdminHandler(tornado.web.RequestHandler):
@@ -213,25 +269,18 @@ class PingHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self):
-        #validate the request
-        sessname = self.get_cookie("sessname").replace('"', '')
-        hostshell = self.get_cookie("hostshell").replace('"', '')
-        hostupl = self.get_cookie("hostupload").replace('"', '')
-        hostipnb = self.get_cookie("hostipnb").replace('"', '')
-        signval = self.get_cookie("sign").replace('"', '')
-        
-        sign = signstr(sessname + hostshell + hostupl + hostipnb, cfg["sesskey"])
-        if sign != signval:
-            log_info("Invalid ping request for " + str(sessname))
-            self.send_error(status_code=403)
-        else:
+        sessname = str(self.get_cookie("sessname")).replace('"', '')
+        if is_valid_req(self):
             JBoxContainer.record_ping("/" + esc_sessname(sessname))
             self.set_status(status_code=204)
             self.finish()
-
+        else:
+            log_info("Invalid ping request for " + sessname)
+            self.send_error(status_code=403)
 
 def do_housekeeping():
     JBoxContainer.maintain(delete_timeout=cfg['expire'], stop_timeout=cfg['inactivity_timeout'], protected_names=cfg['protected_docknames'])
+    #AuthHandler.maintain()
 
 def do_backups():
     JBoxContainer.backup_all()
@@ -241,7 +290,7 @@ def do_backups():
 if __name__ == "__main__":
     application = tornado.web.Application([
         (r"/", MainHandler),
-        (r"/hostlaunchipnb/", LaunchDocker),
+        (r"/hostlaunchipnb/", AuthHandler),
         (r"/hostadmin/", AdminHandler),
         (r"/ping/", PingHandler)
     ])

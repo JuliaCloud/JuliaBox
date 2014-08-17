@@ -1,5 +1,5 @@
 import docker
-import os, sys, time, gzip, isodate, datetime, pytz, tarfile, errno
+import os, sys, time, gzip, isodate, datetime, pytz, tarfile, errno, sets
 
 def log_info(s):
     ts = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
@@ -135,10 +135,11 @@ class JBoxContainer:
         stop_before = (tnow - datetime.timedelta(seconds=stop_timeout)) if (stop_timeout > 0) else tmin
 
         all_containers = JBoxContainer.DCKR.containers(all=True)
-
+        all_cnames = sets.Set()
         for cdesc in all_containers:
             cont = JBoxContainer(cdesc['Id'])
             cname = cont.get_name()
+            all_cnames.add(cname)
 
             if (cname == None) or (cname in protected_names):
                 log_info("Ignoring " + cont.debug_str())
@@ -162,6 +163,13 @@ class JBoxContainer:
                 log_info("last_ping " + str(last_ping) + " stop_before: " + str(stop_before) + " cond: " + str(last_ping < stop_before))
                 log_info("Inactive beyond allowed time " + cont.debug_str())
                 cont.stop()
+
+        # delete ping entries for non exixtent containers
+        for cname in JBoxContainer.PINGS.keys():
+            if cname not in all_cnames:
+                del JBoxContainer.PINGS[cname]
+                
+        
         log_info("Finished container maintenance.")
 
     @staticmethod
