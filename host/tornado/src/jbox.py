@@ -44,7 +44,14 @@ class MainHandler(tornado.web.RequestHandler):
         else:
             user_id = jbox_cookie['u']
             sessname = esc_sessname(user_id)
-            jbuser = JBoxUser(user_id)
+            try:
+                jbuser = JBoxUser(user_id)
+            except:
+                # stale cookie. we don't have the user in our database anymore
+                log_info("stale cookie. we don't have the user in our database anymore. user: " + user_id)
+                self.redirect('/hostlaunchipnb/')
+                return
+            
             creds = jbuser.get_gtok()
             if creds != None:
                 creds_json = json.loads(base64.b64decode(creds))
@@ -328,7 +335,7 @@ def do_backups():
     
 
 if __name__ == "__main__":
-    JBoxUser._init(cfg['sesskey'])
+    JBoxUser._init(table_name=cfg.get('jbox_users', 'jbox_users'), enckey=cfg['sesskey'])
     application = tornado.web.Application([
         (r"/", MainHandler),
         (r"/hostlaunchipnb/", AuthHandler),

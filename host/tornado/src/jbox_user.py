@@ -4,7 +4,7 @@ from jbox_util import log_info
 from jbox_crypto import encrypt, decrypt
 
 class JBoxUser():
-    NAME = 'jbox_users'
+    NAME = None
     SCHEMA = None
     CONN = None
     TABLE = None
@@ -39,7 +39,8 @@ class JBoxUser():
         return decrypt(gtok, JBoxUser.ENCKEY)
     
     @staticmethod
-    def _init(enckey=None):
+    def _init(table_name='jbox_users', enckey=None):
+        JBoxUser.NAME = table_name
         if JBoxUser.CONN == None:
             JBoxUser.CONN = boto.dynamodb.connect_to_region('us-east-1')
         if JBoxUser.SCHEMA == None:

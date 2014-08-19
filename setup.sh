@@ -31,7 +31,8 @@ function sysinstall_pystuff {
     sudo easy_install google-api-python-client
     sudo pip install PyDrive
     sudo pip install boto
-    
+    sudo pip install pycrypto
+
     git clone https://github.com/dotcloud/docker-py 
     cd docker-py
     sudo python setup.py install
