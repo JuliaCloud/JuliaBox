@@ -22,7 +22,7 @@
 			if(callback) callback();
 			return;
 		}
-		if(gopts.debug) console.log("invoking autorization");
+		if(gopts.debug) console.log("invoking authorization");
 		gapi.auth.authorize({
 			'client_id': gopts.appid,
 			'scope': gopts.scope,

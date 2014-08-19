@@ -1,5 +1,5 @@
-
 # Docker file for JuliaBox
+# Version:3
 
 FROM stackbrew/ubuntu:saucy
 
@@ -14,8 +14,10 @@ RUN echo "deb http://archive.ubuntu.com/ubuntu saucy main universe multiverse re
 RUN apt-get install -y -o DPkg::Options::=--force-confold apt-utils python-software-properties software-properties-common && \
   apt-add-repository -y ppa:staticfloat/julianightlies && \
   add-apt-repository -y ppa:staticfloat/julia-deps && \
+  apt-get clean && \
   apt-get update
 
+# Install core packages
 RUN apt-get install -y \
   build-essential \
   wget \
@@ -25,26 +27,37 @@ RUN apt-get install -y \
   libncurses-dev \
   libpcre3-dev \
   libgnutls28 \
-  hdf5-tools \
   python \
   python-yaml \
   python-m2crypto \
   python-crypto \
   msgpack-python \
+  python-dev \
+  python-setuptools \
+  supervisor \
+  julia \
+  && apt-get clean
+
+
+# Install additional packages
+RUN apt-get install -y \
   python-zmq \
   python-jinja2 \
   python-requests \
-  python-dev \
-  python-setuptools \
   python-numpy \
   python-scipy \
   python-matplotlib \
-  python-sympy \
   python-isodate \
   python-git \
   python-pip \
-  supervisor \
-  julia
+  && apt-get clean
+
+
+# Install additional packages required for Julia packages
+RUN apt-get install -y \
+  hdf5-tools \
+  python-sympy \
+  && apt-get clean
   
 RUN pip install --upgrade PyDrive google-api-python-client ipython[all]
 

@@ -2,7 +2,7 @@
 # On Ubuntu 14.04, amd64, Ubuntu provided ami image 
 # ami-80778be8
 
-source ${PWD}/jdockcommon.sh
+source ${PWD}/jboxcommon.sh
 NGINX_VER=1.7.2.1
 NGINX_INSTALL_DIR=/usr/local/openresty
 NGINX_SUDO=sudo
@@ -19,7 +19,7 @@ function usage {
   echo ' -n  <num>      : Maximum number of active containers. Deafult 10.'
   echo ' -t  <seconds>  : Auto delete containers older than specified seconds. 0 means never expire. Default 0.'
   echo
-  echo 'Post setup, additional configuration parameters may be set in jdock.user '
+  echo 'Post setup, additional configuration parameters may be set in jbox.user '
   echo 'Please see README.md (https://github.com/JuliaLang/JuliaBox) for more details '
   
   exit 1
@@ -30,6 +30,7 @@ function sysinstall_pystuff {
     sudo easy_install futures
     sudo easy_install google-api-python-client
     sudo pip install PyDrive
+    sudo pip install boto
     
     git clone https://github.com/dotcloud/docker-py 
     cd docker-py
@@ -92,10 +93,16 @@ function configure_docker {
 
 function build_docker_image {
     DOCKER_IMAGE=juliabox/juliabox
-    DOCKER_IMAGE_VER=3
+    DOCKER_IMAGE_VER=$(grep "^# Version:" docker/IJulia/Dockerfile | cut -d":" -f2)
     echo "Building docker image ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ..."
     sudo docker build -t ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} docker/IJulia/
     sudo docker tag ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:latest
+}
+
+function gen_sesskey {
+    echo "Generating random session validation key"
+    SESSKEY=`< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32`
+    echo $SESSKEY > .jbox_session_key
 }
 
 function configure_resty_tornado {
@@ -103,8 +110,12 @@ function configure_resty_tornado {
     sed  s/\$\$NGINX_USER/$USER/g $NGINX_CONF_DIR/nginx.conf.tpl > $NGINX_CONF_DIR/nginx.conf
     sed  -i s/\$\$ADMIN_KEY/$1/g $NGINX_CONF_DIR/nginx.conf
 
-    echo "Generating random session validation key"
-    SESSKEY=`< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c10`
+    if [ ! -e .jbox_session_key ]
+    then
+        gen_sesskey
+    fi
+    SESSKEY=`cat .jbox_session_key`
+
     sed  -i s/\$\$SESSKEY/$SESSKEY/g $NGINX_CONF_DIR/nginx.conf 
     sed  s/\$\$SESSKEY/$SESSKEY/g $TORNADO_CONF_DIR/tornado.conf.tpl > $TORNADO_CONF_DIR/tornado.conf
 

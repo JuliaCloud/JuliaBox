@@ -1,5 +1,5 @@
 #! /usr/bin/env bash
-source ${PWD}/jdockcommon.sh
+source ${PWD}/jboxcommon.sh
 
 cp_tornado_userconf
 

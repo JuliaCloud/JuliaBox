@@ -15,9 +15,9 @@
                     <tr>
                         <th class="text-left" data-sort="string">
                             {% if currdir != '/' %}
-                            <a href="?rel_dir={{prevdir}}"><span class="glyphicon glyphicon-arrow-left btn"></span></a>
+                            <a href="?rel_dir={{prevdir}}"><span class="glyphicon glyphicon-arrow-left btn" title="Back"></span></a>
                             {% end %}
-                            <a href="?rel_dir={{currdir}}"><span class="glyphicon glyphicon-refresh btn"></span></a>
+                            <a href="?rel_dir={{currdir}}"><span class="glyphicon glyphicon-refresh btn" title="Refresh"></span></a>
                             {{currdir}}
                         </th>
                     </tr>

@@ -10,6 +10,7 @@
     <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
     <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/bootbox.js/4.2.0/bootbox.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
     <script src="//apis.google.com/js/client.js"></script>
     <script src="/assets/js/jquery-gdrive.js"></script>
     <script src="/assets/js/juliabox.js"></script>
@@ -30,15 +31,22 @@
 					$(target).append(tab_init[target].content);
 					tab_init[target].status = true;
 				}
-			});			
-            $().gdrive('init', {
-                'devkey': 'AIzaSyADAHw6De_orDrpcP9_hC9utXqESDpaut8',
-                'appid': '64159081293-43o683d0pcgdq6gn7ms86liljoeklvh3.apps.googleusercontent.com'
-            });
+			});	
+			
+			$('#logout_btn').click(function(event){
+				event.preventDefault();
+				JuliaBox.logout();
+			});
             
         	JuliaBox.init_inpage_alert($('#msg_body'), $('#in_page_alert'));
 	    	{%if None != creds %}
 	    	JuliaBox.init_gauth_tok("{{creds}}");
+            $().gdrive('init', {
+                'devkey': 'AIzaSyADAHw6De_orDrpcP9_hC9utXqESDpaut8',
+                'appid': '64159081293-43o683d0pcgdq6gn7ms86liljoeklvh3.apps.googleusercontent.com',
+                'authtok': '{{authtok}}',
+               	'user': '{{user_id}}'
+            });
 	    	{% end %}
 	    	var myVar = setInterval(function(){JuliaBox.send_keep_alive()}, 60000);
         });
@@ -65,6 +73,7 @@
                     <li><a href="#admin" data-toggle="tab">Account</a></li>
 {% end %}
                     <li><a href="#docs" data-toggle="tab">Docs</a></li>
+                    <li><a href="#" id="logout_btn">Logout</a></li>
                     </ul>
                 </div>
             </div><!-- row -->
