@@ -75,6 +75,12 @@ Following packages are installed by default. Additional packages can be installe
     - `sudo apt-get install git`
     - `git clone https://github.com/JuliaLang/JuliaBox.git`
     - `cd JuliaBox`
+- JuliaBox uses Amazon DynamoDB to store user credentials and Python Boto package to access AWS. To set them up:
+    - Log in to Amazon AWS.
+    - Create a DynamoDB table named `jbox_users` with hash key attribute `user_id`.
+    - Create a Amazon IAM user named `juliabox` and get the AWS credentials for the user.
+    - Grant read and write permissions to `juliabox` user for `jbox_users` DynamoDB table.
+    - Create a boto configuration file with the above AWS credentials as described here: <http://boto.readthedocs.org/en/latest/boto_config_tut.html>.
 - Run `setup.sh` with appropriate options.
     - `admin_username` above is the session name for an "administration" session. If not using Google auth, select something non-guessable.
     - Go get a coffee, this will take a while
@@ -123,7 +129,7 @@ where
 - `admin_users` is a list of users that have access to the admin tab. Empty means everyone has access.
 - `mem_limit` is a maximum memory allowed per docker container (running a local nginx, ijulia, bash as well as the users julia sessions). Default is 1GB.
     - NOTE: To be able to use `mem_limit`, the host kernel must be configured to support the same. 
-    - See http://docs.docker.io/en/latest/installation/kernel/#memory-and-swap-accounting-on-debian-ubuntu 
+    - See <http://docs.docker.io/en/latest/installation/kernel/#memory-and-swap-accounting-on-debian-ubuntu> 
 - `inactivity_timeout` specifies the time in seconds to wait before clearing an inactive session, for example, when the user closes the browser window . 
     - Default is 300 seconds. `protected_sessions` are not affected.
 - `expire` specifes an upper time limit for a user session before it is auto-deleted. 0 means never expire. `protected_sessions` are not affected.
@@ -164,7 +170,7 @@ Unwanted/old images take up unecessary disk space. To clear them run `sudo docke
 ### Notes
 
 - On EC2, the containers are created on the ephemeral volume. They do not persist across a system start/stop
-- NGINX and embedded Lua (from http://openresty.org/) and tornado have been used to build the web interface
+- NGINX and embedded Lua (from <http://openresty.org/>) and tornado have been used to build the web interface
 - Not recommended to host on the public internet just yet. 
 - Security is mostly a TODO at this time.
 - Docker itself is undergoing changes in its API. Since we pull in the latest docker, changes in the docker API may break JuliaBox at any time.
@@ -172,7 +178,7 @@ Unwanted/old images take up unecessary disk space. To clear them run `sudo docke
 ## Acknowledgements 
 
 Code examples from the below projects/websites have been used:
-- Docker - http://www.docker.io/
-- OpenResty - http://openresty.org/
-- Lua Resty HTTP Client - https://github.com/bakins/lua-resty-http-simple
+- Docker - <http://www.docker.io/>
+- OpenResty - <http://openresty.org/>
+- Lua Resty HTTP Client - <https://github.com/bakins/lua-resty-http-simple>
 
