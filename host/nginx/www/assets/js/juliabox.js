@@ -47,24 +47,31 @@ var JuliaBox = (function(){
 		},
 		
 		register_jquery_folder_field: function (fld, trig, loc) {
-			jqfld = $('#filesync-frame').contents().find(fld);
 			jqtrig = $('#filesync-frame').contents().find(trig);
-			jqloc = $('#filesync-frame').contents().find(loc);
-			jqfld.change(function() {
-        		parts = jqfld.val().split('/');
-        		if(parts.length > 3) {
-        			jqloc.val(parts[2]);
-        		}
-        		else {
-        			jqloc.val('');
-        		}
-            });
-			jqfld.prop('readonly', true);
-			jqfld.gdrive('set', {
-    			'trigger': jqtrig, 
-    			'header': 'Select a folder to synchronize',
-    			'filter': 'application/vnd.google-apps.folder'
-			});
+			if(_gauth == null) {
+				jqtrig.click(function(e){
+					self.sync_auth_gdrive();
+				});
+			}
+			else {
+				jqfld = $('#filesync-frame').contents().find(fld);
+				jqloc = $('#filesync-frame').contents().find(loc);
+				jqfld.change(function() {
+	        		parts = jqfld.val().split('/');
+	        		if(parts.length > 3) {
+	        			jqloc.val(parts[2]);
+	        		}
+	        		else {
+	        			jqloc.val('');
+	        		}
+	            });
+				jqfld.prop('readonly', true);
+				jqfld.gdrive('set', {
+	    			'trigger': jqtrig, 
+	    			'header': 'Select a folder to synchronize',
+	    			'filter': 'application/vnd.google-apps.folder'
+				});				
+			}
 		},
 
 		sync_addgit: function(repo, loc, branch) {
@@ -97,30 +104,46 @@ var JuliaBox = (function(){
     		});			
 		},
 
+		sync_auth_gdrive: function(fn) {
+			if(_gauth == null) {
+				self.popup_confirm("You must authorize JuliaBox to access Google Drive. Would you like to do that now?", function(res) {
+					if(res) {
+						top.location.href = '/hostlaunchipnb/?state=ask_gdrive';
+					}
+				});
+			}
+			else {
+				fn();
+			}
+		},
+
 		sync_addgdrive: function(repo, loc) {
-			repo = repo.trim()
-			loc = loc.trim()
+			repo = repo.trim();
+			loc = loc.trim();
+			data = {'action': 'addgdrive', 'repo': repo, 'loc': loc, 'gauth': _gauth};
 			if(repo.length == 0) {
 				return;
 			}
-			self.inpage_alert('info', 'Adding repository...');
-    		$.ajax({
-    			url: "/hostupload/sync",
-    			type: 'POST',
-    			data: {'action': 'addgdrive', 'repo': repo, 'loc': loc, 'gauth': _gauth},
-    			success: function(res) {
-					$('#filesync-frame').attr('src', '/hostupload/sync');
-    				if(res.code == 0) {
-    					self.inpage_alert('success', 'Repository added successfully');
-    				}
-    				else {
-    					self.inpage_alert('danger', 'Error adding repository');
-    				}
-    			},
-    			error: function() {
-    				self.inpage_alert('danger', 'Error adding repository.');
-    			}
-    		});			
+			self.sync_auth_gdrive(function(){
+				self.inpage_alert('info', 'Adding repository...');
+	    		$.ajax({
+	    			url: "/hostupload/sync",
+	    			type: 'POST',
+	    			data: data,
+	    			success: function(res) {
+						$('#filesync-frame').attr('src', '/hostupload/sync');
+	    				if(res.code == 0) {
+	    					self.inpage_alert('success', 'Repository added successfully');
+	    				}
+	    				else {
+	    					self.inpage_alert('danger', 'Error adding repository');
+	    				}
+	    			},
+	    			error: function() {
+	    				self.inpage_alert('danger', 'Error adding repository.');
+	    			}
+	    		});				
+			});
 		},
 
 		sync_syncgit: function(repo) {
@@ -147,23 +170,26 @@ var JuliaBox = (function(){
 		},
 
 		sync_syncgdrive: function(repo) {
-			self.inpage_alert('info', 'Synchronizing repository...');
-    		$.ajax({
-    			url: "/hostupload/sync",
-    			type: 'POST',
-    			data: {'action': 'syncgdrive', 'repo': repo, 'gauth': _gauth},
-    			success: function(res) {
-    				if(res.code == 0) {
-    					self.inpage_alert('success', 'Repository synchronized successfully');
-    				}
-    				else {
-    					self.inpage_alert('danger', 'Error synchronizing repository');
-    				}
-    			},
-    			error: function() {
-    				self.inpage_alert('danger', 'Error synchronizing repository.');
-    			}
-    		});
+			data = {'action': 'syncgdrive', 'repo': repo, 'gauth': _gauth};
+			self.sync_auth_gdrive(function(){
+				self.inpage_alert('info', 'Synchronizing repository...');
+	    		$.ajax({
+	    			url: "/hostupload/sync",
+	    			type: 'POST',
+	    			data: data,
+	    			success: function(res) {
+	    				if(res.code == 0) {
+	    					self.inpage_alert('success', 'Repository synchronized successfully');
+	    				}
+	    				else {
+	    					self.inpage_alert('danger', 'Error synchronizing repository');
+	    				}
+	    			},
+	    			error: function() {
+	    				self.inpage_alert('danger', 'Error synchronizing repository.');
+	    			}
+	    		});
+	   		});
 		},
 
 		sync_delgit: function(repo) {
@@ -188,24 +214,27 @@ var JuliaBox = (function(){
 		},
 
 		sync_delgdrive: function(repo) {
-			self.inpage_alert('warning', 'Deleting repository...');
-    		$.ajax({
-    			url: "/hostupload/sync",
-    			type: 'POST',
-    			data: {'action': 'delgdrive', 'repo': repo, 'gauth': _gauth},
-    			success: function(res) {
-    				$('#filesync-frame').attr('src', '/hostupload/sync');
-    				if(res.code == 0) {
-    					self.inpage_alert('success', 'Repository deleted successfully');
-    				}
-    				else {
-    					self.inpage_alert('danger', 'Error deleting repository');
-    				}
-    			},
-    			error: function() {
-    				self.inpage_alert('danger', 'Error deleting repository.');
-    			}
-    		});			
+			data = {'action': 'delgdrive', 'repo': repo, 'gauth': _gauth};
+			self.sync_auth_gdrive(function(){
+				self.inpage_alert('warning', 'Deleting repository...');
+	    		$.ajax({
+	    			url: "/hostupload/sync",
+	    			type: 'POST',
+	    			data: data,
+	    			success: function(res) {
+	    				$('#filesync-frame').attr('src', '/hostupload/sync');
+	    				if(res.code == 0) {
+	    					self.inpage_alert('success', 'Repository deleted successfully');
+	    				}
+	    				else {
+	    					self.inpage_alert('danger', 'Error deleting repository');
+	    				}
+	    			},
+	    			error: function() {
+	    				self.inpage_alert('danger', 'Error deleting repository.');
+	    			}
+	    		});
+	   		});
 		},
 		
 		sync_delgit_confirm: function(repo) {
@@ -236,6 +265,18 @@ var JuliaBox = (function(){
     		_msg_div.removeClass("alert-success alert-info alert-warning alert-danger");
     		_msg_div.addClass("alert-"+msg_level);
     		_msg_div.show();
+    	},
+    	
+    	logout: function () {
+    		self.popup_confirm('Logout from JuliaBox?', function(res) {
+    			if(res) {
+					for (var it in $.cookie()) {
+						$.removeCookie(it);
+					}
+					top.location.href = '/';
+					top.location.reload(true);    				
+    			}
+    		});
     	},
 
 		popup_alert: function(msg, fn) {

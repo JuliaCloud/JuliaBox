@@ -3,19 +3,17 @@
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial, wraps
 from jbox_util import *
+from jbox_user import JBoxUser
+from jbox_crypto import signstr
 
 import tornado.ioloop, tornado.web, tornado.auth
-import base64, hashlib, hmac, json, os, os.path, random, string, sys, time, urllib
+import base64, json, os, os.path, random, string, sys, time, urllib
 
 import datetime, traceback
 from oauth2client import GOOGLE_REVOKE_URI, GOOGLE_TOKEN_URI
 from oauth2client.client import OAuth2Credentials, _extract_id_token
 
 
-def signstr(s, k):
-    h = hmac.new(k, s, hashlib.sha1)
-    return base64.b64encode(h.digest())
- 
 def unquote(s):
     s = s.strip()
     if s[0] == '"':
@@ -37,16 +35,27 @@ def is_valid_req(req):
     sign = signstr(sessname + hostshell + hostupl + hostipnb, cfg["sesskey"])
     return (sign == signval)
 
+
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        jbox_cookie = AuthHandler.fetch_auth_results(self)
+        jbox_cookie = AuthHandler.get_session_cookie(self)
         if None == jbox_cookie:
             rendertpl(self, "index.tpl", cfg=cfg, err='')
         else:
-            self.chk_and_launch_docker(jbox_cookie['s'], jbox_cookie['creds'])
+            user_id = jbox_cookie['u']
+            sessname = esc_sessname(user_id)
+            jbuser = JBoxUser(user_id)
+            creds = jbuser.get_gtok()
+            if creds != None:
+                creds_json = json.loads(base64.b64decode(creds))
+                authtok = creds_json['access_token']
+            else:
+                authtok = None
+            
+            self.chk_and_launch_docker(sessname, creds, authtok, user_id)
             
 
-    def chk_and_launch_docker(self, sessname, creds):
+    def chk_and_launch_docker(self, sessname, creds, authtok, user_id):
         cont = JBoxContainer.get_by_name(sessname)
         
         if (None != cont) and (not cont.is_running()) and (JBoxContainer.num_active() > cfg['numlocalmax']):
@@ -61,10 +70,7 @@ class MainHandler(tornado.web.RequestHandler):
             self.set_cookie("hostipnb", str(ipnbport))
             self.set_cookie("sign", sign)
 
-            if None != creds:
-                creds=base64.b64encode(creds)
-
-            rendertpl(self, "ipnbsess.tpl", sessname=sessname, cfg=cfg, creds=creds)
+            rendertpl(self, "ipnbsess.tpl", sessname=sessname, cfg=cfg, creds=creds, authtok=authtok, user_id=user_id)
 
 
 
@@ -81,33 +87,52 @@ class AuthHandler(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
             self_redirect_uri = self.request.full_url()
             idx = self_redirect_uri.index("hostlaunchipnb/")
             self_redirect_uri = self_redirect_uri[0:(idx + len("hostlaunchipnb/"))]
-            code = self.get_argument('code', False)
+            
+            # state indicates the stage of auth during multistate auth
+            state = self.get_argument('state', None)
+                
+            code = self.get_argument('code', False)            
             if code != False:
                 user = yield self.get_authenticated_user(redirect_uri=self_redirect_uri, code=code)
-                creds = self.make_credentials(user)
-                #log_info(str(user))
-                #log_info(creds.to_json())
 
                 # get user info
                 http = tornado.httpclient.AsyncHTTPClient()
                 auth_string = "%s %s" % (user['token_type'], user['access_token'])
                 response = yield http.fetch('https://www.googleapis.com/userinfo/v2/me', headers={"Authorization": auth_string})
-                user = json.loads(response.body)
+                user_info = json.loads(response.body)
 
-                sessname = esc_sessname(user['email'])
-                self.store_auth_results(sessname, creds)
-                #self.chk_and_launch_docker(sessname, creds) #reuse=self.can_reuse_session())
+                user_id = user_info['email']
+                sessname = esc_sessname(user_id)
+
+                jbuser = JBoxUser(user_id, create=True)
+                if state == 'store_creds':
+                    creds = self.make_credentials(user)
+                    jbuser.set_gtok(base64.b64encode(creds.to_json()))
+                    jbuser.save()
+                    #log_info(str(user))
+                    #log_info(creds.to_json())
+                else:
+                    self.set_session_cookie(user_id)
+                    if jbuser.is_new:
+                        jbuser.save()
                 self.redirect('/')
             else:
+                if state == 'ask_gdrive':
+                    jbox_cookie = AuthHandler.get_session_cookie(self)
+                    scope = ['https://www.googleapis.com/auth/drive']
+                    extra_params={'approval_prompt': 'force', 'access_type': 'offline', 'login_hint': jbox_cookie['u'], 'include_granted_scopes': 'true', 'state': 'store_creds'}
+                else:
+                    scope = ['profile', 'email']
+                    extra_params={'approval_prompt': 'auto'}
+                
                 yield self.authorize_redirect(redirect_uri=self_redirect_uri,
                                 client_id=self.settings['google_oauth']['key'],
-                                scope=['profile', 'email', 'https://www.googleapis.com/auth/drive'],
+                                scope=scope,
                                 response_type='code',
-                                extra_params={'approval_prompt': 'force', 'access_type': 'offline'})
+                                extra_params=extra_params)
         else:
             sessname = unquote(self.get_argument("sessname"))
-            self.store_auth_results(sessname, '')
-            #self.chk_and_launch_docker(sessname, None) #reuse=self.can_reuse_session())
+            self.set_session_cookie(sessname)
             self.redirect('/')
         
 
@@ -127,21 +152,36 @@ class AuthHandler(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
             id_token = id_token,
             token_response = user)
         return credential
-                
-#     def can_reuse_session(self):
-#         clear_old_sess = self.get_argument("clear_old_sess", False)
-#         if clear_old_sess != False:
-#             clear_old_sess = True
-#         
-#         return (not clear_old_sess)
 
-    def store_auth_results(self, sessname, creds):
+    def set_session_cookie(self, user_id):
         t = datetime.datetime.now(pytz.utc).isoformat()
-        sign = signstr(sessname + t, cfg['sesskey'])
-        AuthHandler.CRED_STORE[sessname] = creds
+        sign = signstr(user_id + t, cfg['sesskey'])
         
-        jbox_cookie = { 's': sessname, 't': t, 'x': sign }
+        jbox_cookie = { 'u': user_id, 't': t, 'x': sign }
         self.set_cookie(AuthHandler.AUTH_COOKIE, base64.b64encode(json.dumps(jbox_cookie)))
+ 
+    @staticmethod
+    def get_session_cookie(req):
+        try:
+            jbox_cookie = req.get_cookie(AuthHandler.AUTH_COOKIE)
+            if jbox_cookie == None:
+                return None
+            jbox_cookie = json.loads(base64.b64decode(jbox_cookie))
+            sign = signstr(jbox_cookie['u'] + jbox_cookie['t'], cfg['sesskey'])
+            if sign != jbox_cookie['x']:
+                log_info("signature mismatch for " + jbox_cookie['u'])
+                return None
+    
+            d = isodate.parse_datetime(jbox_cookie['t'])
+            age = (datetime.datetime.now(pytz.utc) - d).total_seconds()
+            if age > AuthHandler.AUTH_VALID_SECS:
+                log_info("cookie older than allowed days: " + jbox_cookie['t'])
+                return None
+            return jbox_cookie
+        except:
+            log_info("exception while reading cookie")
+            traceback.print_exc()
+            return None
  
     @staticmethod
     def fetch_auth_results(req):
@@ -288,6 +328,7 @@ def do_backups():
     
 
 if __name__ == "__main__":
+    JBoxUser._init(cfg['sesskey'])
     application = tornado.web.Application([
         (r"/", MainHandler),
         (r"/hostlaunchipnb/", AuthHandler),

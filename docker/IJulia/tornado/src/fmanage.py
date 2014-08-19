@@ -125,6 +125,7 @@ class SyncHandler(tornado.web.RequestHandler):
                 elif action == 'syncgit':
                     retcode = self.action_syncgit()
             except:
+                # TODO: handle auth tok expiry and send out separate error code
                 traceback.print_exc()
                 retcode = -1
         response = {'code': retcode, 'data': ''}

@@ -65,8 +65,8 @@
             	<td><small>{{loc}}</small></td>
             	<td><b>{{reponame}}</b></td>
             	<td>
-            		<span class="glyphicon glyphicon-refresh syncgdrive btn" id="syncgdrive_{{repokey}}"></span>
-            		<span class="glyphicon glyphicon-trash delgdrive btn" id="delgdrive_{{repokey}}"></span>
+            		<span class="glyphicon glyphicon-refresh syncgdrive btn" id="syncgdrive_{{repokey}}" title="Synchronize with Google Drive"></span>
+            		<span class="glyphicon glyphicon-trash delgdrive btn" id="delgdrive_{{repokey}}" title="Delete from JuliaBox"></span>
             	</td>
             </tr>
         {% end %}
@@ -75,12 +75,12 @@
         		<table width="100%">
         			<tr>
         				<td><input type="text" id="gfolder" class="form-control"></td>
-        				<td><span class="glyphicon glyphicon-folder-open btn" id="gfolder_selector"></span></td>
+        				<td><span class="glyphicon glyphicon-folder-open btn" id="gfolder_selector" title="Select Google Drive folder"></span></td>
         			</tr>
         		</table>
 			</td>
         	<td><input type="text" id="gfolderloc" class="form-control"/></td>
-        	<td><span class="glyphicon glyphicon-plus btn" id="addgdrive"></span></td>
+        	<td><span class="glyphicon glyphicon-plus btn" id="addgdrive" title="Add to JuliaBox"></span></td>
         </tr>
     </table>
 
@@ -98,8 +98,8 @@
             	<td><small><i>{{repobranch}}</i></small></td>
             	<td><b>{{reponame}}</b></td>
             	<td>
-            		<span class="glyphicon glyphicon-{{reposyncicon}} syncgit btn" id="syncgit_{{repokey}}"></span>
-            		<span class="glyphicon glyphicon-trash delgit btn" id="delgit_{{repokey}}"></span>
+            		<span class="glyphicon glyphicon-{{reposyncicon}} syncgit btn" id="syncgit_{{repokey}}" title="Synchronize with remote"></span>
+            		<span class="glyphicon glyphicon-trash delgit btn" id="delgit_{{repokey}}" title="Delete from JuliaBox"></span>
             	</td>
             </tr>
         {% end %}
@@ -107,7 +107,7 @@
         	<td><input type="text" id="gitrepo" class="form-control"/></td>
         	<td><input type="text" id="gitbranch" class="form-control"/></td>
         	<td><input type="text" id="gitrepoloc" class="form-control"/></td>
-        	<td><span class="glyphicon glyphicon-plus btn" id="addgit"></span></td>
+        	<td><span class="glyphicon glyphicon-plus btn" id="addgit" title="Add to JuliaBox"></span></td>
         </tr>
     </table>
 </body>
