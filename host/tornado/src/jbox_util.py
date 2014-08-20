@@ -1,4 +1,5 @@
-import docker
+import docker, boto
+from boto.s3.key import Key
 import os, sys, time, gzip, isodate, datetime, pytz, tarfile, errno, sets
 
 def log_info(s):
@@ -46,6 +47,8 @@ class JBoxContainer:
     VOLUMES = ['/juliabox']
     LOCAL_TZ_OFFSET = 0
     BACKUP_LOC = None
+    BACKUP_BUCKET = None
+    S3_CONN = None
 
     def __init__(self, dockid):
         self.dockid = dockid
@@ -90,13 +93,16 @@ class JBoxContainer:
         return []
         
     @staticmethod
-    def configure(dckr, image, mem_limit, host_volumes, backup_loc):
+    def configure(dckr, image, mem_limit, host_volumes, backup_loc, backup_bucket=None):
         JBoxContainer.DCKR = dckr
         JBoxContainer.DCKR_IMAGE = image
         JBoxContainer.MEM_LIMIT = mem_limit
         JBoxContainer.LOCAL_TZ_OFFSET = JBoxContainer.local_time_offset()
         JBoxContainer.HOST_VOLUMES = host_volumes
         JBoxContainer.BACKUP_LOC = backup_loc
+        if None != backup_bucket:
+            JBoxContainer.S3_CONN = boto.connect_s3()
+            JBoxContainer.BACKUP_BUCKET = JBoxContainer.S3_CONN.get_bucket(backup_bucket)
 
     @staticmethod
     def create_new(name):
@@ -172,6 +178,28 @@ class JBoxContainer:
         
         log_info("Finished container maintenance.")
 
+
+    @staticmethod
+    def push_to_s3(local_file, backup_time):
+        if None == JBoxContainer.BACKUP_BUCKET:
+            return None
+        key_name = os.path.basename(local_file)
+        k = Key(JBoxContainer.BACKUP_BUCKET)
+        k.key = key_name
+        k.set_metadata('backup_time', backup_time)
+        k.set_contents_from_filename(local_file)
+        return k
+    
+    @staticmethod
+    def pull_from_s3(local_file, metadata_only=False):
+        if None == JBoxContainer.BACKUP_BUCKET:
+            return None
+        key_name = os.path.basename(local_file)
+        k = JBoxContainer.BACKUP_BUCKET.get_key(key_name)
+        if (k != None) and (not metadata_only):
+            k.get_contents_to_filename(local_file)
+        return k
+
     @staticmethod
     def backup_all():
         log_info("Starting container backup...")
@@ -187,8 +215,14 @@ class JBoxContainer:
             return
 
         bkup_file = os.path.join(JBoxContainer.BACKUP_LOC, cname[1:] + ".tar.gz")
+        k = JBoxContainer.pull_from_s3(bkup_file, True)
+        bkup_file_mtime = None
         if os.path.exists(bkup_file):
             bkup_file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(bkup_file), pytz.utc) + datetime.timedelta(seconds=JBoxContainer.LOCAL_TZ_OFFSET)
+        elif None != k:
+            bkup_file_mtime = JBoxContainer.parse_iso_time(k.get_metadata('backup_time'))
+
+        if None != bkup_file_mtime:
             tstart = self.time_started()
             tstop = self.time_finished()
             tcomp = tstart if ((tstop == None) or (tstart > tstop)) else tstop
@@ -201,13 +235,21 @@ class JBoxContainer:
         with gzip.open(bkup_file, 'w') as f:
             f.write(bkup_data)
         log_info("Backed up " + self.debug_str() + " into " + bkup_file)
+        
+        # Upload to S3 if so configured. Delete from local if successful.
+        bkup_file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(bkup_file), pytz.utc) + datetime.timedelta(seconds=JBoxContainer.LOCAL_TZ_OFFSET)
+        if None != JBoxContainer.push_to_s3(bkup_file, bkup_file_mtime.isoformat()):
+            os.remove(bkup_file)
+            log_info("Moved backup to S3 " + self.debug_str())
+
 
     def create_restore_file(self):
         cname = self.get_name()
         if cname == None:
             return
-
+        
         src = os.path.join(JBoxContainer.BACKUP_LOC, cname[1:] + ".tar.gz")
+        k = JBoxContainer.pull_from_s3(src)     # download from S3 if exists
         if not os.path.exists(src):
             return
 
@@ -235,6 +277,9 @@ class JBoxContainer:
         os.chmod(dest, 0666)
         log_info("Created restore file " + dest)
 
+        # delete local copy of backup if we have it on s3
+        if None != k:
+            os.remove(src)
 
     @staticmethod
     def num_active():
@@ -260,7 +305,7 @@ class JBoxContainer:
         return JBoxContainer.PINGS[name] if (name in JBoxContainer.PINGS) else None
 
     @staticmethod
-    def parse_docker_time(tm):
+    def parse_iso_time(tm):
         if None != tm:
             tm = isodate.parse_datetime(tm)
         return tm
@@ -280,15 +325,15 @@ class JBoxContainer:
 
     def time_started(self):
         props = self.get_props()
-        return JBoxContainer.parse_docker_time(props['State']['StartedAt'])
+        return JBoxContainer.parse_iso_time(props['State']['StartedAt'])
 
     def time_finished(self):
         props = self.get_props()
-        return JBoxContainer.parse_docker_time(props['State']['FinishedAt'])
+        return JBoxContainer.parse_iso_time(props['State']['FinishedAt'])
 
     def time_created(self):
         props = self.get_props()
-        return JBoxContainer.parse_docker_time(props['Created'])
+        return JBoxContainer.parse_iso_time(props['Created'])
 
     def stop(self):
         log_info("Stopping " + self.debug_str())
@@ -335,11 +380,19 @@ class JBoxContainer:
         if cname != None:
             JBoxContainer.PINGS.pop(cname, None)
         log_info("Deleted " + self.debug_str())
+        # remove mount point
+        try:
+            mount_point = os.path.join(JBoxContainer.BACKUP_LOC, cname[1:])
+            os.rmdir(mount_point)
+            log_info("Removed mount point " + mount_point)
+        except:
+            log_info("Error removing mount point " + self.debug_str())
 
 
 dckr = docker.Client()
 cfg = read_config()
 backup_location = os.path.expanduser(cfg['backup_location'])
+backup_bucket = cfg['backup_bucket']
 make_sure_path_exists(backup_location)
-JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], [os.path.join(backup_location, '${CNAME}')], backup_location)
+JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], [os.path.join(backup_location, '${CNAME}')], backup_location, backup_bucket=backup_bucket)
 
