@@ -106,6 +106,11 @@ class JBoxContainer:
 
     @staticmethod
     def create_new(name):
+        mount_point = os.path.join(JBoxContainer.BACKUP_LOC, name)
+        if not os.path.exists(mount_point):
+            os.makedirs(mount_point)
+            os.chmod(mount_point, 0777)
+        
         jsonobj = JBoxContainer.DCKR.create_container(JBoxContainer.DCKR_IMAGE, detach=True, mem_limit=JBoxContainer.MEM_LIMIT, ports=JBoxContainer.PORTS, volumes=JBoxContainer.VOLUMES, name=name)
         dockid = jsonobj["Id"]
         cont = JBoxContainer(dockid)
@@ -255,11 +260,6 @@ class JBoxContainer:
 
         dest = os.path.join(JBoxContainer.BACKUP_LOC, cname[1:], "restore.tar.gz")
         log_info("Filtering out restore info from backup " + src + " to " + dest)
-
-        dest_dir = os.path.dirname(dest)
-        if not os.path.exists(dest_dir):
-            os.makedirs(dest_dir)
-            os.chmod(dest_dir, 0777)
 
         src_tar = tarfile.open(src, 'r:gz')
         dest_tar = tarfile.open(dest, 'w:gz')
