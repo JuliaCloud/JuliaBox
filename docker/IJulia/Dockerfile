@@ -13,6 +13,7 @@ RUN apt-get install -y \
 
 RUN groupadd juser
 RUN useradd -m -d /home/juser -s /bin/bash -g juser -G staff juser
+RUN chown juser:juser /home/juser
 #RUN usermod -a -G staff juser
 RUN echo "export HOME=/home/juser" >> /home/juser/.bashrc
 #RUN echo "juser ALL=NOPASSWD: ALL" >> /etc/sudoers
