@@ -360,7 +360,7 @@ if __name__ == "__main__":
 
     # backup user files every 1 hour
     # check: configured expiry time must be at least twice greater than this
-    run_interval = int(cfg['expire']/2)
+    run_interval = int(cfg['expire']*1000/2)
     if run_interval > 0:
         run_interval = min(run_interval, 60*60*1000)
     else:
