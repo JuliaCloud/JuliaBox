@@ -1,25 +1,19 @@
 #! /usr/bin/env python
 
-from concurrent.futures import ThreadPoolExecutor
-from functools import partial, wraps
-from jbox_util import *
+from jbox_util import log_info, esc_sessname, read_config, make_sure_path_exists, unquote
 from jbox_user import JBoxUser
+from jbox_accounting import JBoxAccounting
+from jbox_container import JBoxContainer
 from jbox_crypto import signstr
 
 import tornado.ioloop, tornado.web, tornado.auth
-import base64, json, os, os.path, random, string, sys, time, urllib
+import base64, json, os.path, random, string
+import docker
 
-import datetime, traceback
+import datetime, traceback, isodate, pytz
 from oauth2client import GOOGLE_REVOKE_URI, GOOGLE_TOKEN_URI
 from oauth2client.client import OAuth2Credentials, _extract_id_token
 
-
-def unquote(s):
-    s = s.strip()
-    if s[0] == '"':
-        return s[1:-1]
-    else:
-        return s
 
 def rendertpl(rqst, tpl, **kwargs):
     #log_info('rendering template: ' + tpl)
@@ -44,20 +38,22 @@ class MainHandler(tornado.web.RequestHandler):
         else:
             user_id = jbox_cookie['u']
             sessname = esc_sessname(user_id)
-            try:
-                jbuser = JBoxUser(user_id)
-            except:
-                # stale cookie. we don't have the user in our database anymore
-                log_info("stale cookie. we don't have the user in our database anymore. user: " + user_id)
-                self.redirect('/hostlaunchipnb/')
-                return
             
-            creds = jbuser.get_gtok()
-            if creds != None:
-                creds_json = json.loads(base64.b64decode(creds))
-                authtok = creds_json['access_token']
-            else:
-                authtok = None
+            if cfg["gauth"]:
+                try:
+                    jbuser = JBoxUser(user_id)
+                except:
+                    # stale cookie. we don't have the user in our database anymore
+                    log_info("stale cookie. we don't have the user in our database anymore. user: " + user_id)
+                    self.redirect('/hostlaunchipnb/')
+                    return
+                
+                creds = jbuser.get_gtok()
+                if creds != None:
+                    creds_json = json.loads(base64.b64decode(creds))
+                    authtok = creds_json['access_token']
+                else:
+                    authtok = None
             
             self.chk_and_launch_docker(sessname, creds, authtok, user_id)
             
@@ -335,7 +331,15 @@ def do_backups():
     
 
 if __name__ == "__main__":
+    dckr = docker.Client()
+    cfg = read_config()
+    backup_location = os.path.expanduser(cfg['backup_location'])
+    backup_bucket = cfg['backup_bucket']
+    make_sure_path_exists(backup_location)
+    JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], [os.path.join(backup_location, '${CNAME}')], backup_location, backup_bucket=backup_bucket)
     JBoxUser._init(table_name=cfg.get('jbox_users', 'jbox_users'), enckey=cfg['sesskey'])
+    JBoxAccounting._init(table_name=cfg.get('jbox_accounting', 'jbox_accounting'))
+    
     application = tornado.web.Application([
         (r"/", MainHandler),
         (r"/hostlaunchipnb/", AuthHandler),
@@ -349,11 +353,20 @@ if __name__ == "__main__":
     ioloop = tornado.ioloop.IOLoop.instance()
 
     # run container maintainence every 10 minutes
-    ct = tornado.ioloop.PeriodicCallback(do_housekeeping, 10*60*1000, ioloop)
+    run_interval = 10*60*1000
+    log_info("Container maintenance every " + str(run_interval/(60*1000)) + " minutes")
+    ct = tornado.ioloop.PeriodicCallback(do_housekeeping, run_interval, ioloop)
     ct.start()
 
     # backup user files every 1 hour
-    cbackup = tornado.ioloop.PeriodicCallback(do_backups, 60*60*1000, ioloop)
+    # check: configured expiry time must be at least twice greater than this
+    run_interval = int(cfg['expire']/2)
+    if run_interval > 0:
+        run_interval = min(run_interval, 60*60*1000)
+    else:
+        run_interval = 60*60*1000
+    log_info("Container backups every " + str(run_interval/(60*1000)) + " minutes")
+    cbackup = tornado.ioloop.PeriodicCallback(do_backups, run_interval, ioloop)
     cbackup.start()
     
     ioloop.start()

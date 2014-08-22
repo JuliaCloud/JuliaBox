@@ -18,6 +18,7 @@
     "env_type" : "prod",
     "backup_location" : "~/juliabox_backup",
     "jbox_users": "jbox_users",    
+    "jbox_accounting": "jbox_accounting",
     "backup_bucket": "juliabox_userbackup",
     "dummy" : "dummy"
 }
