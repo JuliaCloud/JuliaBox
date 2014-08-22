@@ -1,7 +1,7 @@
 # Docker file for JuliaBox
 # Version:4
 
-FROM tanmaykm/juliaboxdockerbase:julia_nightly
+FROM tanmaykm/juliaboxdockerbase:julia_v0.3_1
 
 MAINTAINER Amit Murthy
 
