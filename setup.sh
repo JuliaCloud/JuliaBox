@@ -100,6 +100,15 @@ function build_docker_image {
     sudo docker tag ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:latest
 }
 
+function pull_docker_image {
+    DOCKER_IMAGE=juliabox/juliabox
+    DOCKER_IMAGE_VER=$(grep "^# Version:" docker/IJulia/Dockerfile | cut -d":" -f2)
+    echo "Pulling docker image ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ..."
+    sudo docker pull tanmaykm/juliabox_dev:latest
+    sudo docker tag tanmaykm/juliabox_dev:latest ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER}
+    sudo docker tag tanmaykm/juliabox_dev:latest ${DOCKER_IMAGE}:latest
+}
+
 function gen_sesskey {
     echo "Generating random session validation key"
     SESSKEY=`< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32`
@@ -193,7 +202,7 @@ if test $OPT_INSTALL -eq 1; then
     sleep 1
 fi
 
-build_docker_image
+pull_docker_image
 configure_resty_tornado
 
 echo
