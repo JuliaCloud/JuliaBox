@@ -1,67 +1,15 @@
 # Docker file for JuliaBox
-# Version:3
+# Version:4
 
-FROM stackbrew/ubuntu:saucy
+FROM tanmaykm/juliaboxdockerbase:julia_nightly
 
 MAINTAINER Amit Murthy
 
-# Enable the necessary sources and upgrade to latest
-RUN echo "deb http://archive.ubuntu.com/ubuntu saucy main universe multiverse restricted" > /etc/apt/sources.list && \
-  apt-get update && \
-  apt-get upgrade -y -o DPkg::Options::=--force-confold
-
-# Add the Julia PPA
-RUN apt-get install -y -o DPkg::Options::=--force-confold apt-utils python-software-properties software-properties-common && \
-  apt-add-repository -y ppa:staticfloat/julianightlies && \
-  add-apt-repository -y ppa:staticfloat/julia-deps && \
-  apt-get clean && \
-  apt-get update
-
-# Install core packages
-RUN apt-get install -y \
-  build-essential \
-  wget \
-  file \
-  vim \
-  libreadline-dev \
-  libncurses-dev \
-  libpcre3-dev \
-  libgnutls28 \
-  python \
-  python-yaml \
-  python-m2crypto \
-  python-crypto \
-  msgpack-python \
-  python-dev \
-  python-setuptools \
-  supervisor \
-  julia \
-  && apt-get clean
-
-
-# Install additional packages
-RUN apt-get install -y \
-  python-zmq \
-  python-jinja2 \
-  python-requests \
-  python-numpy \
-  python-scipy \
-  python-matplotlib \
-  python-isodate \
-  python-git \
-  python-pip \
-  && apt-get clean
-
-
 # Install additional packages required for Julia packages
 RUN apt-get install -y \
-  hdf5-tools \
-  python-sympy \
-  && apt-get clean
-  
-RUN pip install --upgrade PyDrive google-api-python-client ipython[all]
-
-RUN git clone https://github.com/tanmaykm/shellinabox_fork.git; cd shellinabox_fork; ./configure; make install; cd ..; rm -rf shellinabox_fork
+        hdf5-tools \
+        python-sympy \
+        && apt-get clean
 
 RUN groupadd juser
 RUN useradd -m -d /home/juser -s /bin/bash -g juser -G staff juser
@@ -93,4 +41,3 @@ EXPOSE  4200 8000 8998
 
 VOLUME ["/juliabox"]
 ENTRYPOINT /usr/bin/supervisord -n -c /home/juser/.juliabox/supervisord.conf -l /home/juser/.juliabox/supervisord.log -j /home/juser/.juliabox/supervisord.pid -q /home/juser/.juliabox
-

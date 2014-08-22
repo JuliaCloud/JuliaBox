@@ -1,15 +1,16 @@
 #! /usr/bin/env python
 
-from jbox_util import *
-import errno
-
-def make_sure_path_exists(path):
-    try:
-        os.makedirs(path)
-    except OSError as exception:
-        if exception.errno != errno.EEXIST:
-            raise
+import docker, os
+from jbox_util import read_config, make_sure_path_exists
+from jbox_container import JBoxContainer
 
 if __name__ == "__main__":
+    dckr = docker.Client()
+    cfg = read_config()
+    backup_location = os.path.expanduser(cfg['backup_location'])
+    backup_bucket = cfg['backup_bucket']
+    make_sure_path_exists(backup_location)
+    JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], [os.path.join(backup_location, '${CNAME}')], backup_location, backup_bucket=backup_bucket)
+    
     JBoxContainer.backup_all()
 
