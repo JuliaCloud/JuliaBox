@@ -15,6 +15,7 @@ http {
         root www;
 
         set $SESSKEY '$$SESSKEY';
+        client_max_body_size 20M;
         
         location /favicon.ico {
             include    mime.types;

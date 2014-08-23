@@ -8,8 +8,8 @@
 </head>
 
 <body>
-    <center><table width="100%"><tr><td valign="top">
-        <div class="dropzone">
+    <center><table width="100%"><tr><td valign="top" class="dropzone">
+        <div>
             <table id="dirlistingtbl" class="table table-striped">
                 <thead>
                     <tr>
@@ -40,21 +40,24 @@
             </table>
         </div>
     </td>
-    <td width="500px" valign="top" id="juliadropzone" class="dropzone"></td>
+    <td width="500px" valign="bottom" class="dropzone">
+    	<div id="juliadropzone" class="dropzone"></div>
+    	<div class="text-muted text-center"><small>(max 20 MB)</small></div>
+    </td>
     </tr></table></center>
 
     <script language="javascript">
         var jDropzone = new Dropzone("#juliadropzone", { 
                             url: "file-upload",
                             init: function() {
-                                this.on("addedfile", function(file) { 
+                                this.on("complete", function(file) { 
                                             window.setTimeout(function() {
                                                     location.reload(); 
-                                                }, 2000);
+                                                }, 3000);
                                         });
                                 },
                                 paramName: "file", // The name that will be used to transfer the file
-                                maxFilesize: 10, // MB
+                                maxFilesize: 20, // MB
                             });
     </script>
 </body>
