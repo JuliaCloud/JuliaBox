@@ -3,14 +3,24 @@ body, html {
 }
 body {
     font-size: 11pt;
-    font-family: Raleway, 'Trebuchet MS', Arial, sans-serif !important;
+    font-family: ff-enzo-web;
+    font-weight: 600;
 }
 #docs-frame {
     display: block;
 }
 .brand-title {
-    font-size: 1.5em;
+    font-family: ff-enzo-web;
+    font-weight: 300;
+    font-size: 2em;
+    sup {
+	font-size: 0.5em;
+	font-family: georgia, serif;
+	font-style: italic;
+	color: #999;
+    }
 }
+
 .center {
     text-align: center;
 }
@@ -49,19 +59,21 @@ body {
 }
 .nav > li > a {
     padding: 0.5em 1em;
+    font-weight: 600;
     padding-bottom: 0.4em;
     margin: 0 0.25em;
-}
-.brand-header {
-    float: left;
 }
 img.brand-logo {
     text-align: center;
     height: 3em;
+    width: auto;
     margin-right: 1em;
     margin-top: -0.3em;
     margin-bottom: 0.3em;
-    width: auto;
+}
+.brand-title.col-md-2 {
+    width: 140px !important;
+    line-height: 1em;
 }
 pre {
     white-space: pre-wrap;       /* CSS 3 */

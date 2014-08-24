@@ -5,3 +5,5 @@ cp_tornado_userconf
 
 sudo supervisord -c ${PWD}/host/supervisord.conf
 sudo supervisorctl -c ${PWD}/host/supervisord.conf start all
+cd host/tornado
+python src/jbox.py &

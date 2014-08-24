@@ -4,8 +4,12 @@
 	<title>{{sessname}} &mdash; JuliaBox</title>
 
 	<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
-	<link href='//fonts.googleapis.com/css?family=Raleway|Inconsolata' rel='stylesheet' type='text/css'>
-	<link rel="stylesheet" type="text/css" href="/assets/css/base.css" />
+    {% if cfg["env_type"] == "dev" %}
+    <link rel="stylesheet/less" type="text/css" href="/assets/css/base.less" />
+    <script src="//cdnjs.cloudflare.com/ajax/libs/less.js/1.7.3/less.min.js"></script>
+    {% else %}
+    <link rel="stylesheet" type="text/css" href="/assets/css/base.css" />
+    {% end %}
 	
     <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
     <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
@@ -14,6 +18,8 @@
     <script src="//apis.google.com/js/client.js"></script>
     <script src="/assets/js/jquery-gdrive.js"></script>
     <script src="/assets/js/juliabox.js"></script>
+    <script type="text/javascript" src="//use.typekit.net/cpz5ogz.js"></script>
+    <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
     <script type="text/javascript">
 		$(document).ready(function() {
 			var tab_init = {
@@ -57,12 +63,12 @@
     <div class="header-wrap">
         <div class="container">
             <div class="row header-row">
-                <div class="brand-header">
+                <div class="col-md-1">
                     <img class="brand-logo" src="/assets/img/juliacloudlogo.png"></img>
-                    <span class="brand-title">JuliaBox</span>
                 </div>
+                <div class="brand-title col-md-2">JuliaBox<sup>&nbsp;&beta;</sup></div>
                 <div class="col-md-9">
-                    <ul class="nav nav-pills" role="tablist">
+                    <ul class="jb-nav nav nav-pills" role="tablist">
                     <li class="active"><a href="#ijulia" data-toggle="tab">IJulia</a></li>
                     <li><a href="#console" data-toggle="tab">Console</a></li>
                     <li><a href="#fileman" data-toggle="tab">File Manager</a></li>

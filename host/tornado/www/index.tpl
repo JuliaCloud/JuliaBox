@@ -36,7 +36,7 @@
 	<img class="logo" src="/assets/img/juliacloudlogo.png">
       </div>
       <div class="col-md-3">
-	<h1>Julia<span>Box</span></h1>
+	<h1>JuliaBox <sup>beta</sup></h1>
       </div>
       <div class="description col-md-7">Run Julia from the Browser. No setup.</div>
     </div>
@@ -48,7 +48,7 @@
 	</div>
 	<div class="col-md-6">
 	  <div class="big-button col-md-8 col-md-offset-2 col-sm-offset-0">
-	    <form class="form-signin" role="form" action="/hostlaunchipnb/">
+	    <form class="form-signin" role="form" action="/hostlaunchipnb/" method="GET">
 	      {% if cfg["gauth"] %}
 	      <button class="btn btn-lg btn-primary btn-block gauth-btn" type="submit"  value="Launch">Sign in via Google. <span>It's free!</span></button>
 	      {% else %}
