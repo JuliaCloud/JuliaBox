@@ -9,14 +9,16 @@ MAINTAINER Amit Murthy
 RUN apt-get install -y \
         hdf5-tools \
         python-sympy \
+		glpk-utils \
         && apt-get clean
 
 RUN groupadd juser
 RUN useradd -m -d /home/juser -s /bin/bash -g juser -G staff juser
-RUN chown juser:juser /home/juser
 #RUN usermod -a -G staff juser
 RUN echo "export HOME=/home/juser" >> /home/juser/.bashrc
 #RUN echo "juser ALL=NOPASSWD: ALL" >> /etc/sudoers
+# chown to avoid docker bug where permissions on /home/juser are not set correctly
+RUN chown juser:juser /home/juser
 USER juser
 ENV HOME /home/juser
 WORKDIR /home/juser
@@ -24,6 +26,7 @@ WORKDIR /home/juser
 RUN ipython profile create julia
 #RUN apt-get -y install libzmq-dev
 RUN julia -e 'Pkg.init(); Pkg.add("IJulia"); Pkg.add("PyPlot"); Pkg.add("Gadfly"); Pkg.add("DataFrames"); Pkg.add("DataStructures"); Pkg.add("HDF5"); Pkg.add("Iterators"); Pkg.add("MCMC"); Pkg.add("NumericExtensions"); Pkg.add("Optim"); Pkg.add("JuMP"); Pkg.add("SymPy");'
+RUN julia -e 'Pkg.add("GLPKMathProgInterface"); Pkg.add("Clp");'
 
 RUN echo "c.NotebookApp.open_browser = False" >> /home/juser/.ipython/profile_julia/ipython_notebook_config.py
 RUN echo "c.NotebookApp.ip = \"*\"" >> /home/juser/.ipython/profile_julia/ipython_notebook_config.py
