@@ -10,7 +10,7 @@ import tornado.ioloop, tornado.web, tornado.auth
 import base64, json, os.path, random, string
 import docker
 
-import datetime, traceback, isodate, pytz
+import datetime, traceback, isodate, pytz, httplib2
 from oauth2client import GOOGLE_REVOKE_URI, GOOGLE_TOKEN_URI
 from oauth2client.client import OAuth2Credentials, _extract_id_token
 
@@ -50,8 +50,14 @@ class MainHandler(tornado.web.RequestHandler):
                 
                 creds = jbuser.get_gtok()
                 if creds != None:
-                    creds_json = json.loads(base64.b64decode(creds))
-                    authtok = creds_json['access_token']
+                    try:
+                        creds_json = json.loads(base64.b64decode(creds))
+                        creds_json = self.renew_creds(creds_json)
+                        authtok = creds_json['access_token']
+                    except:
+                        log_info("stale stored creds. will renew on next use. user: " + user_id)
+                        creds = None
+                        authtok = None
                 else:
                     authtok = None
             
@@ -75,7 +81,13 @@ class MainHandler(tornado.web.RequestHandler):
 
             rendertpl(self, "ipnbsess.tpl", sessname=sessname, cfg=cfg, creds=creds, authtok=authtok, user_id=user_id)
 
-
+    def renew_creds(self, creds):
+        creds = OAuth2Credentials.from_json(json.dumps(creds))
+        http = httplib2.Http()
+        creds.refresh(http)
+        creds = json.loads(creds.to_json())
+        return creds
+    
 
 class AuthHandler(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
     AUTH_COOKIE = 'juliabox'
