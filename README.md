@@ -4,9 +4,11 @@
 
 Following packages are installed by default. Additional packages can be installed and existing packages can be upgraded by users as desired.
 
-- 10 required packages:
+- 14 required packages:
+    - Clp
     - DataFrames
     - DataStructures
+    - GLPKMathProgInterface
     - Gadfly
     - HDF5
     - IJulia
@@ -16,10 +18,12 @@ Following packages are installed by default. Additional packages can be installe
     - NumericExtensions
     - Optim
     - PyPlot
-- 29 additional packages:
+    - SymPy
+- 37 additional packages:
     - ArrayViews
     - BinDeps
     - Calculus
+    - Cbc
     - Codecs
     - Color
     - Compose
@@ -29,11 +33,14 @@ Following packages are installed by default. Additional packages can be installe
     - Distance
     - Distributions
     - DualNumbers
+    - FixedPointNumbers
+    - GLPK
     - GZip
     - Graphs
     - Hexagons
     - ImmutableArrays
     - JSON
+    - KernelDensity
     - Loess
     - MathProgBase
     - Nettle
@@ -45,6 +52,7 @@ Following packages are installed by default. Additional packages can be installe
     - Reexport
     - ReverseDiffSource
     - ReverseDiffSparse
+    - SHA
     - SortingAlgorithms
     - StatsBase
     - URIParser
