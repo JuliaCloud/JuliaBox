@@ -11,6 +11,7 @@ class JBoxContainer:
     PINGS = {}
     DCKR_IMAGE = None
     MEM_LIMIT = None
+    CPU_LIMIT = 1024   # By default all groups have 1024 shares. A group with 100 shares will get a ~10% portion of the CPU time (https://wiki.archlinux.org/index.php/Cgroups)
     PORTS = [4200, 8000, 8998]
     VOLUMES = ['/juliabox']
     LOCAL_TZ_OFFSET = 0
@@ -61,10 +62,11 @@ class JBoxContainer:
         return []
         
     @staticmethod
-    def configure(dckr, image, mem_limit, host_volumes, backup_loc, backup_bucket=None):
+    def configure(dckr, image, mem_limit, cpu_limit, host_volumes, backup_loc, backup_bucket=None):
         JBoxContainer.DCKR = dckr
         JBoxContainer.DCKR_IMAGE = image
         JBoxContainer.MEM_LIMIT = mem_limit
+        JBoxContainer.CPU_LIMIT = cpu_limit
         JBoxContainer.LOCAL_TZ_OFFSET = JBoxContainer.local_time_offset()
         JBoxContainer.HOST_VOLUMES = host_volumes
         JBoxContainer.BACKUP_LOC = backup_loc
@@ -79,7 +81,14 @@ class JBoxContainer:
             os.makedirs(mount_point)
             os.chmod(mount_point, 0777)
         
-        jsonobj = JBoxContainer.DCKR.create_container(JBoxContainer.DCKR_IMAGE, detach=True, mem_limit=JBoxContainer.MEM_LIMIT, ports=JBoxContainer.PORTS, volumes=JBoxContainer.VOLUMES, name=name)
+        jsonobj = JBoxContainer.DCKR.create_container(JBoxContainer.DCKR_IMAGE, 
+                                                      detach=True, 
+                                                      mem_limit=JBoxContainer.MEM_LIMIT,
+                                                      cpu_shares=JBoxContainer.CPU_LIMIT,
+                                                      ports=JBoxContainer.PORTS, 
+                                                      volumes=JBoxContainer.VOLUMES, 
+                                                      hostname='juliabox',
+                                                      name=name)
         dockid = jsonobj["Id"]
         cont = JBoxContainer(dockid)
         log_info("Created " + cont.debug_str())
