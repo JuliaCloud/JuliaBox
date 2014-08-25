@@ -12,6 +12,24 @@ http {
     resolver 8.8.8.8 8.8.4.4;
     server {
         listen 80;
+        
+        # To enable SSL on nginx uncomment and configure the following lines
+        # We also enable SSLv3/TLSv1, but not SSLv2 which is weak and should no longer be used and disable all weak ciphers
+        # Provide full path to certificate bundle (ssl-bundle.crt) and private key (juliabox.key). Rename as appropriate.
+        # All HTTP traffic is redirected to HTTPS
+        
+        #listen 443 default_server ssl;
+
+        #ssl_certificate   		ssl-bundle.crt;
+        #ssl_certificate_key    juliabox.key;
+        
+        #ssl_protocols SSLv3 TLSv1;
+        #ssl_ciphers ALL:!aNULL:!ADH:!eNULL:!LOW:!EXP:RC4+RSA:+HIGH:+MEDIUM;
+
+        #if ($scheme = http) {
+        #    return 301 https://$host$request_uri;
+        #}
+
         root www;
 
         set $SESSKEY '$$SESSKEY';

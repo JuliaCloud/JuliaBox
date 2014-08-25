@@ -1,5 +1,5 @@
 # Docker file for JuliaBox
-# Version:5
+# Version:6
 
 FROM tanmaykm/juliaboxdockerbase:julia_v0.3_1
 
@@ -12,13 +12,16 @@ RUN apt-get install -y \
 		glpk-utils \
         && apt-get clean
 
-RUN groupadd juser
-RUN useradd -m -d /home/juser -s /bin/bash -g juser -G staff juser
+# add juser
+# chown is to avoid docker bug where permissions on /home/juser are not set correctly	
+RUN groupadd juser \
+	&& useradd -m -d /home/juser -s /bin/bash -g juser -G staff juser \
+	&& chown -R juser:juser /home/juser \
+	&& echo "export HOME=/home/juser" >> /home/juser/.bashrc
+	
 #RUN usermod -a -G staff juser
-RUN echo "export HOME=/home/juser" >> /home/juser/.bashrc
 #RUN echo "juser ALL=NOPASSWD: ALL" >> /etc/sudoers
-# chown to avoid docker bug where permissions on /home/juser are not set correctly
-RUN chown juser:juser /home/juser
+
 USER juser
 ENV HOME /home/juser
 WORKDIR /home/juser
