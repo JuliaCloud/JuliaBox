@@ -140,6 +140,8 @@ function configure_resty_tornado {
     sed  -i s,\$\$DOCKER_IMAGE,$DOCKER_IMAGE,g $TORNADO_CONF_DIR/tornado.conf
     sed  -i s,\$\$CLIENT_SECRET,$CLIENT_SECRET,g $TORNADO_CONF_DIR/tornado.conf
     sed  -i s,\$\$CLIENT_ID,$CLIENT_ID,g $TORNADO_CONF_DIR/tornado.conf
+    
+    sed  s,\$\$JBOX_DIR,$PWD,g host/juliabox_logrotate.conf.tpl > host/juliabox_logrotate.conf
 }
 
 
