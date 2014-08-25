@@ -83,7 +83,7 @@ class MainHandler(tornado.web.RequestHandler):
 
     def renew_creds(self, creds):
         creds = OAuth2Credentials.from_json(json.dumps(creds))
-        http = httplib2.Http()
+        http = httplib2.Http(disable_ssl_certificate_validation=True) # pass cacerts otherwise
         creds.refresh(http)
         creds = json.loads(creds.to_json())
         return creds

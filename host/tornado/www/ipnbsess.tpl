@@ -19,7 +19,7 @@
 			var tab_init = {
 				'#ijulia': {'status': true},
 				'#console': {'status': false, 'content': '<iframe src="/hostshell/" id="console-frame" frameborder="0" height="100%" width="100%"></iframe>'},
-				'#docs': {'status': false, 'content': '<iframe id="docs-frame" src="http://julia.readthedocs.org/en/latest/" frameborder="0" height="100%" width="100%"></iframe>'},
+				'#docs': {'status': false, 'content': '<iframe id="docs-frame" src="//julia.readthedocs.org/en/latest/" frameborder="0" height="100%" width="100%"></iframe>'},
 				'#admin': {'status': false, 'content': '<iframe src="/hostadmin/" id="admin-frame" frameborder="0" height="100%" width="100%"></iframe>'},
 				'#filesync': {'status': false, 'content': '<iframe src="/hostupload/sync" id="filesync-frame" frameborder="0" height="100%" style="float: left" width="100%"></iframe>'},
 				'#fileman': {'status': false, 'content': '<iframe src="/hostupload/" id="upload-frame" frameborder="0" height="100%" style="float: left" width="100%"></iframe>'}
