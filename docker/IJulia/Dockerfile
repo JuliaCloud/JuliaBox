@@ -1,9 +1,9 @@
 # Docker file for JuliaBox
 # Version:6
 
-FROM tanmaykm/juliaboxdockerbase:julia_v0.3_1
+FROM tanmaykm/juliaboxjulia:julia_v0.3_2
 
-MAINTAINER Amit Murthy
+MAINTAINER Tanmay Mohapatra
 
 # Install additional packages required for Julia packages
 RUN apt-get install -y \
@@ -12,27 +12,16 @@ RUN apt-get install -y \
 		glpk-utils \
         && apt-get clean
 
-# add juser
-# chown is to avoid docker bug where permissions on /home/juser are not set correctly	
-RUN groupadd juser \
-	&& useradd -m -d /home/juser -s /bin/bash -g juser -G staff juser \
-	&& chown -R juser:juser /home/juser \
-	&& echo "export HOME=/home/juser" >> /home/juser/.bashrc
-	
-#RUN usermod -a -G staff juser
-#RUN echo "juser ALL=NOPASSWD: ALL" >> /etc/sudoers
-
 USER juser
 ENV HOME /home/juser
 WORKDIR /home/juser
 
 RUN ipython profile create julia
-#RUN apt-get -y install libzmq-dev
 RUN julia -e 'Pkg.init(); Pkg.add("IJulia"); Pkg.add("PyPlot"); Pkg.add("Gadfly"); Pkg.add("DataFrames"); Pkg.add("DataStructures"); Pkg.add("HDF5"); Pkg.add("Iterators"); Pkg.add("MCMC"); Pkg.add("NumericExtensions"); Pkg.add("Optim"); Pkg.add("JuMP"); Pkg.add("SymPy");'
 RUN julia -e 'Pkg.add("GLPKMathProgInterface"); Pkg.add("Clp");'
 
-RUN echo "c.NotebookApp.open_browser = False" >> /home/juser/.ipython/profile_julia/ipython_notebook_config.py
-RUN echo "c.NotebookApp.ip = \"*\"" >> /home/juser/.ipython/profile_julia/ipython_notebook_config.py
+RUN echo "c.NotebookApp.open_browser = False" >> /home/juser/.ipython/profile_julia/ipython_notebook_config.py \
+	&& echo "c.NotebookApp.ip = \"*\"" >> /home/juser/.ipython/profile_julia/ipython_notebook_config.py
 COPY custom.css /home/juser/.ipython/profile_julia/static/custom/custom.css
 
 RUN mkdir -p /home/juser/.juliabox /home/juser/.juliabox/tornado
