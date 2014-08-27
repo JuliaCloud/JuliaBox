@@ -223,6 +223,7 @@ class JBoxContainer:
         with gzip.open(bkup_file, 'w') as f:
             f.write(bkup_data)
         log_info("Backed up " + self.debug_str() + " into " + bkup_file)
+        self.filter_backup_file()
         
         # Upload to S3 if so configured. Delete from local if successful.
         bkup_file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(bkup_file), pytz.utc) + datetime.timedelta(seconds=JBoxContainer.LOCAL_TZ_OFFSET)
@@ -230,6 +231,31 @@ class JBoxContainer:
             os.remove(bkup_file)
             log_info("Moved backup to S3 " + self.debug_str())
 
+    def filter_backup_file(self):
+        cname = self.get_name()
+        src = os.path.join(JBoxContainer.BACKUP_LOC, cname[1:] + ".tar.gz")
+        dest = os.path.join(JBoxContainer.BACKUP_LOC, cname[1:] + "_filtered.tar.gz")
+        log_info("Filtering required files from backup " + src + " to " + dest)
+        
+        src_tar = tarfile.open(src, 'r:gz')
+        dest_tar = tarfile.open(dest, 'w:gz')
+        for info in src_tar.getmembers():
+            if info.name.startswith('juser/.') and not (info.name.startswith('juser/.ssh') or info.name.startswith('juser/.juliabox')):
+                continue
+            if info.name.startswith('juser/resty'):
+                continue
+            info.name = info.name[6:]
+            if len(info.name) == 0:
+                continue
+            dest_tar.addfile(info, src_tar.extractfile(info))
+        src_tar.close()
+        dest_tar.close()
+        os.chmod(dest, 0666)
+        log_info("Created filtered file " + dest)
+
+        # delete local copy of backup if we have it on s3
+        os.remove(src)
+        os.rename(dest, src)
 
     def create_restore_file(self):
         cname = self.get_name()

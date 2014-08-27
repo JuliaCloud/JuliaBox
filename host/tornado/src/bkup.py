@@ -10,7 +10,7 @@ if __name__ == "__main__":
     backup_location = os.path.expanduser(cfg['backup_location'])
     backup_bucket = cfg['backup_bucket']
     make_sure_path_exists(backup_location)
-    JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], [os.path.join(backup_location, '${CNAME}')], backup_location, backup_bucket=backup_bucket)
+    JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], [os.path.join(backup_location, '${CNAME}')], backup_location, backup_bucket=backup_bucket)
     
     JBoxContainer.backup_all()
 
