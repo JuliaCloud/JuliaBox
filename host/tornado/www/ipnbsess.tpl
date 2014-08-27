@@ -4,6 +4,7 @@
 	<title>{{sessname}} &mdash; JuliaBox</title>
 
 	<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+	<link rel="stylesheet" href="/assets/css/icons.css" />
     {% if cfg["env_type"] == "dev" %}
     <link rel="stylesheet/less" type="text/css" href="/assets/css/base.less" />
     <script src="//cdnjs.cloudflare.com/ajax/libs/less.js/1.7.3/less.min.js"></script>
@@ -69,17 +70,17 @@
 		</div>
                 <div class="navicons col-md-8">
                     <ul class="jb-nav nav nav-pills" role="tablist">
-                    <li class="active"><a href="#ijulia" data-toggle="tab">IJulia</a></li>
-                    <li><a href="#console" data-toggle="tab">Console</a></li>
-                    <li><a href="#fileman" data-toggle="tab">File Manager</a></li>
-                    <li><a href="#filesync" data-toggle="tab">Sync &amp; Share</a></li>
+                    <li class="active"><a href="#ijulia" data-toggle="tab" class="icon-uniE600" title="IJulia"></a></li>
+                    <li><a href="#console" data-toggle="tab" title="Console" class="icon-uniE603"></a></li>
+                    <li><a href="#fileman" data-toggle="tab" title="File Manager" class="icon-uniE601"></a></li>
+                    <li><a href="#filesync" data-toggle="tab" title="Sync &amp; Share" class="icon-uniE602"></a></li>
 {% if admin_user %}
-                    <li><a href="#admin" data-toggle="tab">Admin</a></li>
+                    <li><a href="#admin" data-toggle="tab" title="Admin" class="icon-uniE607"></a></li>
 {% else %}
-                    <li><a href="#admin" data-toggle="tab">Account</a></li>
+                    <li><a href="#admin" data-toggle="tab" title="Account" class="icon-uniE606"></a></li>
 {% end %}
-                    <li><a href="#docs" data-toggle="tab">Docs</a></li>
-                    <li><a href="#" id="logout_btn">Logout</a></li>
+                    <li><a href="#docs" data-toggle="tab" title="Docs" class="icon-uniE608"></a></li>
+                    <li><a href="#" id="logout_btn" title="Logout" class="icon-uniE604"></a></li>
                     </ul>
                 </div>
             </div><!-- row -->
