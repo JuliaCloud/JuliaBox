@@ -114,13 +114,14 @@ class JBoxContainer:
         return cont
     
     @staticmethod    
-    def maintain(delete_timeout=0, stop_timeout=0, protected_names=[]):
+    def maintain(delete_timeout=0, delete_stopped_timeout=0, stop_timeout=0, protected_names=[]):
         log_info("Starting container maintenance...")
         tnow = datetime.datetime.now(pytz.utc)
         tmin = datetime.datetime(datetime.MINYEAR, 1, 1, tzinfo=pytz.utc)
 
         delete_before = (tnow - datetime.timedelta(seconds=delete_timeout)) if (delete_timeout > 0) else tmin
         stop_before = (tnow - datetime.timedelta(seconds=stop_timeout)) if (stop_timeout > 0) else tmin
+        delete_stopped_before = tnow - datetime.timedelta(seconds=delete_stopped_timeout) if (delete_stopped_timeout > 0) else tmin
 
         all_containers = JBoxContainer.DCKR.containers(all=True)
         all_cnames = sets.Set()
@@ -143,14 +144,17 @@ class JBoxContainer:
 
             if cont.time_started() < delete_before:
                 # don't allow running beyond the limit for long running sessions
-                log_info("time_started " + str(cont.time_started()) + " delete_before: " + str(delete_before) + " cond: " + str(cont.time_started() < delete_before))
+                #log_info("time_started " + str(cont.time_started()) + " delete_before: " + str(delete_before) + " cond: " + str(cont.time_started() < delete_before))
                 log_info("Running beyond allowed time " + cont.debug_str())
                 cont.delete()
             elif (None != last_ping) and c_is_active and (last_ping < stop_before):
                 # if inactive for too long, stop it
-                log_info("last_ping " + str(last_ping) + " stop_before: " + str(stop_before) + " cond: " + str(last_ping < stop_before))
+                #log_info("last_ping " + str(last_ping) + " stop_before: " + str(stop_before) + " cond: " + str(last_ping < stop_before))
                 log_info("Inactive beyond allowed time " + cont.debug_str())
                 cont.stop()
+            elif (not c_is_active) and (cont.time_finished() < delete_stopped_before):
+                log_info("Deleting stopped container " + cont.debug_str())
+                cont.delete()
 
         # delete ping entries for non exixtent containers
         for cname in JBoxContainer.PINGS.keys():

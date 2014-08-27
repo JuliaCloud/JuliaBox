@@ -20,7 +20,10 @@ def rendertpl(rqst, tpl, **kwargs):
     rqst.render("../www/" + tpl, **kwargs)
 
 def is_valid_req(req):
-    sessname = req.get_cookie("sessname").replace('"', '')
+    sessname = req.get_cookie("sessname")
+    if None == sessname:
+        return False
+    sessname = sessname.replace('"', '')
     hostshell = req.get_cookie("hostshell").replace('"', '')
     hostupl = req.get_cookie("hostupload").replace('"', '')
     hostipnb = req.get_cookie("hostipnb").replace('"', '')
@@ -334,8 +337,7 @@ class PingHandler(tornado.web.RequestHandler):
             self.send_error(status_code=403)
 
 def do_housekeeping():
-    JBoxContainer.maintain(delete_timeout=cfg['expire'], stop_timeout=cfg['inactivity_timeout'], protected_names=cfg['protected_docknames'])
-    #AuthHandler.maintain()
+    JBoxContainer.maintain(delete_timeout=cfg['expire'], delete_stopped_timeout=cfg['delete_stopped_timeout'], stop_timeout=cfg['inactivity_timeout'], protected_names=cfg['protected_docknames'])
 
 def do_backups():
     JBoxContainer.backup_all()
@@ -372,12 +374,13 @@ if __name__ == "__main__":
 
     # backup user files every 1 hour
     # check: configured expiry time must be at least twice greater than this
-    run_interval = int(cfg['expire']*1000/2)
+    run_interval = int(cfg['delete_stopped_timeout'])*1000/2
     if run_interval > 0:
         run_interval = min(run_interval, 60*60*1000)
     else:
         run_interval = 60*60*1000
     log_info("Container backups every " + str(run_interval/(60*1000)) + " minutes")
+    log_info("Stopped containers would be deleted after " + str(int(cfg['delete_stopped_timeout'])/60) + " minutes")
     cbackup = tornado.ioloop.PeriodicCallback(do_backups, run_interval, ioloop)
     cbackup.start()
     
