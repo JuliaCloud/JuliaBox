@@ -63,11 +63,11 @@
     <div class="header-wrap">
         <div class="container">
             <div class="row header-row">
-                <div class="col-md-1">
-                    <img class="brand-logo" src="/assets/img/juliacloudlogo.png"></img>
-                </div>
-                <div class="brand-title col-md-2">JuliaBox<sup>&nbsp;&beta;</sup></div>
-                <div class="col-md-9">
+                <div class="col-md-4">
+                    <img class="brand-logo col-md-4" src="/assets/img/juliacloudlogo.png"></img>
+                    <div class="brand-title col-md-8">JuliaBox<sup>&nbsp;&beta;</sup></div>
+		</div>
+                <div class="navicons col-md-8">
                     <ul class="jb-nav nav nav-pills" role="tablist">
                     <li class="active"><a href="#ijulia" data-toggle="tab">IJulia</a></li>
                     <li><a href="#console" data-toggle="tab">Console</a></li>
