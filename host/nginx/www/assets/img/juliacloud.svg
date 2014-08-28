@@ -5,208 +5,107 @@
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="330.2963"
-   height="330"
-   viewBox="0 0 264.23704 264.00002"
+   width="13cm"
+   height="9.5cm"
+   viewBox="0 0 1300 950"
    version="1.1"
-   id="svg3075"
+   id="svg2"
    inkscape:version="0.48.3.1 r9886"
-   sodipodi:docname="juliacloudlogo.png"
+   sodipodi:docname="juliacloud.svg"
    inkscape:export-filename="/home/gowda/code/JuliaBox/host/nginx/www/assets/img/juliacloudlogo.png"
    inkscape:export-xdpi="90"
    inkscape:export-ydpi="90">
   <metadata
-     id="metadata3125">
+     id="metadata18">
     <rdf:RDF>
       <cc:Work
          rdf:about="">
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
+  <defs
+     id="defs16" />
   <sodipodi:namedview
      pagecolor="#ffffff"
      bordercolor="#666666"
      borderopacity="1"
-     objecttolerance="2"
-     gridtolerance="2"
-     guidetolerance="2"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1920"
-     inkscape:window-height="1029"
-     id="namedview3123"
+     inkscape:window-width="1366"
+     inkscape:window-height="717"
+     id="namedview14"
      showgrid="false"
-     fit-margin-top="0"
-     fit-margin-left="0"
-     fit-margin-right="0"
-     fit-margin-bottom="0"
-     inkscape:zoom="1.2180645"
-     inkscape:cx="-9.5551546"
-     inkscape:cy="133.21738"
-     inkscape:window-x="1366"
+     inkscape:zoom="0.70109945"
+     inkscape:cx="247.2897"
+     inkscape:cy="312.94852"
+     inkscape:window-x="0"
      inkscape:window-y="29"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg3075" />
-  <defs
-     id="defs3077">
-    <linearGradient
-       id="linearGradient4341">
-      <stop
-         style="stop-color:#ffffff;stop-opacity:0;"
-         offset="0"
-         id="stop4343" />
-      <stop
-         style="stop-color:#000000;stop-opacity:0.04347826;"
-         offset="1"
-         id="stop4345" />
-    </linearGradient>
-    <g
-       id="g3079">
-      <symbol
-         overflow="visible"
-         id="glyph0-0"
-         style="overflow:visible">
-        <path
-           style="stroke:none"
-           d="m 6.90625,24.046875 0,-119.9375 68,0 0,119.9375 z m 7.640625,-7.578125 52.796875,0 0,-104.71875 -52.796875,0 z"
-           id="path3082"
-           inkscape:connector-curvature="0" />
-      </symbol>
-      <symbol
-         overflow="visible"
-         id="glyph0-1"
-         style="overflow:visible">
-        <path
-           style="stroke:none"
-           d="m 13.34375,-99.140625 55.0625,0 0,11.28125 -20.796875,0 0,76.5625 20.796875,0 0,11.296875 -55.0625,0 0,-11.296875 20.796875,0 0,-76.5625 -20.796875,0 z"
-           id="path3085"
-           inkscape:connector-curvature="0" />
-      </symbol>
-      <symbol
-         overflow="visible"
-         id="glyph0-2"
-         style="overflow:visible">
-        <path
-           style="stroke:none"
-           d="m 7.234375,-4.046875 0,-15.671875 c 4.03125,3.585938 8.191406,6.273438 12.484375,8.0625 4.300781,1.792969 8.753906,2.6875 13.359375,2.6875 6.320313,0 10.734375,-1.644531 13.234375,-4.9375 2.507812,-3.300781 3.765625,-9.445312 3.765625,-18.4375 l 0,-55.515625 -25.3125,0 0,-11.28125 38.71875,0 0,66.796875 c 0,12.492188 -2.339844,21.324219 -7.015625,26.5 -4.667969,5.179688 -12.464844,7.765625 -23.390625,7.765625 -4.25,0 -8.480469,-0.492187 -12.6875,-1.46875 -4.210937,-0.96875 -8.59375,-2.46875 -13.15625,-4.5 z"
-           id="path3088"
-           inkscape:connector-curvature="0" />
-      </symbol>
-      <symbol
-         overflow="visible"
-         id="glyph1-0"
-         style="overflow:visible">
-        <path
-           style="stroke:none"
-           d="m 5.125,17.859375 0,-89.078125 50.5,0 0,89.078125 z m 5.671875,-5.625 39.203125,0 0,-77.78125 -39.203125,0 z"
-           id="path3091"
-           inkscape:connector-curvature="0" />
-      </symbol>
-      <symbol
-         overflow="visible"
-         id="glyph1-1"
-         style="overflow:visible">
-        <path
-           style="stroke:none"
-           d="m 27.765625,-81.671875 20.90625,0 0,7.0625 -11.828125,0 0,75.9375 11.828125,0 0,7.0625 -20.90625,0 z"
-           id="path3094"
-           inkscape:connector-curvature="0" />
-      </symbol>
-      <symbol
-         overflow="visible"
-         id="glyph1-2"
-         style="overflow:visible">
-        <path
-           style="stroke:none"
-           d=""
-           id="path3097"
-           inkscape:connector-curvature="0" />
-      </symbol>
-      <symbol
-         overflow="visible"
-         id="glyph1-3"
-         style="overflow:visible">
-        <path
-           style="stroke:none"
-           d="m 35.515625,-81.671875 0,90.0625 -20.921875,0 0,-7.0625 11.84375,0 0,-75.9375 -11.84375,0 0,-7.0625 z"
-           id="path3100"
-           inkscape:connector-curvature="0" />
-      </symbol>
-    </g>
-  </defs>
-  <use
-     style="fill:#3063a3;fill-opacity:1"
-     xlink:href="#glyph1-2"
-     x="262.9772"
-     y="193"
-     id="use3119"
-     width="437"
-     height="310"
-     transform="translate(-123.09252,64.990739)"
-     inkscape:export-filename="/home/gowda/code/JuliaBox/host/nginx/www/assets/img/juliacloudlogo.png"
-     inkscape:export-xdpi="90"
-     inkscape:export-ydpi="90" />
-  <g
-     style="font-size:16.00000191px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#c8c8c8;fill-opacity:1;stroke:none;font-family:Raleway;-inkscape-font-specification:Raleway"
-     id="text3793"
-     transform="translate(7.9198326,0)"
-     inkscape:export-filename="/home/gowda/code/JuliaBox/host/nginx/www/assets/img/juliacloudlogo.png"
-     inkscape:export-xdpi="90"
-     inkscape:export-ydpi="90" />
-  <g
-     id="g4395">
-    <path
-       style="fill:#3d972e;fill-opacity:0.8;fill-rule:nonzero;stroke:#308a21;stroke-width:0;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-       d="m 118.49745,96.693899 c -7.52584,7.521131 -7.52584,19.722411 0,27.243541 7.52113,7.52584 19.7224,7.52584 27.24353,0 7.52584,-7.52113 7.52584,-19.72241 0,-27.243541 -7.52113,-7.525839 -19.7224,-7.525839 -27.24353,0"
-       id="path3103"
-       inkscape:connector-curvature="0" />
-    <path
-       style="fill:#ca3a30;fill-opacity:0.8;fill-rule:nonzero;stroke:#bf382e;stroke-width:0;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-       d="m 93.210635,140.04273 c -7.52584,7.52113 -7.52584,19.72241 0,27.24354 7.521125,7.52584 19.722395,7.52584 27.243525,0 7.52584,-7.52113 7.52584,-19.72241 0,-27.24354 -7.52113,-7.52584 -19.7224,-7.52584 -27.243525,0"
-       id="path3105"
-       inkscape:connector-curvature="0" />
-    <path
-       style="fill:#9457b0;fill-opacity:0.8;fill-rule:nonzero;stroke:#854c9e;stroke-width:0;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-       d="m 143.78427,140.04273 c -7.52584,7.52113 -7.52584,19.72241 0,27.24354 7.52113,7.52584 19.7224,7.52584 27.24353,0 7.52584,-7.52113 7.52584,-19.72241 0,-27.24354 -7.52113,-7.52584 -19.7224,-7.52584 -27.24353,0"
-       id="path3107"
-       inkscape:connector-curvature="0" />
-    <g
-       transform="translate(-2.4000007,0)"
-       id="g4389">
-      <g
-         style="font-size:160.00001526px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#b3b3b3;fill-opacity:1;stroke:none;font-family:Raleway;-inkscape-font-specification:Raleway"
-         id="text3909"
-         transform="translate(-12.00719,-0.543995)">
-        <path
-           d="m 46.35002,194.49201 0,-123.89601 20.224003,0 0,1.56 c -3.4e-5,0.997432 -0.317368,1.790765 -0.952,2.380001 -0.589366,0.544096 -1.382699,0.816096 -2.38,0.816 l -11.492001,0 0,114.316009 11.492001,0 c 0.997301,-1e-5 1.790634,0.27199 2.38,0.816 0.634632,0.58932 0.951966,1.40532 0.952,2.448 l 0,1.56 -20.224003,0"
-           style="font-size:136.00001526px;fill:#b3b3b3;font-family:Lato;-inkscape-font-specification:Lato"
-           id="path4280"
-           inkscape:connector-curvature="0"
-           sodipodi:nodetypes="ccccccccccccc" />
-      </g>
-      <g
-         transform="matrix(-1,0,0,1,18.407219,-0.543995)"
-         style="font-size:160.00001526px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#b3b3b3;fill-opacity:1;stroke:none;font-family:Raleway;-inkscape-font-specification:Raleway"
-         id="text3913">
-        <path
-           d="m -216.28699,194.49201 0,-123.89601 20.224,0 0,1.56 c -3e-5,0.997432 -0.31737,1.790765 -0.952,2.380001 -0.58937,0.544096 -1.3827,0.816096 -2.38,0.816 l -11.492,0 0,114.316009 11.492,0 c 0.9973,-1e-5 1.79063,0.27199 2.38,0.816 0.63463,0.58932 0.95197,1.40532 0.952,2.448 l 0,1.56 -20.224,0"
-           style="font-size:136.00001526px;fill:#b3b3b3;font-family:Lato;-inkscape-font-specification:Lato"
-           id="path4283"
-           inkscape:connector-curvature="0"
-           sodipodi:nodetypes="ccccccccccccc" />
-      </g>
-    </g>
-    <path
-       inkscape:connector-curvature="0"
-       id="path4359"
-       d="m 132.13102,67.733363 c -10.9025,0 -21.80968,4.154465 -30.125,12.475001 -9.418389,9.412497 -13.49271,22.134956 -12.250006,34.425006 -4.731408,2.07025 -9.178952,5.05153 -13.050001,8.925 -16.641074,16.63067 -16.641074,43.59435 0,60.225 11.568201,11.57545 28.153487,15.10125 42.775007,10.575 8.21753,2.54396 17.05783,2.52047 25.275,-0.025 14.62188,4.54022 31.19897,1.03328 42.775,-10.55 16.64108,-16.63065 16.64108,-43.59433 0,-60.225 -3.86849,-3.87091 -8.29712,-6.85493 -13.025,-8.925 1.24259,-12.28995 -2.8317,-25.012597 -12.25,-34.425006 -8.31533,-8.320536 -19.22251,-12.475001 -30.125,-12.475001 z"
-       style="fill:none;stroke:#aac8d6;stroke-width:4.80000019;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
-  </g>
+     inkscape:current-layer="svg2" />
+  <!-- green dot -->
+  <!-- blue dot -->
+  <!-- red dot -->
+  <!-- purple dot -->
+  <path
+     inkscape:connector-curvature="0"
+     d="M 701.72266,887.52558 H 1010.9569 A 231.98294,231.98294 0 0 0 1000.6491,423.67421 319.54205,319.54205 0 0 0 382.18061,269.05709 136.96688,136.96688 0 1 0 176.02445,449.44373 231.92568,231.92568 0 0 0 279.10253,887.52558 z"
+     id="path4"
+     style="opacity:0.39380528999999997;fill:none;stroke:#000000;stroke-width:25.76951980999999847;stroke-opacity:1" />
+  <circle
+     style="fill:#6bab5b;stroke:#3b972e;stroke-width:20"
+     sodipodi:ry="262"
+     sodipodi:rx="262"
+     sodipodi:cy="370"
+     sodipodi:cx="685"
+     d="M 947,370 C 947,514.6986 829.6986,632 685,632 540.3014,632 423,514.6986 423,370 423,225.3014 540.3014,108 685,108 c 144.6986,0 262,117.3014 262,262 z"
+     cx="685"
+     cy="370"
+     r="262"
+     id="circle6"
+     transform="translate(-1.619021,7.2634658)" />
+  <circle
+     style="fill:#6b85dd;stroke:#4266d5;stroke-width:20"
+     sodipodi:ry="83"
+     sodipodi:rx="83"
+     sodipodi:cy="360"
+     sodipodi:cx="290"
+     d="m 373,360 c 0,45.83963 -37.16037,83 -83,83 -45.83963,0 -83,-37.16037 -83,-83 0,-45.83963 37.16037,-83 83,-83 45.83963,0 83,37.16037 83,83 z"
+     cx="290"
+     cy="360"
+     r="83"
+     id="circle8"
+     transform="translate(-5.6444446,5.6444446)" />
+  <circle
+     style="fill:#d66661;stroke:#c93d39;stroke-width:20"
+     sodipodi:ry="175"
+     sodipodi:rx="175"
+     sodipodi:cy="650"
+     sodipodi:cx="295"
+     d="m 470,650 c 0,96.64983 -78.35017,175 -175,175 -96.64983,0 -175,-78.35017 -175,-175 0,-96.64983 78.35017,-175 175,-175 96.64983,0 175,78.35017 175,175 z"
+     cx="295"
+     cy="650"
+     r="175"
+     id="circle10"
+     transform="translate(-3.238042,5.6444446)" />
+  <circle
+     style="fill:#aa7dc0;stroke:#945bb0;stroke-width:20"
+     sodipodi:ry="175"
+     sodipodi:rx="175"
+     sodipodi:cy="650"
+     sodipodi:cx="995"
+     d="m 1170,650 c 0,96.64983 -78.3502,175 -175,175 -96.64983,0 -175,-78.35017 -175,-175 0,-96.64983 78.35017,-175 175,-175 96.6498,0 175,78.35017 175,175 z"
+     cx="995"
+     cy="650"
+     r="175"
+     id="circle12"
+     transform="translate(2.4064026,7.2634654)" />
 </svg>

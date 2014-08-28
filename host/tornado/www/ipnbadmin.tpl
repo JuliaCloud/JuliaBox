@@ -6,6 +6,9 @@
     <link href='//fonts.googleapis.com/css?family=Raleway|Inconsolata' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" type="text/css" href="/assets/css/frames.css">
 
+    <script type="text/javascript" src="//use.typekit.net/cpz5ogz.js"></script>
+    <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+
 	<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
 	<script type="text/javascript">
 	    $(document).ready(function() {
