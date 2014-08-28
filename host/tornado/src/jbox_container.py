@@ -11,6 +11,7 @@ class JBoxContainer:
     PINGS = {}
     DCKR_IMAGE = None
     MEM_LIMIT = None
+    CPU_LIMIT = 1024   # By default all groups have 1024 shares. A group with 100 shares will get a ~10% portion of the CPU time (https://wiki.archlinux.org/index.php/Cgroups)
     PORTS = [4200, 8000, 8998]
     VOLUMES = ['/juliabox']
     LOCAL_TZ_OFFSET = 0
@@ -61,10 +62,11 @@ class JBoxContainer:
         return []
         
     @staticmethod
-    def configure(dckr, image, mem_limit, host_volumes, backup_loc, backup_bucket=None):
+    def configure(dckr, image, mem_limit, cpu_limit, host_volumes, backup_loc, backup_bucket=None):
         JBoxContainer.DCKR = dckr
         JBoxContainer.DCKR_IMAGE = image
         JBoxContainer.MEM_LIMIT = mem_limit
+        JBoxContainer.CPU_LIMIT = cpu_limit
         JBoxContainer.LOCAL_TZ_OFFSET = JBoxContainer.local_time_offset()
         JBoxContainer.HOST_VOLUMES = host_volumes
         JBoxContainer.BACKUP_LOC = backup_loc
@@ -79,7 +81,14 @@ class JBoxContainer:
             os.makedirs(mount_point)
             os.chmod(mount_point, 0777)
         
-        jsonobj = JBoxContainer.DCKR.create_container(JBoxContainer.DCKR_IMAGE, detach=True, mem_limit=JBoxContainer.MEM_LIMIT, ports=JBoxContainer.PORTS, volumes=JBoxContainer.VOLUMES, name=name)
+        jsonobj = JBoxContainer.DCKR.create_container(JBoxContainer.DCKR_IMAGE, 
+                                                      detach=True, 
+                                                      mem_limit=JBoxContainer.MEM_LIMIT,
+                                                      cpu_shares=JBoxContainer.CPU_LIMIT,
+                                                      ports=JBoxContainer.PORTS, 
+                                                      volumes=JBoxContainer.VOLUMES, 
+                                                      hostname='juliabox',
+                                                      name=name)
         dockid = jsonobj["Id"]
         cont = JBoxContainer(dockid)
         log_info("Created " + cont.debug_str())
@@ -105,13 +114,14 @@ class JBoxContainer:
         return cont
     
     @staticmethod    
-    def maintain(delete_timeout=0, stop_timeout=0, protected_names=[]):
+    def maintain(delete_timeout=0, delete_stopped_timeout=0, stop_timeout=0, protected_names=[]):
         log_info("Starting container maintenance...")
         tnow = datetime.datetime.now(pytz.utc)
         tmin = datetime.datetime(datetime.MINYEAR, 1, 1, tzinfo=pytz.utc)
 
         delete_before = (tnow - datetime.timedelta(seconds=delete_timeout)) if (delete_timeout > 0) else tmin
         stop_before = (tnow - datetime.timedelta(seconds=stop_timeout)) if (stop_timeout > 0) else tmin
+        delete_stopped_before = tnow - datetime.timedelta(seconds=delete_stopped_timeout) if (delete_stopped_timeout > 0) else tmin
 
         all_containers = JBoxContainer.DCKR.containers(all=True)
         all_cnames = sets.Set()
@@ -134,14 +144,17 @@ class JBoxContainer:
 
             if cont.time_started() < delete_before:
                 # don't allow running beyond the limit for long running sessions
-                log_info("time_started " + str(cont.time_started()) + " delete_before: " + str(delete_before) + " cond: " + str(cont.time_started() < delete_before))
+                #log_info("time_started " + str(cont.time_started()) + " delete_before: " + str(delete_before) + " cond: " + str(cont.time_started() < delete_before))
                 log_info("Running beyond allowed time " + cont.debug_str())
                 cont.delete()
             elif (None != last_ping) and c_is_active and (last_ping < stop_before):
                 # if inactive for too long, stop it
-                log_info("last_ping " + str(last_ping) + " stop_before: " + str(stop_before) + " cond: " + str(last_ping < stop_before))
+                #log_info("last_ping " + str(last_ping) + " stop_before: " + str(stop_before) + " cond: " + str(last_ping < stop_before))
                 log_info("Inactive beyond allowed time " + cont.debug_str())
                 cont.stop()
+            elif (not c_is_active) and (cont.time_finished() < delete_stopped_before):
+                log_info("Deleting stopped container " + cont.debug_str())
+                cont.delete()
 
         # delete ping entries for non exixtent containers
         for cname in JBoxContainer.PINGS.keys():
@@ -210,6 +223,7 @@ class JBoxContainer:
         with gzip.open(bkup_file, 'w') as f:
             f.write(bkup_data)
         log_info("Backed up " + self.debug_str() + " into " + bkup_file)
+        self.filter_backup_file()
         
         # Upload to S3 if so configured. Delete from local if successful.
         bkup_file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(bkup_file), pytz.utc) + datetime.timedelta(seconds=JBoxContainer.LOCAL_TZ_OFFSET)
@@ -217,6 +231,31 @@ class JBoxContainer:
             os.remove(bkup_file)
             log_info("Moved backup to S3 " + self.debug_str())
 
+    def filter_backup_file(self):
+        cname = self.get_name()
+        src = os.path.join(JBoxContainer.BACKUP_LOC, cname[1:] + ".tar.gz")
+        dest = os.path.join(JBoxContainer.BACKUP_LOC, cname[1:] + "_filtered.tar.gz")
+        log_info("Filtering required files from backup " + src + " to " + dest)
+        
+        src_tar = tarfile.open(src, 'r:gz')
+        dest_tar = tarfile.open(dest, 'w:gz')
+        for info in src_tar.getmembers():
+            if info.name.startswith('juser/.') and not (info.name.startswith('juser/.ssh') or info.name.startswith('juser/.juliabox')):
+                continue
+            if info.name.startswith('juser/resty'):
+                continue
+            info.name = info.name[6:]
+            if len(info.name) == 0:
+                continue
+            dest_tar.addfile(info, src_tar.extractfile(info))
+        src_tar.close()
+        dest_tar.close()
+        os.chmod(dest, 0666)
+        log_info("Created filtered file " + dest)
+
+        # delete local copy of backup if we have it on s3
+        os.remove(src)
+        os.rename(dest, src)
 
     def create_restore_file(self):
         cname = self.get_name()

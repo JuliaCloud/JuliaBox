@@ -9,7 +9,9 @@
     "dhosts" : [],
     "protected_sessions" : [],
     "mem_limit" : 1073741824,
+    "cpu_limit" : 1024,
     "inactivity_timeout" : 300,
+    "delete_stopped_timeout" : 7200,
     "docker_image" : "$$DOCKER_IMAGE",
     "google_oauth": {
         "key": "$$CLIENT_ID", 

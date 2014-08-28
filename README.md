@@ -4,9 +4,11 @@
 
 Following packages are installed by default. Additional packages can be installed and existing packages can be upgraded by users as desired.
 
-- 10 required packages:
+- 14 required packages:
+    - Clp
     - DataFrames
     - DataStructures
+    - GLPKMathProgInterface
     - Gadfly
     - HDF5
     - IJulia
@@ -16,10 +18,12 @@ Following packages are installed by default. Additional packages can be installe
     - NumericExtensions
     - Optim
     - PyPlot
-- 29 additional packages:
+    - SymPy
+- 37 additional packages:
     - ArrayViews
     - BinDeps
     - Calculus
+    - Cbc
     - Codecs
     - Color
     - Compose
@@ -29,11 +33,14 @@ Following packages are installed by default. Additional packages can be installe
     - Distance
     - Distributions
     - DualNumbers
+    - FixedPointNumbers
+    - GLPK
     - GZip
     - Graphs
     - Hexagons
     - ImmutableArrays
     - JSON
+    - KernelDensity
     - Loess
     - MathProgBase
     - Nettle
@@ -45,6 +52,7 @@ Following packages are installed by default. Additional packages can be installe
     - Reexport
     - ReverseDiffSource
     - ReverseDiffSparse
+    - SHA
     - SortingAlgorithms
     - StatsBase
     - URIParser
@@ -117,6 +125,7 @@ Create a file called jbox.user in the installation's root directory. It should c
   "numlocalmax" : 3,
   "admin_users" : [],
   "mem_limit" : 1000000000,
+  "cpu_limit" : 512,
   "inactivity_timeout" : 300,
   "expire" : 0,
   "dummy" : "dummy"
@@ -131,6 +140,7 @@ where
 - `mem_limit` is a maximum memory allowed per docker container (running a local nginx, ijulia, bash as well as the users julia sessions). Default is 1GB.
     - NOTE: To be able to use `mem_limit`, the host kernel must be configured to support the same. 
     - See <http://docs.docker.io/en/latest/installation/kernel/#memory-and-swap-accounting-on-debian-ubuntu> 
+- `cpu_limit` is a number between 1-1024 indicating the CPU priority as described at <https://wiki.archlinux.org/index.php/Cgroups>
 - `inactivity_timeout` specifies the time in seconds to wait before clearing an inactive session, for example, when the user closes the browser window . 
     - Default is 300 seconds. `protected_sessions` are not affected.
 - `expire` specifes an upper time limit for a user session before it is auto-deleted. 0 means never expire. `protected_sessions` are not affected.

@@ -26,7 +26,7 @@
 			var tab_init = {
 				'#ijulia': {'status': true},
 				'#console': {'status': false, 'content': '<iframe src="/hostshell/" id="console-frame" frameborder="0" height="100%" width="100%"></iframe>'},
-				'#docs': {'status': false, 'content': '<iframe id="docs-frame" src="http://julia.readthedocs.org/en/latest/" frameborder="0" height="100%" width="100%"></iframe>'},
+				'#docs': {'status': false, 'content': '<iframe id="docs-frame" src="//julia.readthedocs.org/en/latest/" frameborder="0" height="100%" width="100%"></iframe>'},
 				'#admin': {'status': false, 'content': '<iframe src="/hostadmin/" id="admin-frame" frameborder="0" height="100%" width="100%"></iframe>'},
 				'#filesync': {'status': false, 'content': '<iframe src="/hostupload/sync" id="filesync-frame" frameborder="0" height="100%" style="float: left" width="100%"></iframe>'},
 				'#fileman': {'status': false, 'content': '<iframe src="/hostupload/" id="upload-frame" frameborder="0" height="100%" style="float: left" width="100%"></iframe>'}
@@ -57,7 +57,7 @@
 	    	{% end %}
 	    	var myVar = setInterval(function(){JuliaBox.send_keep_alive()}, 60000);
         });
-    </script>  
+    </script>
 </head>
 {% set admin_user = (sessname in cfg["admin_sessnames"]) or (cfg["admin_sessnames"] == []) %}
 <body>
@@ -102,7 +102,17 @@
 	<div id="in_page_alert" class="alert alert-warning alert-dismissible container juliaboxmsg" role="alert" style="display: none;">
   		<button type="button" class="close" data-dismiss="alert"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
   		<span id="msg_body"></span>
-	</div>		
+	</div>
+	
+	<script>
+	  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+	
+	  ga('create', 'UA-28835595-2', 'auto');
+	  ga('send', 'pageview');
+	</script>      
 </body>
 </html>
 

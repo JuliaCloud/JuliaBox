@@ -8,6 +8,9 @@ NGINX_INSTALL_DIR=/usr/local/openresty
 NGINX_SUDO=sudo
 mkdir -p $NGINX_INSTALL_DIR
 
+DOCKER_IMAGE=juliabox/juliabox
+DOCKER_IMAGE_VER=$(grep "^# Version:" docker/IJulia/Dockerfile | cut -d":" -f2)
+
 function usage {
   echo
   echo 'Usage: ./setup.sh -u <admin_username> optional_args'
@@ -93,16 +96,12 @@ function configure_docker {
 }
 
 function build_docker_image {
-    DOCKER_IMAGE=juliabox/juliabox
-    DOCKER_IMAGE_VER=$(grep "^# Version:" docker/IJulia/Dockerfile | cut -d":" -f2)
     echo "Building docker image ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ..."
     sudo docker build -t ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} docker/IJulia/
     sudo docker tag ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:latest
 }
 
 function pull_docker_image {
-    DOCKER_IMAGE=juliabox/juliabox
-    DOCKER_IMAGE_VER=$(grep "^# Version:" docker/IJulia/Dockerfile | cut -d":" -f2)
     echo "Pulling docker image ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ..."
     sudo docker pull tanmaykm/juliabox_dev:latest
     sudo docker tag tanmaykm/juliabox_dev:latest ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER}
@@ -140,6 +139,8 @@ function configure_resty_tornado {
     sed  -i s,\$\$DOCKER_IMAGE,$DOCKER_IMAGE,g $TORNADO_CONF_DIR/tornado.conf
     sed  -i s,\$\$CLIENT_SECRET,$CLIENT_SECRET,g $TORNADO_CONF_DIR/tornado.conf
     sed  -i s,\$\$CLIENT_ID,$CLIENT_ID,g $TORNADO_CONF_DIR/tornado.conf
+    
+    sed  s,\$\$JBOX_DIR,$PWD,g host/juliabox_logrotate.conf.tpl > host/juliabox_logrotate.conf
 }
 
 

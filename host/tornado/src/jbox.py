@@ -10,7 +10,7 @@ import tornado.ioloop, tornado.web, tornado.auth
 import base64, json, os.path, random, string
 import docker
 
-import datetime, traceback, isodate, pytz
+import datetime, traceback, isodate, pytz, httplib2
 from oauth2client import GOOGLE_REVOKE_URI, GOOGLE_TOKEN_URI
 from oauth2client.client import OAuth2Credentials, _extract_id_token
 
@@ -20,7 +20,10 @@ def rendertpl(rqst, tpl, **kwargs):
     rqst.render("../www/" + tpl, **kwargs)
 
 def is_valid_req(req):
-    sessname = req.get_cookie("sessname").replace('"', '')
+    sessname = req.get_cookie("sessname")
+    if None == sessname:
+        return False
+    sessname = sessname.replace('"', '')
     hostshell = req.get_cookie("hostshell").replace('"', '')
     hostupl = req.get_cookie("hostupload").replace('"', '')
     hostipnb = req.get_cookie("hostipnb").replace('"', '')
@@ -50,8 +53,14 @@ class MainHandler(tornado.web.RequestHandler):
                 
                 creds = jbuser.get_gtok()
                 if creds != None:
-                    creds_json = json.loads(base64.b64decode(creds))
-                    authtok = creds_json['access_token']
+                    try:
+                        creds_json = json.loads(base64.b64decode(creds))
+                        creds_json = self.renew_creds(creds_json)
+                        authtok = creds_json['access_token']
+                    except:
+                        log_info("stale stored creds. will renew on next use. user: " + user_id)
+                        creds = None
+                        authtok = None
                 else:
                     authtok = None
             
@@ -75,7 +84,13 @@ class MainHandler(tornado.web.RequestHandler):
 
             rendertpl(self, "ipnbsess.tpl", sessname=sessname, cfg=cfg, creds=creds, authtok=authtok, user_id=user_id)
 
-
+    def renew_creds(self, creds):
+        creds = OAuth2Credentials.from_json(json.dumps(creds))
+        http = httplib2.Http(disable_ssl_certificate_validation=True) # pass cacerts otherwise
+        creds.refresh(http)
+        creds = json.loads(creds.to_json())
+        return creds
+    
 
 class AuthHandler(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
     AUTH_COOKIE = 'juliabox'
@@ -322,8 +337,7 @@ class PingHandler(tornado.web.RequestHandler):
             self.send_error(status_code=403)
 
 def do_housekeeping():
-    JBoxContainer.maintain(delete_timeout=cfg['expire'], stop_timeout=cfg['inactivity_timeout'], protected_names=cfg['protected_docknames'])
-    #AuthHandler.maintain()
+    JBoxContainer.maintain(delete_timeout=cfg['expire'], delete_stopped_timeout=cfg['delete_stopped_timeout'], stop_timeout=cfg['inactivity_timeout'], protected_names=cfg['protected_docknames'])
 
 def do_backups():
     JBoxContainer.backup_all()
@@ -336,7 +350,7 @@ if __name__ == "__main__":
     backup_location = os.path.expanduser(cfg['backup_location'])
     backup_bucket = cfg['backup_bucket']
     make_sure_path_exists(backup_location)
-    JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], [os.path.join(backup_location, '${CNAME}')], backup_location, backup_bucket=backup_bucket)
+    JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], [os.path.join(backup_location, '${CNAME}')], backup_location, backup_bucket=backup_bucket)
     JBoxUser._init(table_name=cfg.get('jbox_users', 'jbox_users'), enckey=cfg['sesskey'])
     JBoxAccounting._init(table_name=cfg.get('jbox_accounting', 'jbox_accounting'))
     
@@ -360,12 +374,13 @@ if __name__ == "__main__":
 
     # backup user files every 1 hour
     # check: configured expiry time must be at least twice greater than this
-    run_interval = int(cfg['expire']*1000/2)
+    run_interval = int(cfg['delete_stopped_timeout'])*1000/2
     if run_interval > 0:
         run_interval = min(run_interval, 60*60*1000)
     else:
         run_interval = 60*60*1000
     log_info("Container backups every " + str(run_interval/(60*1000)) + " minutes")
+    log_info("Stopped containers would be deleted after " + str(int(cfg['delete_stopped_timeout'])/60) + " minutes")
     cbackup = tornado.ioloop.PeriodicCallback(do_backups, run_interval, ioloop)
     cbackup.start()
     
