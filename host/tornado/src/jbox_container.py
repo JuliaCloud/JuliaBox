@@ -244,9 +244,6 @@ class JBoxContainer:
                 continue
             if info.name.startswith('juser/resty'):
                 continue
-            info.name = info.name[6:]
-            if len(info.name) == 0:
-                continue
             dest_tar.addfile(info, src_tar.extractfile(info))
         src_tar.close()
         dest_tar.close()
