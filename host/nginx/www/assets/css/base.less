@@ -9,10 +9,20 @@ body {
 #docs-frame {
     display: block;
 }
+img.brand-logo {
+    height: 2.5em;
+    width: auto;
+    display: block;
+    float: left;
+    margin-right: 20px;
+}
 .brand-title {
     font-family: ff-enzo-web;
     font-weight: 300;
+    margin-right: 20px;
+    float: left;
     font-size: 2em;
+    line-height: 1.2em;
     sup {
 	font-size: 0.5em;
 	font-family: georgia, serif;
@@ -25,51 +35,40 @@ body {
     text-align: center;
 }
 .header-wrap {
-    z-index: 1;
     position: absolute;
+    top: 0;
+    z-index: 1;
     width:100%;
-    background: white;
-    box-shadow: 0 0 8px #aaa;
+ //background: #fcfcfc;
+ //background: -moz-linear-gradient(top, #ffffff 0%, #fcfcfc 99%); /* FF3.6+ */
+ //background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#ffffff), color-stop(99%,#fcfcfc)); /* Chrome,Safari4+ */
+ //background: -webkit-linear-gradient(top, #ffffff 0%,#fcfcfc 99%); /* Chrome10+,Safari5.1+ */
+ //background: -o-linear-gradient(top, #ffffff 0%,#fcfcfc 99%); /* Opera 11.10+ */
+ //background: -ms-linear-gradient(top, #ffffff 0%,#fcfcfc 99%); /* IE10+ */
+ //background: linear-gradient(to bottom, #ffffff 0%,#fcfcfc 99%); /* W3C */
+ //filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#fcfcfc',GradientType=0 ); /* IE6-9 */
+    border-bottom: 1px #ddd solid;
 }
 .header-row {
-    height: 3em;
     margin-top: 0.5em;
-    margin-bottom: 0.5em;
 }
 .tab-content {
     position: absolute;
-    top: 4.5em;
+    top:3.4em;
     bottom: 0;
-    left: 0;
     right: 0;
+    left: 0;
+    width: 100%;
 }
 .tab-pane {
     height: 100%;
 }
-.tab-pane.container {
-    padding-top: 2em;
-}
 .juliaboxmsg {
-  position: absolute; 
   bottom: .5em;
   z-index: 9999;
   width: 100%;
   margin: 0px;
   padding: 5px 35px;
-}
-.nav > li > a {
-    padding: 0.5em;
-    font-size: 1em;
-    margin: 0 0.5em;
-}
-img.brand-logo {
-    height: 2.667em;
-    width: auto;
-    display: block;
-    margin: 0.25em auto;
-}
-.brand-title.col-md-2 {
-    line-height: 1em;
 }
 pre {
     white-space: pre-wrap;       /* CSS 3 */
@@ -79,25 +78,44 @@ pre {
     word-wrap: break-word;       /* Internet Explorer 5.5+ */
 }
 
-.navicons {
-    padding-top:.5em;
-    .nav-pills {
-	float: right;
-    }
-}
 // Bootstrap overrides
-.nav-pills>li.active>a,
-.nav-pills>li.active>a:hover,
-.nav-pills>li.active>a:focus {
-    color: #fff;
-    background: #5B5754;
-    box-shadow: 0px 0px 3px #5B5754;
-}
-
-.nav-pills a {
+.nav-tabs>li.active>a,
+.nav-tabs>li.active>a:hover,
+.nav-tabs>li.active>a:focus {
     color: #5B5754;
 }
-.nav-pills > li > a:hover {
+
+.nav-tabs a {
+    color: #7b7774;
+    line-height: 1.4em;
+    em {
+	font-style: normal;
+	font-size: 1.4em;
+	vertical-align: middle;
+    }
+    span {
+	font-size: 1em;
+	font-family: raleway;
+	font-weight: 400;
+	margin-left: 0.5em;
+	text-align: center;
+	vertical-align: middle;
+    }
+}
+.nav-tabs > li > a:hover {
     background: #5BBFDA;
     color: #fff;
+}
+.jb-nav .pull-right a {
+    color: #cbc7c4;
+}
+.jb-nav.nav-tabs {
+    border-bottom: none;
+}
+.content-pad {
+    padding: 1em;
+}
+
+.logo-and-name {
+    width: auto;
 }
