@@ -66,12 +66,12 @@
             <div class="row header-row">
                 <div class="logo-and-name">
                     <img class="brand-logo" src="/assets/img/juliacloudlogo.png"></img>
-                    <div class="brand-title hidden-xs hidden-sm">JuliaBox<sup>&nbsp;&beta;</sup></div>
+                    <div class="brand-title hidden-xs hidden-sm">JuliaBox<sup> beta</sup></div>
 		</div>
                 <div class="navicons">
                     <ul class="jb-nav nav nav-tabs" role="tablist">
                     <li class="active"><a href="#ijulia" data-toggle="tab"><em class="icon-uniE600"></em><span>IJulia</span></a></li>
-                    <li><a href="#console" data-toggle="tab" title="Console"><em class="icon-uniE603"></em><span>Terminal</span></a></li>
+                    <li><a href="#console" data-toggle="tab" title="Console"><em class="icon-uniE603"></em><span>Console</span></a></li>
                     <li><a href="#fileman" data-toggle="tab" title="File Manager"><em class="icon-uniE601"></em><span>Files</span></a></li>
                     <li><a href="#filesync" data-toggle="tab" title="Sync &amp; Share"><em class="icon-uniE602"></em><span>Sync</span></a></li>
                     <li class="pull-right"><a href="#" id="logout_btn" title="Logout" class="pull-right"><em class="icon-uniE604"></em></a></li>
@@ -95,7 +95,7 @@
         <div id="console" class="tab-pane content-pad"></div>
         <div id="docs" class="tab-pane"></div>
         <div id="filesync" class="tab-pane container"></div>
-        <div id="fileman" class="tab-pane container"></div>
+        <div id="fileman" class="tab-pane container" style="padding-top: 1em;"></div>
         <div id="admin" class="tab-pane container"></div>
     </div>
 
