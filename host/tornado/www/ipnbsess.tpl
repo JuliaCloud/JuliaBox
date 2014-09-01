@@ -64,23 +64,23 @@
     <div class="header-wrap">
         <div class="container">
             <div class="row header-row">
-                <div class="col-md-4">
-                    <img class="brand-logo col-md-4" src="/assets/img/juliacloudlogo.png"></img>
-                    <div class="brand-title col-md-8">JuliaBox<sup>&nbsp;&beta;</sup></div>
+                <div class="logo-and-name">
+                    <img class="brand-logo" src="/assets/img/juliacloudlogo.png"></img>
+                    <div class="brand-title hidden-xs hidden-sm">JuliaBox<sup> beta</sup></div>
 		</div>
-                <div class="navicons col-md-8">
-                    <ul class="jb-nav nav nav-pills" role="tablist">
-                    <li class="active"><a href="#ijulia" data-toggle="tab" class="icon-uniE600" title="IJulia"></a></li>
-                    <li><a href="#console" data-toggle="tab" title="Console" class="icon-uniE603"></a></li>
-                    <li><a href="#fileman" data-toggle="tab" title="File Manager" class="icon-uniE601"></a></li>
-                    <li><a href="#filesync" data-toggle="tab" title="Sync &amp; Share" class="icon-uniE602"></a></li>
+                <div class="navicons">
+                    <ul class="jb-nav nav nav-tabs" role="tablist">
+                    <li class="active"><a href="#ijulia" data-toggle="tab"><em class="icon-uniE600"></em><span>IJulia</span></a></li>
+                    <li><a href="#console" data-toggle="tab" title="Console"><em class="icon-uniE603"></em><span>Console</span></a></li>
+                    <li><a href="#fileman" data-toggle="tab" title="File Manager"><em class="icon-uniE601"></em><span>Files</span></a></li>
+                    <li><a href="#filesync" data-toggle="tab" title="Sync &amp; Share"><em class="icon-uniE602"></em><span>Sync</span></a></li>
+                    <li class="pull-right"><a href="#" id="logout_btn" title="Logout" class="pull-right"><em class="icon-uniE604"></em></a></li>
+                    <li class="pull-right"><a href="#docs" data-toggle="tab" title="Docs"><em class="icon-uniE605"></em></a></li>
 {% if admin_user %}
-                    <li><a href="#admin" data-toggle="tab" title="Admin" class="icon-uniE607"></a></li>
+                    <li class="pull-right"><a href="#admin" data-toggle="tab" title="Admin"><em class="icon-uniE607"></em></a></li>
 {% else %}
-                    <li><a href="#admin" data-toggle="tab" title="Account" class="icon-uniE606"></a></li>
+                    <li class="pull-right"><a href="#admin" data-toggle="tab" title="Account"><em class="icon-uniE606"></em></a></li>
 {% end %}
-                    <li><a href="#docs" data-toggle="tab" title="Docs" class="icon-uniE608"></a></li>
-                    <li><a href="#" id="logout_btn" title="Logout" class="icon-uniE604"></a></li>
                     </ul>
                 </div>
             </div><!-- row -->
@@ -92,10 +92,10 @@
         <div id="ijulia" class="tab-pane active">
             <iframe src="/hostipnbsession/" id="ijulia-frame" frameborder="0" height="100%" width="100%"></iframe>
         </div>
-        <div id="console" class="tab-pane container"></div>
-        <div id="docs" class="tab-pane container"></div>
+        <div id="console" class="tab-pane content-pad"></div>
+        <div id="docs" class="tab-pane"></div>
         <div id="filesync" class="tab-pane container"></div>
-        <div id="fileman" class="tab-pane container"></div>
+        <div id="fileman" class="tab-pane container" style="padding-top: 1em;"></div>
         <div id="admin" class="tab-pane container"></div>
     </div>
 
