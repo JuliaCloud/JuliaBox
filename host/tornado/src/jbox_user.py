@@ -1,6 +1,6 @@
-import boto.dynamodb, boto.dynamodb.exceptions
+import boto.dynamodb.exceptions
 import datetime, pytz
-from jbox_util import log_info
+from jbox_util import log_info, CloudHelper
 from jbox_crypto import encrypt, decrypt
 
 class JBoxUser():
@@ -11,6 +11,9 @@ class JBoxUser():
     ENCKEY = None
         
     def __init__(self, user_id, create=False):
+        if None == JBoxUser.TABLE:
+            return
+        
         try:
             self.item = JBoxUser.TABLE.get_item(user_id)
             self.is_new = False
@@ -23,16 +26,24 @@ class JBoxUser():
                 raise
     
     def save(self):
+        if None == JBoxUser.TABLE:
+            return        
         self.item['time_updated'] = datetime.datetime.now(pytz.utc).isoformat()
         self.item.put()
     
     def delete(self):
+        if None == JBoxUser.TABLE:
+            return        
         self.item.delete()
     
     def set_gtok(self, gtok):
+        if None == JBoxUser.TABLE:
+            return        
         self.item['gtok'] = encrypt(gtok, JBoxUser.ENCKEY)
     
     def get_gtok(self):
+        if None == JBoxUser.TABLE:
+            return None
         gtok = self.item.get('gtok', None)
         if gtok == None:
             return None
@@ -41,15 +52,16 @@ class JBoxUser():
     @staticmethod
     def _init(table_name='jbox_users', enckey=None):
         JBoxUser.NAME = table_name
-        if JBoxUser.CONN == None:
-            JBoxUser.CONN = boto.dynamodb.connect_to_region('us-east-1')
-        if JBoxUser.SCHEMA == None:
-            JBoxUser.SCHEMA = JBoxUser.CONN.create_schema(hash_key_name='user_id', hash_key_proto_value=str)
-        if JBoxUser.TABLE == None:
-            JBoxUser.TABLE = JBoxUser.CONN.table_from_schema(name=JBoxUser.NAME, schema=JBoxUser.SCHEMA)
+        
         if JBoxUser.ENCKEY == None:
             JBoxUser.ENCKEY = enckey
-            #JBoxUser.TABLE = JBoxUser.CONN.get_table(JBoxUser.NAME)
+            
+        if JBoxUser.CONN == None:
+            JBoxUser.CONN = CloudHelper.connect_dynamodb()            
+            if None != JBoxUser.CONN:
+                JBoxUser.SCHEMA = JBoxUser.CONN.create_schema(hash_key_name='user_id', hash_key_proto_value=str)
+                JBoxUser.TABLE = JBoxUser.CONN.table_from_schema(name=JBoxUser.NAME, schema=JBoxUser.SCHEMA)
+                #JBoxUser.TABLE = JBoxUser.CONN.get_table(JBoxUser.NAME)
         log_info("JBoxUser initialized")
 
     @staticmethod
