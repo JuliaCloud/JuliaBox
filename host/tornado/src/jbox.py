@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-from jbox_util import log_info, esc_sessname, read_config, make_sure_path_exists, unquote
+from jbox_util import log_info, esc_sessname, read_config, make_sure_path_exists, unquote, CloudHelper
 from jbox_user import JBoxUser
 from jbox_accounting import JBoxAccounting
 from jbox_container import JBoxContainer
@@ -347,12 +347,17 @@ def do_backups():
 if __name__ == "__main__":
     dckr = docker.Client()
     cfg = read_config()
+    
+    cloud_cfg = cfg['cloud_host']
+    CloudHelper.configure(has_s3=cloud_cfg['s3'], has_dynamodb=cloud_cfg['dynamodb'], has_cloudwatch=cloud_cfg['cloudwatch'], region=cloud_cfg['region'], install_id=cloud_cfg['install_id'])
+    
     backup_location = os.path.expanduser(cfg['backup_location'])
-    backup_bucket = cfg['backup_bucket']
+    backup_bucket = cloud_cfg['backup_bucket']
     make_sure_path_exists(backup_location)
     JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], [os.path.join(backup_location, '${CNAME}')], backup_location, backup_bucket=backup_bucket)
-    JBoxUser._init(table_name=cfg.get('jbox_users', 'jbox_users'), enckey=cfg['sesskey'])
-    JBoxAccounting._init(table_name=cfg.get('jbox_accounting', 'jbox_accounting'))
+    
+    JBoxUser._init(table_name=cloud_cfg.get('jbox_users', 'jbox_users'), enckey=cfg['sesskey'])
+    JBoxAccounting._init(table_name=cloud_cfg.get('jbox_accounting', 'jbox_accounting'))
     
     application = tornado.web.Application([
         (r"/", MainHandler),

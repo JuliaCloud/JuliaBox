@@ -1,8 +1,6 @@
-import boto
-from boto.s3.key import Key
 import os, time, gzip, isodate, datetime, pytz, tarfile, sets, json
 from jbox_accounting import JBoxAccounting
-from jbox_util import log_info
+from jbox_util import log_info, CloudHelper
 
 class JBoxContainer:
     CONTAINER_PORT_BINDINGS = {4200: ('127.0.0.1',), 8000: ('127.0.0.1',), 8998: ('127.0.0.1',)}
@@ -17,7 +15,6 @@ class JBoxContainer:
     LOCAL_TZ_OFFSET = 0
     BACKUP_LOC = None
     BACKUP_BUCKET = None
-    S3_CONN = None
 
     def __init__(self, dockid):
         self.dockid = dockid
@@ -70,9 +67,7 @@ class JBoxContainer:
         JBoxContainer.LOCAL_TZ_OFFSET = JBoxContainer.local_time_offset()
         JBoxContainer.HOST_VOLUMES = host_volumes
         JBoxContainer.BACKUP_LOC = backup_loc
-        if None != backup_bucket:
-            JBoxContainer.S3_CONN = boto.connect_s3()
-            JBoxContainer.BACKUP_BUCKET = JBoxContainer.S3_CONN.get_bucket(backup_bucket)
+        JBoxContainer.BACKUP_BUCKET = backup_bucket
 
     @staticmethod
     def create_new(name):
@@ -111,7 +106,15 @@ class JBoxContainer:
         if not cont.is_running():
             cont.start()
 
+        JBoxContainer.publish_container_stats()
         return cont
+
+
+    @staticmethod
+    def publish_container_stats():
+        """ Publish custom cloudwatch statistics. Used for status monitoring and auto scaling. """
+        CloudHelper.publish_stats("NumActiveContainers", "Count", JBoxContainer.num_active())
+
     
     @staticmethod    
     def maintain(delete_timeout=0, delete_stopped_timeout=0, stop_timeout=0, protected_names=[]):
@@ -161,30 +164,14 @@ class JBoxContainer:
             if cname not in all_cnames:
                 del JBoxContainer.PINGS[cname]
                 
-        
+        JBoxContainer.publish_container_stats()
         log_info("Finished container maintenance.")
-
-
-    @staticmethod
-    def push_to_s3(local_file, backup_time):
-        if None == JBoxContainer.BACKUP_BUCKET:
-            return None
-        key_name = os.path.basename(local_file)
-        k = Key(JBoxContainer.BACKUP_BUCKET)
-        k.key = key_name
-        k.set_metadata('backup_time', backup_time)
-        k.set_contents_from_filename(local_file)
-        return k
     
     @staticmethod
     def pull_from_s3(local_file, metadata_only=False):
         if None == JBoxContainer.BACKUP_BUCKET:
             return None
-        key_name = os.path.basename(local_file)
-        k = JBoxContainer.BACKUP_BUCKET.get_key(key_name)
-        if (k != None) and (not metadata_only):
-            k.get_contents_to_filename(local_file)
-        return k
+        return CloudHelper.pull_file_from_s3(JBoxContainer.BACKUP_BUCKET, local_file, metadata_only=metadata_only)
 
     @staticmethod
     def backup_all():
@@ -227,9 +214,10 @@ class JBoxContainer:
         
         # Upload to S3 if so configured. Delete from local if successful.
         bkup_file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(bkup_file), pytz.utc) + datetime.timedelta(seconds=JBoxContainer.LOCAL_TZ_OFFSET)
-        if None != JBoxContainer.push_to_s3(bkup_file, bkup_file_mtime.isoformat()):
-            os.remove(bkup_file)
-            log_info("Moved backup to S3 " + self.debug_str())
+        if None != JBoxContainer.BACKUP_BUCKET:
+            if None != CloudHelper.push_file_to_s3(JBoxContainer.BACKUP_BUCKET, bkup_file, metadata={'backup_time': bkup_file_mtime.isoformat()}):
+                os.remove(bkup_file)
+                log_info("Moved backup to S3 " + self.debug_str())
 
     def filter_backup_file(self):
         cname = self.get_name()
