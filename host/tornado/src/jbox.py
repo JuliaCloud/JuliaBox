@@ -30,7 +30,13 @@ def is_valid_req(req):
     signval = req.get_cookie("sign").replace('"', '')
     
     sign = signstr(sessname + hostshell + hostupl + hostipnb, cfg["sesskey"])
-    return (sign == signval)
+    if (sign != signval):
+        log_info('not valid req. signature not matching')
+        return False
+    if not JBoxContainer.is_valid_container("/" + sessname, (hostshell, hostupl, hostipnb)):
+        log_info('not valid req. container deleted or ports not matching')
+        return False
+    return True
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -70,9 +76,14 @@ class MainHandler(tornado.web.RequestHandler):
     def chk_and_launch_docker(self, sessname, creds, authtok, user_id):
         cont = JBoxContainer.get_by_name(sessname)
         
-        if (None != cont) and (not cont.is_running()) and (JBoxContainer.num_active() > cfg['numlocalmax']):
-            rendertpl(self, "index.tpl", cfg=cfg, err="Maximum number of JuliaBox instances active. Please try after sometime.")
-        else:            
+        # TODO: check if container is not running and is backed up
+        if ((None == cont) or (not cont.is_running())) and (JBoxContainer.num_active() >= cfg['numlocalmax']):
+            nhops = self.get_argument('hop', 0)
+            if nhops > cfg['numhopmax']:
+                rendertpl(self, "index.tpl", cfg=cfg, err="Maximum number of JuliaBox instances active. Please try after sometime.")
+            else:
+                self.redirect('/?hop=' + str(hop+1))
+        else:
             cont = JBoxContainer.launch_by_name(sessname, True)
             (shellport, uplport, ipnbport) = cont.get_host_ports()
             sign = signstr(sessname + str(shellport) + str(uplport) + str(ipnbport), cfg["sesskey"])
@@ -249,6 +260,10 @@ class AdminHandler(tornado.web.RequestHandler):
                 "sessname" : sessname, 
                 "created" : cont.time_created(), 
                 "started" : cont.time_started(),
+                "allowed_till" : (cont.time_started() + datetime.timedelta(seconds=cfg['expire'])),
+                "mem" : cont.get_memory_allocated(), 
+                "cpu" : cont.get_cpu_allocated(),
+                "expire" : cfg['expire'],
                 "sections" : sections,
                 "juliaboxver" : juliaboxver,
                 "upgrade_available" : upgrade_available
@@ -337,7 +352,8 @@ class PingHandler(tornado.web.RequestHandler):
             self.send_error(status_code=403)
 
 def do_housekeeping():
-    JBoxContainer.maintain(delete_timeout=cfg['expire'], delete_stopped_timeout=cfg['delete_stopped_timeout'], stop_timeout=cfg['inactivity_timeout'], protected_names=cfg['protected_docknames'])
+    server_delete_timeout = cfg['expire'];
+    JBoxContainer.maintain(delete_timeout=server_delete_timeout, delete_stopped_timeout=cfg['delete_stopped_timeout'], stop_timeout=cfg['inactivity_timeout'], protected_names=cfg['protected_docknames'])
 
 def do_backups():
     JBoxContainer.backup_all()
@@ -354,7 +370,7 @@ if __name__ == "__main__":
     backup_location = os.path.expanduser(cfg['backup_location'])
     backup_bucket = cloud_cfg['backup_bucket']
     make_sure_path_exists(backup_location)
-    JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], [os.path.join(backup_location, '${CNAME}')], backup_location, backup_bucket=backup_bucket)
+    JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], [os.path.join(backup_location, '${CNAME}')], backup_location, cfg['numlocalmax'], backup_bucket=backup_bucket)
     
     JBoxUser._init(table_name=cloud_cfg.get('jbox_users', 'jbox_users'), enckey=cfg['sesskey'])
     JBoxAccounting._init(table_name=cloud_cfg.get('jbox_accounting', 'jbox_accounting'))
