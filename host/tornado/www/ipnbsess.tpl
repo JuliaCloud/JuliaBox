@@ -100,10 +100,10 @@
     </div>
 
 	<div id="in_page_alert" class="alert alert-warning alert-dismissible container juliaboxmsg" role="alert" style="display: none;">
-  		<button type="button" class="close" data-dismiss="alert"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+  		<button type="button" class="close" onclick="JuliaBox.hide_inpage_alert();"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
   		<span id="msg_body"></span>
 	</div>
-	
+	<div id="modal-overlay" style="display: none;"></div>
 	<script>
 	  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
 	  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),

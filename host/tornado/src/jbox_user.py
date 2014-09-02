@@ -12,6 +12,7 @@ class JBoxUser():
         
     def __init__(self, user_id, create=False):
         if None == JBoxUser.TABLE:
+            self.is_new = False
             return
         
         try:

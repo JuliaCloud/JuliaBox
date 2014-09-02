@@ -2,6 +2,7 @@ var JuliaBox = (function(){
 	var _msg_body = null;
 	var _msg_div = null;
 	var _gauth = null;
+	var _locked = 0;
 	
 	var self = {
 	    send_keep_alive: function() {
@@ -10,36 +11,42 @@ var JuliaBox = (function(){
 	        xmlhttp.send();
 	    },
 	    
+	    comm: function(url, type, data, success, error) {
+	    	self.lock_activity();
+	    	$.ajax({
+	    		url: url,
+	    		type: type,
+	    		data: data,
+	    		success: function(res) {
+	    			self.unlock_activity();
+	    			success(res);
+	    		},
+	    		error: function(res) {
+	    			self.unlock_activity();
+	    			error(res);
+	    		}
+	    	});
+	    },
+	    
 	    show_ssh_key: function () {
-    		$.ajax({
-    			url: "/hostupload/sshkey",
-    			success: function(sshkey) {
-    				bootbox.alert('<pre>' + sshkey.data + '</pre>');
-    			},
-    			error: function() {
-    				bootbox.alert("Oops. Unexpected error while retrieving the ssh key.<br/><br/>Please try again later.");
-    			}
-    		});	    	
+	    	s = function(sshkey){ bootbox.alert('<pre>' + sshkey.data + '</pre>'); };
+	    	f = function() { bootbox.alert("Oops. Unexpected error while retrieving the ssh key.<br/><br/>Please try again later."); };
+	    	self.comm('/hostupload/sshkey', 'GET', null, s, f);
 	    },
 	    
 		do_upgrade: function () {
-    		$.ajax({
-    			url: "/hostadmin/",
-    			data: { 'upgrade_id' : 'me' },
-    			success: function(res) {
-    				if(res.code == 0) {
-    					bootbox.alert('Upgrade initiated. You have been logged out. Press Ok to log in again and complete the upgrade.', function(){
-    						top.location.href = '/';
-    					});    					
-    				}
-    				else {
-    					bootbox.alert('Oops. Unexpected error while upgrading.<br/><br/>Please try again later.');
-    				}
-    			},
-    			error: function() {
-    				bootbox.alert("Oops. Unexpected error while upgrading.<br/><br/>Please try again later.");
-    			}
-    		});
+			s = function(res) {
+				if(res.code == 0) {
+					bootbox.alert('Upgrade initiated. You have been logged out. Press Ok to log in again and complete the upgrade.', function(){
+						top.location.href = '/';
+					});    					
+				}
+				else {
+					bootbox.alert('Oops. Unexpected error while upgrading.<br/><br/>Please try again later.');
+				}
+			};
+			f = function() { bootbox.alert("Oops. Unexpected error while upgrading.<br/><br/>Please try again later."); };
+    		self.comm('/hostadmin/', 'GET', { 'upgrade_id' : 'me' }, s, f);
 		},
 		
 		init_gauth_tok: function(tok) {
@@ -75,33 +82,27 @@ var JuliaBox = (function(){
 		},
 
 		sync_addgit: function(repo, loc, branch) {
-			repo = repo.trim()
-			loc = loc.trim()
-			branch = branch.trim()
+			repo = repo.trim();
+			loc = loc.trim();
+			branch = branch.trim();
 			if(repo.length == 0) {
 				return;
 			}
 			self.inpage_alert('info', 'Adding repository...');
-    		$.ajax({
-    			url: "/hostupload/sync",
-    			type: 'POST',
-    			data: {'action': 'addgit', 'repo': repo, 'loc': loc, 'branch': branch},
-    			success: function(res) {
-					$('#filesync-frame').attr('src', '/hostupload/sync');
-    				if(res.code == 0) {
-    					self.inpage_alert('success', 'Repository added successfully');
-    				}
-    				else if(res.code == 1) {
-    					self.inpage_alert('warning', 'Repository added successfully. Pushing changes to remote repository not supported with HTTP URLs.');
-    				}
-    				else {
-    					self.inpage_alert('danger', 'Error adding repository');
-    				}
-    			},
-    			error: function() {
-    				self.inpage_alert('danger', 'Error adding repository.');
-    			}
-    		});			
+			s = function(res) {
+				$('#filesync-frame').attr('src', '/hostupload/sync');
+				if(res.code == 0) {
+					self.inpage_alert('success', 'Repository added successfully');
+				}
+				else if(res.code == 1) {
+					self.inpage_alert('warning', 'Repository added successfully. Pushing changes to remote repository not supported with HTTP URLs.');
+				}
+				else {
+					self.inpage_alert('danger', 'Error adding repository');
+				}
+			};
+			f = function() { self.inpage_alert('danger', 'Error adding repository.'); };
+    		self.comm('/hostupload/sync', 'POST', {'action': 'addgit', 'repo': repo, 'loc': loc, 'branch': branch}, s, f);
 		},
 
 		sync_auth_gdrive: function(fn) {
@@ -124,116 +125,86 @@ var JuliaBox = (function(){
 			if(repo.length == 0) {
 				return;
 			}
+			s = function(res) {
+				$('#filesync-frame').attr('src', '/hostupload/sync');
+				if(res.code == 0) {
+					self.inpage_alert('success', 'Repository added successfully');
+				}
+				else {
+					self.inpage_alert('danger', 'Error adding repository');
+				}
+			};
+			f = function() { self.inpage_alert('danger', 'Error adding repository.'); };
 			self.sync_auth_gdrive(function(){
 				self.inpage_alert('info', 'Adding repository...');
-	    		$.ajax({
-	    			url: "/hostupload/sync",
-	    			type: 'POST',
-	    			data: data,
-	    			success: function(res) {
-						$('#filesync-frame').attr('src', '/hostupload/sync');
-	    				if(res.code == 0) {
-	    					self.inpage_alert('success', 'Repository added successfully');
-	    				}
-	    				else {
-	    					self.inpage_alert('danger', 'Error adding repository');
-	    				}
-	    			},
-	    			error: function() {
-	    				self.inpage_alert('danger', 'Error adding repository.');
-	    			}
-	    		});				
+	    		self.comm('/hostupload/sync', 'POST', data, s, f);
 			});
 		},
 
 		sync_syncgit: function(repo) {
 			self.inpage_alert('info', 'Synchronizing repository...');
-    		$.ajax({
-    			url: "/hostupload/sync",
-    			type: 'POST',
-    			data: {'action': 'syncgit', 'repo': repo},
-    			success: function(res) {
-    				if(res.code == 0) {
-    					self.inpage_alert('success', 'Repository synchronized successfully');
-    				}
-    				else if(res.code == 1) {
-    					self.inpage_alert('warning', 'Repository synchronized with some conflicts');
-    				}
-    				else {
-    					self.inpage_alert('danger', 'Error synchronizing repository');
-    				}
-    			},
-    			error: function() {
-    				self.inpage_alert('danger', 'Error synchronizing repository.');
-    			}
-    		});			
+			s = function(res) {
+				if(res.code == 0) {
+					self.inpage_alert('success', 'Repository synchronized successfully');
+				}
+				else if(res.code == 1) {
+					self.inpage_alert('warning', 'Repository synchronized with some conflicts');
+				}
+				else {
+					self.inpage_alert('danger', 'Error synchronizing repository');
+				}
+			};
+			f = function() { self.inpage_alert('danger', 'Error synchronizing repository.'); };
+    		self.comm('/hostupload/sync', 'POST', {'action': 'syncgit', 'repo': repo}, s, f);
 		},
 
 		sync_syncgdrive: function(repo) {
 			data = {'action': 'syncgdrive', 'repo': repo, 'gauth': _gauth};
+			s = function(res) {
+				if(res.code == 0) {
+					self.inpage_alert('success', 'Repository synchronized successfully');
+				}
+				else {
+					self.inpage_alert('danger', 'Error synchronizing repository');
+				}
+			};
+			f = function() { self.inpage_alert('danger', 'Error synchronizing repository.'); };
 			self.sync_auth_gdrive(function(){
 				self.inpage_alert('info', 'Synchronizing repository...');
-	    		$.ajax({
-	    			url: "/hostupload/sync",
-	    			type: 'POST',
-	    			data: data,
-	    			success: function(res) {
-	    				if(res.code == 0) {
-	    					self.inpage_alert('success', 'Repository synchronized successfully');
-	    				}
-	    				else {
-	    					self.inpage_alert('danger', 'Error synchronizing repository');
-	    				}
-	    			},
-	    			error: function() {
-	    				self.inpage_alert('danger', 'Error synchronizing repository.');
-	    			}
-	    		});
+	    		self.comm('/hostupload/sync', 'POST', data, s, f);
 	   		});
 		},
 
 		sync_delgit: function(repo) {
 			self.inpage_alert('warning', 'Deleting repository...');
-    		$.ajax({
-    			url: "/hostupload/sync",
-    			type: 'POST',
-    			data: {'action': 'delgit', 'repo': repo},
-    			success: function(res) {
-    				$('#filesync-frame').attr('src', '/hostupload/sync');
-    				if(res.code == 0) {
-    					self.inpage_alert('success', 'Repository deleted successfully');
-    				}
-    				else {
-    					self.inpage_alert('danger', 'Error deleting repository');
-    				}
-    			},
-    			error: function() {
-    				self.inpage_alert('danger', 'Error deleting repository.');
-    			}
-    		});			
+			s = function(res) {
+				$('#filesync-frame').attr('src', '/hostupload/sync');
+				if(res.code == 0) {
+					self.inpage_alert('success', 'Repository deleted successfully');
+				}
+				else {
+					self.inpage_alert('danger', 'Error deleting repository');
+				}
+			};
+			f = function() { self.inpage_alert('danger', 'Error deleting repository.'); };
+    		self.comm('/hostupload/sync', 'POST', {'action': 'delgit', 'repo': repo}, s, f);
 		},
 
 		sync_delgdrive: function(repo) {
 			data = {'action': 'delgdrive', 'repo': repo, 'gauth': _gauth};
+			s = function(res) {
+				$('#filesync-frame').attr('src', '/hostupload/sync');
+				if(res.code == 0) {
+					self.inpage_alert('success', 'Repository deleted successfully');
+				}
+				else {
+					self.inpage_alert('danger', 'Error deleting repository');
+				}
+			};
+			f = function() { self.inpage_alert('danger', 'Error deleting repository.'); };
 			self.sync_auth_gdrive(function(){
 				self.inpage_alert('warning', 'Deleting repository...');
-	    		$.ajax({
-	    			url: "/hostupload/sync",
-	    			type: 'POST',
-	    			data: data,
-	    			success: function(res) {
-	    				$('#filesync-frame').attr('src', '/hostupload/sync');
-	    				if(res.code == 0) {
-	    					self.inpage_alert('success', 'Repository deleted successfully');
-	    				}
-	    				else {
-	    					self.inpage_alert('danger', 'Error deleting repository');
-	    				}
-	    			},
-	    			error: function() {
-	    				self.inpage_alert('danger', 'Error deleting repository.');
-	    			}
-	    		});
+	    		self.comm('/hostupload/sync', 'POST', data, s, f);
 	   		});
 		},
 		
@@ -267,16 +238,28 @@ var JuliaBox = (function(){
     		_msg_div.show();
     	},
     	
+    	hide_inpage_alert: function () {
+    		_msg_div.hide();
+    	},
+    	
+    	logout_at_browser: function () {
+			for (var it in $.cookie()) {
+				$.removeCookie(it);
+			}
+			top.location.href = '/';
+			top.location.reload(true);    		
+    	},
+    	
     	logout: function () {
     		self.popup_confirm('Logout from JuliaBox?', function(res) {
     			if(res) {
-					for (var it in $.cookie()) {
-						$.removeCookie(it);
-					}
-					top.location.href = '/';
-					top.location.reload(true);    				
+    				self.logout_at_browser();
     			}
     		});
+    	},
+    	
+    	inform_logged_out: function () {
+    		self.popup_alert("Your session has terminated / timed out. Please log in again.", function() { self.logout_at_browser(); });
     	},
 
 		popup_alert: function(msg, fn) {
@@ -285,6 +268,21 @@ var JuliaBox = (function(){
 		
 		popup_confirm: function(msg, fn) {
 			bootbox.confirm(msg, fn);
+		},
+		
+		lock_activity: function() {
+			_locked += 1;
+			if(_locked == 1) {
+				//$("#modal-overlay").show();
+				$("#modal-overlay").fadeIn();				
+			}
+		},
+		
+		unlock_activity: function() {
+			_locked -= 1;
+			if(_locked == 0) {
+				$("#modal-overlay").hide();				
+			}
 		},
 	};
 	

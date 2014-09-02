@@ -15,6 +15,7 @@ class JBoxContainer:
     LOCAL_TZ_OFFSET = 0
     BACKUP_LOC = None
     BACKUP_BUCKET = None
+    MAX_CONTAINERS = 0
 
     def __init__(self, dockid):
         self.dockid = dockid
@@ -59,7 +60,7 @@ class JBoxContainer:
         return []
         
     @staticmethod
-    def configure(dckr, image, mem_limit, cpu_limit, host_volumes, backup_loc, backup_bucket=None):
+    def configure(dckr, image, mem_limit, cpu_limit, host_volumes, backup_loc, max_containers, backup_bucket=None):
         JBoxContainer.DCKR = dckr
         JBoxContainer.DCKR_IMAGE = image
         JBoxContainer.MEM_LIMIT = mem_limit
@@ -68,6 +69,7 @@ class JBoxContainer:
         JBoxContainer.HOST_VOLUMES = host_volumes
         JBoxContainer.BACKUP_LOC = backup_loc
         JBoxContainer.BACKUP_BUCKET = backup_bucket
+        JBoxContainer.MAX_CONTAINERS = max_containers
 
     @staticmethod
     def create_new(name):
@@ -113,7 +115,10 @@ class JBoxContainer:
     @staticmethod
     def publish_container_stats():
         """ Publish custom cloudwatch statistics. Used for status monitoring and auto scaling. """
-        CloudHelper.publish_stats("NumActiveContainers", "Count", JBoxContainer.num_active())
+        nactive = JBoxContainer.num_active()
+        CloudHelper.publish_stats("NumActiveContainers", "Count", nactive)
+        cont_load_pct = min(100, max(0, nactive * 100 / JBoxContainer.MAX_CONTAINERS))
+        CloudHelper.publish_stats("Load", "Percent", cont_load_pct)
 
     
     @staticmethod    
