@@ -1,4 +1,4 @@
-import os, time, gzip, isodate, datetime, pytz, tarfile, sets, json
+import os, time, gzip, isodate, datetime, pytz, tarfile, sets, json, multiprocessing, psutil
 from jbox_accounting import JBoxAccounting
 from jbox_util import log_info, CloudHelper
 
@@ -16,6 +16,7 @@ class JBoxContainer:
     BACKUP_LOC = None
     BACKUP_BUCKET = None
     MAX_CONTAINERS = 0
+    VALID_CONTAINERS = {}
 
     def __init__(self, dockid):
         self.dockid = dockid
@@ -41,6 +42,19 @@ class JBoxContainer:
                 port_map.append(ports[tcp_port][0]['HostPort'])
             self.host_ports = tuple(port_map)
         return self.host_ports
+    
+    def get_cpu_allocated(self):
+        props = self.get_props()
+        cpu_shares = props['Config']['CpuShares']
+        num_cpus = multiprocessing.cpu_count()
+        return max(1, int(num_cpus * cpu_shares / 1024))
+
+    def get_memory_allocated(self):
+        props = self.get_props()
+        mem = props['Config']['Memory']
+        if mem > 0:
+            return mem
+        return psutil.virtual_memory().total
 
     def debug_str(self):
         if None == self.dbgstr:
@@ -107,6 +121,8 @@ class JBoxContainer:
 
         if not cont.is_running():
             cont.start()
+        else:
+            cont.restart()
 
         JBoxContainer.publish_container_stats()
         return cont
@@ -132,11 +148,12 @@ class JBoxContainer:
         delete_stopped_before = tnow - datetime.timedelta(seconds=delete_stopped_timeout) if (delete_stopped_timeout > 0) else tmin
 
         all_containers = JBoxContainer.DCKR.containers(all=True)
-        all_cnames = sets.Set()
+        all_cnames = {}
         for cdesc in all_containers:
-            cont = JBoxContainer(cdesc['Id'])
+            cid = cdesc['Id']
+            cont = JBoxContainer(cid)
             cname = cont.get_name()
-            all_cnames.add(cname)
+            all_cnames[cname] = cid
 
             if (cname == None) or (cname in protected_names):
                 log_info("Ignoring " + cont.debug_str())
@@ -168,9 +185,36 @@ class JBoxContainer:
         for cname in JBoxContainer.PINGS.keys():
             if cname not in all_cnames:
                 del JBoxContainer.PINGS[cname]
-                
+        
+        JBoxContainer.VALID_CONTAINERS = all_cnames
         JBoxContainer.publish_container_stats()
         log_info("Finished container maintenance.")
+    
+    @staticmethod
+    def is_valid_container(cname, hostports):
+        cont = None
+        if cname in JBoxContainer.VALID_CONTAINERS:
+            try:
+                cont = JBoxContainer(JBoxContainer.VALID_CONTAINERS[cname])
+            except:
+                pass
+        else:
+            all_containers = JBoxContainer.DCKR.containers(all=True)
+            for cdesc in all_containers:
+                cid = cdesc['Id']
+                cont = JBoxContainer(cid)
+                cont_name = cont.get_name()
+                JBoxContainer.VALID_CONTAINERS[cont_name] = cid
+                if cname == cont_name:
+                    break
+        
+        if cont == None:
+            return False
+        
+        try:
+            return (hostports == cont.get_host_ports())
+        except:
+            return False
     
     @staticmethod
     def pull_from_s3(local_file, metadata_only=False):
@@ -297,7 +341,7 @@ class JBoxContainer:
     @staticmethod
     def record_ping(name):
         JBoxContainer.PINGS[name] = datetime.datetime.now(pytz.utc)
-        #log_info("Recorded ping for " + name)
+        log_info("Recorded ping for " + name)
 
     @staticmethod
     def get_last_ping(name):
@@ -338,7 +382,7 @@ class JBoxContainer:
         log_info("Stopping " + self.debug_str())
         self.refresh()
         if self.is_running():
-            JBoxContainer.DCKR.stop(self.dockid)
+            JBoxContainer.DCKR.stop(self.dockid, timeout=5)
             self.refresh()
             log_info("Stopped " + self.debug_str())
             self.record_usage()
@@ -363,7 +407,17 @@ class JBoxContainer:
         cname = self.get_name()
         if None != cname:
             JBoxContainer.record_ping(cname)
-
+    
+    def restart(self):
+        self.refresh()
+        log_info("Restarting " + self.debug_str())
+        JBoxContainer.DCKR.restart(self.dockid, timeout=5)
+        self.refresh()
+        log_info("Restarted " + self.debug_str())
+        cname = self.get_name()
+        if None != cname:
+            JBoxContainer.record_ping(cname)
+        
     def kill(self):
         log_info("Killing " + self.debug_str())
         JBoxContainer.DCKR.kill(self.dockid)
@@ -390,7 +444,7 @@ class JBoxContainer:
             log_info("Error removing mount point " + self.debug_str())
 
     def record_usage(self):
-        start_time = self.time_started()
+        start_time = self.time_created()
         finish_time = self.time_finished()
         duration = (finish_time - start_time).total_seconds()
         acct = JBoxAccounting(self.get_name(), duration, json.dumps(self.get_image_names()), time_stopped=finish_time.isoformat())

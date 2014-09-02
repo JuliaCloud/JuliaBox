@@ -30,7 +30,13 @@ def is_valid_req(req):
     signval = req.get_cookie("sign").replace('"', '')
     
     sign = signstr(sessname + hostshell + hostupl + hostipnb, cfg["sesskey"])
-    return (sign == signval)
+    if (sign != signval):
+        log_info('not valid req. signature not matching')
+        return False
+    if not JBoxContainer.is_valid_container("/" + sessname, (hostshell, hostupl, hostipnb)):
+        log_info('not valid req. container deleted or ports not matching')
+        return False
+    return True
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -254,6 +260,10 @@ class AdminHandler(tornado.web.RequestHandler):
                 "sessname" : sessname, 
                 "created" : cont.time_created(), 
                 "started" : cont.time_started(),
+                "allowed_till" : (cont.time_started() + datetime.timedelta(seconds=cfg['expire'])),
+                "mem" : cont.get_memory_allocated(), 
+                "cpu" : cont.get_cpu_allocated(),
+                "expire" : cfg['expire'],
                 "sections" : sections,
                 "juliaboxver" : juliaboxver,
                 "upgrade_available" : upgrade_available
@@ -342,7 +352,8 @@ class PingHandler(tornado.web.RequestHandler):
             self.send_error(status_code=403)
 
 def do_housekeeping():
-    JBoxContainer.maintain(delete_timeout=cfg['expire'], delete_stopped_timeout=cfg['delete_stopped_timeout'], stop_timeout=cfg['inactivity_timeout'], protected_names=cfg['protected_docknames'])
+    server_delete_timeout = cfg['expire'];
+    JBoxContainer.maintain(delete_timeout=server_delete_timeout, delete_stopped_timeout=cfg['delete_stopped_timeout'], stop_timeout=cfg['inactivity_timeout'], protected_names=cfg['protected_docknames'])
 
 def do_backups():
     JBoxContainer.backup_all()

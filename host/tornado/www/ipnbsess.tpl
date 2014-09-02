@@ -22,22 +22,38 @@
     <script type="text/javascript" src="//use.typekit.net/cpz5ogz.js"></script>
     <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
     <script type="text/javascript">
-		$(document).ready(function() {
-			var tab_init = {
-				'#ijulia': {'status': true},
-				'#console': {'status': false, 'content': '<iframe src="/hostshell/" id="console-frame" frameborder="0" height="100%" width="100%"></iframe>'},
-				'#docs': {'status': false, 'content': '<iframe id="docs-frame" src="//julia.readthedocs.org/en/latest/" frameborder="0" height="100%" width="100%"></iframe>'},
-				'#admin': {'status': false, 'content': '<iframe src="/hostadmin/" id="admin-frame" frameborder="0" height="100%" width="100%"></iframe>'},
-				'#filesync': {'status': false, 'content': '<iframe src="/hostupload/sync" id="filesync-frame" frameborder="0" height="100%" style="float: left" width="100%"></iframe>'},
-				'#fileman': {'status': false, 'content': '<iframe src="/hostupload/" id="upload-frame" frameborder="0" height="100%" style="float: left" width="100%"></iframe>'}
-			};
-			
+		var tab_init = {
+			'#ijulia': {'status': true},
+			'#console': {'status': false, 'content': '<iframe src="/hostshell/" id="console-frame" frameborder="0" height="100%" width="100%"></iframe>'},
+			'#docs': {'status': false, 'content': '<iframe id="docs-frame" src="//julia.readthedocs.org/en/latest/" frameborder="0" height="100%" width="100%"></iframe>'},
+			'#admin': {'status': false, 'content': '<iframe src="/hostadmin/" id="admin-frame" frameborder="0" height="100%" width="100%"></iframe>'},
+			'#filesync': {'status': false, 'content': '<iframe src="/hostupload/sync" id="filesync-frame" frameborder="0" height="100%" style="float: left" width="100%"></iframe>'},
+			'#fileman': {'status': false, 'content': '<iframe src="/hostupload/" id="upload-frame" frameborder="0" height="100%" style="float: left" width="100%"></iframe>'}
+		};
+		
+    	var ping_timer;
+    	
+    	function load_tab(target) {
+			if(!tab_init[target].status) {
+				$(target).append(tab_init[target].content);
+				tab_init[target].status = true;
+			}    		
+    	};
+    	
+    	function do_ping() {
+    		if(JuliaBox._loggedout) {
+    			clearInterval(ping_timer);
+    		}
+    		else {
+    			JuliaBox.send_keep_alive();
+    			load_tab('#admin');
+    		}
+    	};
+    	
+		$(document).ready(function() {			
 			$('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
 				var target = $(e.target).attr("href");
-				if(!tab_init[target].status) {
-					$(target).append(tab_init[target].content);
-					tab_init[target].status = true;
-				}
+				load_tab(target);
 			});	
 			
 			$('#logout_btn').click(function(event){
@@ -55,7 +71,7 @@
                	'user': '{{user_id}}'
             });
 	    	{% end %}
-	    	var myVar = setInterval(function(){JuliaBox.send_keep_alive()}, 60000);
+	    	ping_timer = setInterval(do_ping, 60000);
         });
     </script>
 </head>

@@ -3,12 +3,26 @@ var JuliaBox = (function(){
 	var _msg_div = null;
 	var _gauth = null;
 	var _locked = 0;
+	var _ping_fails = 0;
+	var _max_ping_fails = 1;
+	var _loggedout = false;
 	
 	var self = {
 	    send_keep_alive: function() {
-	        var xmlhttp = new XMLHttpRequest();
-	        xmlhttp.open("GET","/ping/",true);
-	        xmlhttp.send();
+	    	if((_ping_fails > _max_ping_fails) || _loggedout) return;
+	        $.ajax({
+	        	url: '/ping/',
+	        	type: 'GET',
+	        	success: function(res) {
+	        		_ping_fails = 0;
+	        	},
+	        	error: function(res) {
+	        		_ping_fails += 1;
+	        		if (_ping_fails > _max_ping_fails) {
+	        			self.inform_logged_out();
+	        		}
+	        	}
+	        });
 	    },
 	    
 	    comm: function(url, type, data, success, error) {
@@ -259,7 +273,10 @@ var JuliaBox = (function(){
     	},
     	
     	inform_logged_out: function () {
-    		self.popup_alert("Your session has terminated / timed out. Please log in again.", function() { self.logout_at_browser(); });
+    		if(!_loggedout) {
+	    		_loggedout = true;
+	    		self.popup_alert("Your session has terminated / timed out. Please log in again.", function() { self.logout_at_browser(); });
+    		}
     	},
 
 		popup_alert: function(msg, fn) {

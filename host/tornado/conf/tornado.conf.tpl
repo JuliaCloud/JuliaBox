@@ -11,8 +11,8 @@
     "admin_users" : ["$$ADMIN_USER"],
     "dhosts" : [],
     "protected_sessions" : [],
-    # default 256MB containers. multiplier can be applied from user profile
-    "mem_limit" : "1g",
+    # default 1GB containers. multiplier can be applied from user profile
+    "mem_limit" : 1000000000,
     # max 1024 cpu slices. default maximum allowed is 1/8th of total cpu slices. multiplier can be applied from user profile.
     "cpu_limit" : 128,
     "inactivity_timeout" : 300,

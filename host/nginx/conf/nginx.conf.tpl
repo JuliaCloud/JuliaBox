@@ -39,6 +39,16 @@ http {
             include    mime.types;
         }
 
+        location /assets/ {
+            include    mime.types;
+        }
+        
+        location /timedout.html {
+        	internal;
+        }
+        
+        error_page 502 /timedout.html;
+
 # On the host, all locations will be specified explictly, i.e, with an "="
 # Everything else will be proxied to the appropriate container....
 # Cookie data will be used to identify the container for a session
@@ -152,10 +162,6 @@ http {
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header Host $host;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        }
-
-        location /assets/ {
-            include    mime.types;
         }
 
 # everything else        

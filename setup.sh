@@ -35,6 +35,7 @@ function sysinstall_pystuff {
     sudo pip install PyDrive
     sudo pip install boto
     sudo pip install pycrypto
+    sudo pip install psutil
 
     git clone https://github.com/dotcloud/docker-py 
     cd docker-py
