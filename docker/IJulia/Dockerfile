@@ -11,6 +11,7 @@ RUN apt-get install -y \
         python-sympy \
 		glpk-utils \
 		libnlopt0 \
+		pandoc \
         && apt-get clean
 
 USER juser

@@ -69,6 +69,9 @@ class MainHandler(tornado.web.RequestHandler):
                         authtok = None
                 else:
                     authtok = None
+            else:
+                creds = None
+                authtok = None
             
             self.chk_and_launch_docker(sessname, creds, authtok, user_id)
             
