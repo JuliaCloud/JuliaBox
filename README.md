@@ -1,73 +1,16 @@
 ## JuliaBox - Hosted IJulia Containers
 
-### Packages installed
-
-Following packages are installed by default. Additional packages can be installed and existing packages can be upgraded by users as desired.
-
-- 14 required packages:
-    - Clp
-    - DataFrames
-    - DataStructures
-    - GLPKMathProgInterface
-    - Gadfly
-    - HDF5
-    - IJulia
-    - Iterators
-    - JuMP
-    - MCMC
-    - NumericExtensions
-    - Optim
-    - PyPlot
-    - SymPy
-- 37 additional packages:
-    - ArrayViews
-    - BinDeps
-    - Calculus
-    - Cbc
-    - Codecs
-    - Color
-    - Compose
-    - Contour
-    - DataArrays
-    - Datetime
-    - Distance
-    - Distributions
-    - DualNumbers
-    - FixedPointNumbers
-    - GLPK
-    - GZip
-    - Graphs
-    - Hexagons
-    - ImmutableArrays
-    - JSON
-    - KernelDensity
-    - Loess
-    - MathProgBase
-    - Nettle
-    - NumericFuns
-    - Options
-    - PDMats
-    - PyCall
-    - REPLCompletions
-    - Reexport
-    - ReverseDiffSource
-    - ReverseDiffSparse
-    - SHA
-    - SortingAlgorithms
-    - StatsBase
-    - URIParser
-    - ZMQ
-
 ### Features
 
 - Runs each IJulia session in its own sandboxed container.
-- A bash session is aslo started in the container - can be used to run the Julia console REPL.
+- A bash session is also started in the container - can be used to run the Julia console REPL.
 - File transfer facility into a session's container.
 - File synchronization with remote git repositories &amp; Google Drive.
 - Basic admin screen to delete old/inactive sessions.
 - Login via. Google authentication.
 - Auto cleanup of sessions based on inactivity.
-- Ability to limit memory usage for user sessions.
+- Ability to limit memory and CPU allocated for user sessions.
+- [Packages installed](PACKAGES.md)
 
 
 ### Installation
@@ -111,43 +54,11 @@ Usage: ./setup.sh -u <admin_username> optional_args
 
 ### Powering up
 
-- `cd <path to JuliaBox>; ./start.sh`
+- `cd <path to JuliaBox>`
+- Optionally create a file named `jbox.user` that contain a subset of parameters from `host/tornado/conf/tornado.conf` that you wish to customize
+- `./start.sh`
 - Point your browser to `http://<your_host_address>/`
 - `stop.sh` stops nginx and tornado, while `reload.sh` restarts the servers
-
-
-### Additional configuration
-Create a file called jbox.user in the installation's root directory. It should contain a JSON dictionary of the form
-
-```
-{
-  "protected_sessions" : ['amitm'],
-  "numlocalmax" : 3,
-  "admin_users" : [],
-  "mem_limit" : 1000000000,
-  "cpu_limit" : 512,
-  "inactivity_timeout" : 300,
-  "expire" : 0,
-  "dummy" : "dummy"
-}
-```
-
-where 
-
-- `protected_sessions` are those sessions which will not be timed out and auto-cleaned up
-- `numlocalmax` is the maximum number of concurrent sessions to be allowed. Default is 10 or the number specified while running ./setup.sh .
-- `admin_users` is a list of users that have access to the admin tab. Empty means everyone has access.
-- `mem_limit` is a maximum memory allowed per docker container (running a local nginx, ijulia, bash as well as the users julia sessions). Default is 1GB.
-    - NOTE: To be able to use `mem_limit`, the host kernel must be configured to support the same. 
-    - See <http://docs.docker.io/en/latest/installation/kernel/#memory-and-swap-accounting-on-debian-ubuntu> 
-- `cpu_limit` is a number between 1-1024 indicating the CPU priority as described at <https://wiki.archlinux.org/index.php/Cgroups>
-- `inactivity_timeout` specifies the time in seconds to wait before clearing an inactive session, for example, when the user closes the browser window . 
-    - Default is 300 seconds. `protected_sessions` are not affected.
-- `expire` specifes an upper time limit for a user session before it is auto-deleted. 0 means never expire. `protected_sessions` are not affected.
-
-
-You will need to run `reload.sh` for any changed parameters to take affect.
-
 
 ### Server Maintenance
 
@@ -160,6 +71,8 @@ git pull
 
 ./reload.sh
 ```
+
+You may also change parameters in `jbox.user` and run `reload.sh` for the changed parameters to take affect
 
 To get the latest Julia build onto the docker image, you have have to build it with the `-no-cache` option. E.g. `sudo docker build -no-cache ...`.
 
