@@ -85,7 +85,7 @@ class MainHandler(tornado.web.RequestHandler):
             if nhops > cfg['numhopmax']:
                 rendertpl(self, "index.tpl", cfg=cfg, err="Maximum number of JuliaBox instances active. Please try after sometime.")
             else:
-                self.redirect('/?hop=' + str(hop+1))
+                self.redirect('/?hop=' + str(nhops+1))
         else:
             cont = JBoxContainer.launch_by_name(sessname, True)
             (shellport, uplport, ipnbport) = cont.get_host_ports()

@@ -22,26 +22,36 @@
 		    var out_str = "";
 		    if(days > 0) out_str = (days + " Days ");
 		    if(hours > 0) out_str = out_str + (hours + " Hours ");
-		    out_str = out_str + (mins + " Minutes ");
+		    if((hours == 0) || (mins > 0)) out_str = out_str + (mins + " Minutes ");
 		    return out_str;
 		};
 		function show_time_remaining() {
 		    var datetime = new Date('{{d["allowed_till"]}}').getTime();
 		    var now = new Date().getTime();
-		    remain_secs = (datetime - now)/1000;
-		    remain = secs_to_str(remain_secs);
-		    total = secs_to_str({{d["expire"]}});
+		    var remain_secs = (datetime - now)/1000;
+		    if(remain_secs > expire) remain_secs = expire;
+		    var remain = secs_to_str(remain_secs);
+		    var expire = {{d["expire"]}};
 		    
-		    $('#disp_time_remaining').html(remain + " (of allotted " + total + ")");
-		    
-		    if(remain_secs < 5 * 60) {		    
-			    if (remain_secs <= 0) {
-			    	clearInterval(disp_timer);
-			    	parent.JuliaBox.inform_logged_out();
-			    }
-			    else {
-		    		parent.JuliaBox.inpage_alert('info', 'Your session has only ' + remain + ' of allotted time remaining.');			    	
-			    }
+		    if(expire > 0) {
+			    total = secs_to_str({{d["expire"]}});
+			    
+			    $('#disp_time_remaining').html(remain + " (of allotted " + total + ")");
+			    
+			    if(remain_secs < 5 * 60) {		    
+				    if (remain_secs <= 0) {
+				    	clearInterval(disp_timer);
+				    	parent.JuliaBox.inform_logged_out();
+				    }
+				    else {
+			    		parent.JuliaBox.inpage_alert('info', 'Your session has only ' + remain + ' of allotted time remaining.');			    	
+				    }
+			    }		    	
+		    }
+		    else {
+		    	$('#disp_date_allowed_till').html("unlimited");
+		    	$('#disp_time_remaining').html("unlimited");
+		    	clearInterval(disp_timer);
 		    }
 		};
 		
