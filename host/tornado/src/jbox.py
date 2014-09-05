@@ -259,7 +259,8 @@ class AdminHandler(tornado.web.RequestHandler):
 
         admin_user = (sessname in cfg["admin_sessnames"]) or (cfg["admin_sessnames"] == [])
 
-        sections = []        
+        sections = []
+        loads = []
         d = {
                 "admin_user" : admin_user,
                 "sessname" : sessname, 
@@ -271,12 +272,13 @@ class AdminHandler(tornado.web.RequestHandler):
                 "cpu" : cont.get_cpu_allocated(),
                 "expire" : cfg['expire'],
                 "sections" : sections,
+                "loads" : loads,
                 "juliaboxver" : juliaboxver,
                 "upgrade_available" : upgrade_available
             }
 
         if admin_user:
-            self.do_admin(sections)
+            self.do_admin(sections, loads)
 
         rendertpl(self, "ipnbadmin.tpl", d=d, cfg=cfg)
     
@@ -300,7 +302,7 @@ class AdminHandler(tornado.web.RequestHandler):
                 upgrade_available = upgrade_available + ':latest'
         return (juliaboxver, upgrade_available)
         
-    def do_admin(self, sections):
+    def do_admin(self, sections, loads):
         iac = []
         ac = []
         sections.append(["Active", ac])
@@ -343,6 +345,16 @@ class AdminHandler(tornado.web.RequestHandler):
                 iac.append(o)
             else:
                 ac.append(o)
+        
+        # get cluster loads
+        average_load = CloudHelper.get_cluster_average_stats('Load')
+        if None != average_load:
+            loads.append({'instance': 'Average', 'load': average_load})
+            
+        machine_loads = CloudHelper.get_cluster_stats('Load')
+        if None != machine_loads:
+            for n,v in machine_loads.iteritems():
+                loads.append({'instance': n, 'load': v})
 
 class PingHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous

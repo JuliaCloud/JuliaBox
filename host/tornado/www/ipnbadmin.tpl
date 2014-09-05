@@ -151,6 +151,19 @@ You are on the latest JuliaBox version: {{d["juliaboxver"]}} <br/>
         </table>
         <br/><br/>
     {% end %}
+    
+    <h3>Load</h3>
+    <table class="table table-striped">
+        <tr><th>Instance</th><th>Load Percent</th></tr>
+        {% for o in d["loads"] %}
+        	<tr>
+        		<td>{{o['instance']}}</td>
+        		<td>{{o['load']}}</td>
+        	</tr>
+        {% end %}
+    </table>
+    <br/><br/>
+    
 {% end %}
 </body>
 </html>
