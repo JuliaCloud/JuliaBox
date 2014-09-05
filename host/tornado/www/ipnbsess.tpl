@@ -1,7 +1,7 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8" />
-	<title>{{sessname}} &mdash; JuliaBox</title>
+	<title>JuliaBox &mdash; {{user_id}}</title>
 
 	<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
 	<link rel="stylesheet" href="/assets/css/icons.css" />

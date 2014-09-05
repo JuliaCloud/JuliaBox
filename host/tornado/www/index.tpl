@@ -28,6 +28,26 @@
       <![endif]-->
     <script type="text/javascript" src="//use.typekit.net/cpz5ogz.js"></script>
     <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+    <script type="text/javascript">
+        function areCookiesEnabled() {
+            var cookieEnabled = navigator.cookieEnabled;
+            if (cookieEnabled === false) return false;
+            if (!document.cookie && (cookieEnabled === null || /*@cc_on!@*/false)) {
+                document.cookie = "testcookie=1";
+                if (!document.cookie) return false;
+                else document.cookie = "testcookie=; expires=" + new Date(0).toUTCString();
+            }
+            return true;
+        };
+        
+        function valLoginForm() {
+        	if(!areCookiesEnabled()) {
+        		alert("Your browser settings do not allow cookies. JuliaBox requires cookies to log you in. Please enable them in your browser settings and try again.");
+        		return false; 
+        	}
+        	return true;
+        }
+    </script>
   </head>
 
   <body>
@@ -48,7 +68,7 @@
 	</div>
 	<div class="col-md-6">
 	  <div class="big-button col-md-8 col-md-offset-2 col-sm-offset-0">
-	    <form class="form-signin" role="form" action="/hostlaunchipnb/" method="GET">
+	    <form class="form-signin" role="form" action="/hostlaunchipnb/" method="GET" id="loginform" onsubmit="return valLoginForm();">
 	      {% if cfg["gauth"] %}
 	      <button class="btn btn-lg btn-primary btn-block gauth-btn" type="submit"  value="Launch">Sign in via Google. <span>It's free!</span></button>
 	      {% else %}

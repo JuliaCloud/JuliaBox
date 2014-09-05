@@ -85,7 +85,7 @@ class MainHandler(tornado.web.RequestHandler):
             if nhops > cfg['numhopmax']:
                 rendertpl(self, "index.tpl", cfg=cfg, err="Maximum number of JuliaBox instances active. Please try after sometime.")
             else:
-                self.redirect('/?hop=' + str(hop+1))
+                self.redirect('/?hop=' + str(nhops+1))
         else:
             cont = JBoxContainer.launch_by_name(sessname, True)
             (shellport, uplport, ipnbport) = cont.get_host_ports()
@@ -243,6 +243,8 @@ class AuthHandler(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
 class AdminHandler(tornado.web.RequestHandler):
     def get(self):
         sessname = unquote(self.get_cookie("sessname"))
+        jbox_cookie = AuthHandler.get_session_cookie(self)
+        user_id = jbox_cookie['u']
 
         if len(sessname) == 0:
             self.send_error()
@@ -261,6 +263,7 @@ class AdminHandler(tornado.web.RequestHandler):
         d = {
                 "admin_user" : admin_user,
                 "sessname" : sessname, 
+                "user_id" : user_id, 
                 "created" : cont.time_created(), 
                 "started" : cont.time_started(),
                 "allowed_till" : (cont.time_started() + datetime.timedelta(seconds=cfg['expire'])),
