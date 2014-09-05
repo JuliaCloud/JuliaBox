@@ -102,16 +102,20 @@ class CloudHelper:
         return CloudHelper.CLOUDWATCH_CONN
     
     @staticmethod
-    def get_metric(metric_name, metric_namespace=None):
+    def get_metric_dimensions(metric_name, metric_namespace=None):
         if metric_namespace == None:
             metric_namespace = CloudHelper.INSTALL_ID
         
         metrics = CloudHelper.connect_cloudwatch().list_metrics()
+        dims = {}
         for m in metrics:
             if m.name == metric_name and m.namespace == metric_namespace:
-                return m
-        log_info("invalid metric " + '.'.join([metric_namespace, metric_name]))
-        return None
+                for n_dim,v_dim in m.dimensions.iteritems():
+                    dims[n_dim] = dims.get(n_dim, []) + v_dim
+        if len(dims) == 0:
+            log_info("invalid metric " + '.'.join([metric_namespace, metric_name]))
+            return None
+        return dims
 
         
     @staticmethod
@@ -144,27 +148,46 @@ class CloudHelper:
                 res = _res
         return res['Average'] if res else None
 
-    @staticmethod
-    def get_cluster_average_stats(stat_name, namespace=None):
-        if not CloudHelper.ENABLED['cloudwatch']:
-            if stat_name in CloudHelper.SELF_STATS:
-                return CloudHelper.SELF_STATS[stat_name]
-            else:
-                return None
-        
-        m = CloudHelper.get_metric(stat_name, namespace)
-        if None == m:
-            return None
-        dims = m.dimensions
-        end = datetime.datetime.utcnow()
-        start = end - datetime.timedelta(minutes=30)
-        res = None
-        results = CloudHelper.connect_cloudwatch().get_metric_statistics(60, start, end, stat_name, namespace, 'Average', dims)
-        for _res in results:
-            if (res == None) or (res['Timestamp'] < _res['Timestamp']):
-                res = _res
-        return res['Average'] if res else None
+#     @staticmethod
+#     def get_cluster_average_stats(stat_name, namespace=None):
+#         """ works only if detailed monitoring is enabled """
+#         if not CloudHelper.ENABLED['cloudwatch']:
+#             if stat_name in CloudHelper.SELF_STATS:
+#                 return CloudHelper.SELF_STATS[stat_name]
+#             else:
+#                 return None
+#             
+#         if namespace == None:
+#             namespace = CloudHelper.INSTALL_ID
+#         
+#         dims = CloudHelper.get_metric_dimensions(stat_name, namespace)
+#         if None == dims:
+#             return None
+#         end = datetime.datetime.utcnow()
+#         start = end - datetime.timedelta(minutes=30)
+#         res = None
+#         results = CloudHelper.connect_cloudwatch().get_metric_statistics(60, start, end, stat_name, namespace, 'Average', dims)
+#         
+#         if None == results:
+#             log_info("no info for cluster: dims=" + repr(dims))
+#             return None
+#         log_info('cluster average: ' + repr(results))
+#         
+#         for _res in results:
+#             if (res == None) or (res['Timestamp'] < _res['Timestamp']):
+#                 res = _res
+#         return res['Average'] if res else None
 
+    @staticmethod
+    def get_cluster_average_stats(stat_name, namespace=None, results=None):
+        if results == None:
+            results = CloudHelper.get_cluster_stats(stat_name, namespace)
+        
+        vals = results.values()
+        if len(vals) > 0:
+            return float(sum(vals))/len(vals)
+        return None
+        
     @staticmethod
     def get_cluster_stats(stat_name, namespace=None):
         if not CloudHelper.ENABLED['cloudwatch']:
@@ -173,17 +196,14 @@ class CloudHelper:
             else:
                 return None
         
-        m = CloudHelper.get_metric(stat_name, namespace)
-        if None == m:
+        dims = CloudHelper.get_metric_dimensions(stat_name, namespace)
+        if None == dims:
             return None
-        dims = m.dimensions
         
         stats = {}
-        for dim in dims:
-            if 'InstanceID' not in dim:
-                continue
-            instance = dim['InstanceID']
-            stats[instance] = CloudHelper.get_instance_stats(instance, stat_name, namespace)
+        if 'InstanceID' in dims:
+            for instance in dims['InstanceID']:
+                stats[instance] = CloudHelper.get_instance_stats(instance, stat_name, namespace)
         
         return stats
     
