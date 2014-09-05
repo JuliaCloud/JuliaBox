@@ -125,16 +125,28 @@ class JBoxContainer:
             cont.restart()
 
         JBoxContainer.publish_container_stats()
-        return cont
-
+        return cont        
 
     @staticmethod
     def publish_container_stats():
         """ Publish custom cloudwatch statistics. Used for status monitoring and auto scaling. """
         nactive = JBoxContainer.num_active()
         CloudHelper.publish_stats("NumActiveContainers", "Count", nactive)
+        
+        cpu_used_pct = psutil.cpu_percent()
+        
+        mem_used_pct = psutil.virtual_memory().percent
+        CloudHelper.publish_stats("MemUsed", "Percent", mem_used_pct)
+        
+        disk_used_pct = 0
+        for x in psutil.disk_partitions():
+            disk_used_pct = max(psutil.disk_usage(x.mountpoint).percent, disk_used_pct)
+        CloudHelper.publish_stats("DiskUsed", "Percent", disk_used_pct)
+        
         cont_load_pct = min(100, max(0, nactive * 100 / JBoxContainer.MAX_CONTAINERS))
-        CloudHelper.publish_stats("Load", "Percent", cont_load_pct)
+        CloudHelper.publish_stats("ContainersUsed", "Percent", cont_load_pct)
+        
+        CloudHelper.publish_stats("Load", "Percent", max(cont_load_pct, disk_used_pct, mem_used_pct, cpu_used_pct))
 
     
     @staticmethod    
@@ -341,7 +353,7 @@ class JBoxContainer:
     @staticmethod
     def record_ping(name):
         JBoxContainer.PINGS[name] = datetime.datetime.now(pytz.utc)
-        log_info("Recorded ping for " + name)
+        #log_info("Recorded ping for " + name)
 
     @staticmethod
     def get_last_ping(name):

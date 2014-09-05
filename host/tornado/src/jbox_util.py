@@ -1,4 +1,4 @@
-import os, sys, time, errno
+import os, sys, time, errno, datetime
 import boto.dynamodb, boto.utils, boto.ec2.cloudwatch
 from boto.s3.key import Key
 
@@ -53,6 +53,17 @@ class CloudHelper:
     S3_BUCKETS = {}
     CLOUDWATCH_CONN = None
     ENABLED = {}
+    INSTANCE_ID = None
+    SELF_STATS = {}
+    
+    @staticmethod
+    def instance_id():
+        if None == CloudHelper.INSTANCE_ID:
+            if not CloudHelper.ENABLED['cloudwatch']:
+                CloudHelper.INSTANCE_ID = 'localhost'
+            else:
+                CloudHelper.INSTANCE_ID = boto.utils.get_instance_metadata()['instance-id']
+        return CloudHelper.INSTANCE_ID
     
     @staticmethod
     def configure(has_s3=True, has_dynamodb=True, has_cloudwatch=True, region='us-east-1', install_id='JuliaBox'):
@@ -91,15 +102,90 @@ class CloudHelper:
         return CloudHelper.CLOUDWATCH_CONN
     
     @staticmethod
+    def get_metric(metric_name, metric_namespace=None):
+        if metric_namespace == None:
+            metric_namespace = CloudHelper.INSTALL_ID
+        
+        metrics = CloudHelper.connect_cloudwatch().list_metrics()
+        for m in metrics:
+            if m.name == metric_name and m.namespace == metric_namespace:
+                return m
+        log_info("invalid metric " + '.'.join([metric_namespace, metric_name]))
+        return None
+
+        
+    @staticmethod
     def publish_stats(stat_name, stat_unit, stat_value):
         """ Publish custom cloudwatch statistics. Used for status monitoring and auto scaling. """
+        CloudHelper.SELF_STATS[stat_name] = stat_value
         if not CloudHelper.ENABLED['cloudwatch']:
             return
         
-        instance_id = boto.utils.get_instance_metadata()['instance-id']
-        dims = {'InstanceID': instance_id}
+        dims = {'InstanceID': CloudHelper.instance_id()}
         log_info("CloudWatch " + CloudHelper.INSTALL_ID + ": " + stat_name + " = " + str(stat_value) + " " + stat_unit)
         CloudHelper.connect_cloudwatch().put_metric_data(namespace=CloudHelper.INSTALL_ID, name=stat_name, unit=stat_unit, value=stat_value, dimensions=dims)
+    
+    @staticmethod
+    def get_instance_stats(instance, stat_name, namespace=None):
+        if not CloudHelper.ENABLED['cloudwatch']:
+            if (instance == CloudHelper.instance_id()) and (stat_name in CloudHelper.SELF_STATS):
+                return CloudHelper.SELF_STATS[stat_name]
+            else:
+                return None
+        
+        if namespace == None:
+            namespace = CloudHelper.INSTALL_ID
+        end = datetime.datetime.utcnow()
+        start = end - datetime.timedelta(minutes=30)
+        res = None
+        results = CloudHelper.connect_cloudwatch().get_metric_statistics(60, start, end, stat_name, namespace, 'Average', {'InstanceID':[instance]})
+        for _res in results:
+            if (res == None) or (res['Timestamp'] < _res['Timestamp']):
+                res = _res
+        return res['Average'] if res else None
+
+    @staticmethod
+    def get_cluster_average_stats(stat_name, namespace=None):
+        if not CloudHelper.ENABLED['cloudwatch']:
+            if stat_name in CloudHelper.SELF_STATS:
+                return CloudHelper.SELF_STATS[stat_name]
+            else:
+                return None
+        
+        m = CloudHelper.get_metric(stat_name, namespace)
+        if None == m:
+            return None
+        dims = m.dimensions
+        end = datetime.datetime.utcnow()
+        start = end - datetime.timedelta(minutes=30)
+        res = None
+        results = CloudHelper.connect_cloudwatch().get_metric_statistics(60, start, end, stat_name, namespace, 'Average', dims)
+        for _res in results:
+            if (res == None) or (res['Timestamp'] < _res['Timestamp']):
+                res = _res
+        return res['Average'] if res else None
+
+    @staticmethod
+    def get_cluster_stats(stat_name, namespace=None):
+        if not CloudHelper.ENABLED['cloudwatch']:
+            if stat_name in CloudHelper.SELF_STATS:
+                return {CloudHelper.instance_id() : CloudHelper.SELF_STATS[stat_name]}
+            else:
+                return None
+        
+        m = CloudHelper.get_metric(stat_name, namespace)
+        if None == m:
+            return None
+        dims = m.dimensions
+        
+        stats = {}
+        for dim in dims:
+            if 'InstanceID' not in dim:
+                continue
+            instance = dim['InstanceID']
+            stats[instance] = CloudHelper.get_instance_stats(instance, stat_name, namespace)
+        
+        return stats
     
     @staticmethod
     def push_file_to_s3(bucket, local_file, metadata={}, encrypt=False):
