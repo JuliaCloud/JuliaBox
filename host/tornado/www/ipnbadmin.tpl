@@ -1,7 +1,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>IPNB Session {{ d["sessname"] }} </title>
+    <title>JuliaBox &mdash; {{d["user_id"]}}</title>
     <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
     <link href='//fonts.googleapis.com/css?family=Raleway|Inconsolata' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" type="text/css" href="/assets/css/frames.css">
@@ -95,6 +95,7 @@
 
 <h3>Profile &amp; session info:</h3>
 <table class="table">
+	<tr><td>Logged in as:</td><td>{{d["user_id"]}}</td></tr>
 	<tr><td>Session initialized at:</td><td><span id='disp_date_init'></span></td></tr>
 	<tr><td>Session last started at:</td><td><span id='disp_date_start'></span></td></tr>
 	<tr><td>Session allowed till:</td><td><span id='disp_date_allowed_till'></span></td></tr>

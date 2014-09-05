@@ -64,7 +64,7 @@ http {
             proxy_pass          http://localhost:8888;
             proxy_set_header    Host            $host;
             proxy_set_header    X-Real-IP       $remote_addr;
-            proxy_set_header    X-Forwarded-for $remote_addr;        
+            proxy_set_header    X-Forwarded-for $remote_addr;
         }        
         
 
@@ -100,6 +100,7 @@ http {
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header Host $host;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_read_timeout  600;
         }
 
 # shell....

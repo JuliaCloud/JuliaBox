@@ -163,6 +163,7 @@ class SyncHandler(tornado.web.RequestHandler):
         gitrepo = self.get_git_repo(repo_id)
         if None != gitrepo:
             if gitrepo.sync():
+                log_info('conflicts during sync of repo ' + gitrepo.repo_name())
                 retcode = 1 # has conflicts
         return retcode
     
@@ -209,6 +210,7 @@ class SyncHandler(tornado.web.RequestHandler):
                         return 1
         hostname_lines = os.popen('ssh-keyscan -t rsa,dsa ' + hostname).readlines()
         if len(hostname_lines) == 0:
+            log_info('ssh-keyscan failed')
             return -1
         with open(khfile, fopenmode) as f:
             for line in hostname_lines:
