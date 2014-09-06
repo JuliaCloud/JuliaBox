@@ -28,13 +28,14 @@
 		function show_time_remaining() {
 		    var datetime = new Date('{{d["allowed_till"]}}').getTime();
 		    var now = new Date().getTime();
-		    var remain_secs = (datetime - now)/1000;
+		    var remain_secs = Math.floor((datetime - now)/1000);
+		    var expire = {{d["expire"]}};
 		    if(remain_secs > expire) remain_secs = expire;
 		    var remain = secs_to_str(remain_secs);
-		    var expire = {{d["expire"]}};
 		    
 		    if(expire > 0) {
 			    total = secs_to_str({{d["expire"]}});
+			    if(remain_secs >= expire) remain = total;
 			    
 			    $('#disp_time_remaining').html(remain + " (of allotted " + total + ")");
 			    
