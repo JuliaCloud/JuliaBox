@@ -1,4 +1,4 @@
-$$JBOX_DIR/host/nginx/logs/*.log {
+$$JBOX_DIR/host/nginx/logs/error.log $$JBOX_DIR/host/nginx/logs/access.log {
 	daily
 	size 5M
 	missingok
