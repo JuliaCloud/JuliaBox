@@ -76,26 +76,54 @@ class MainHandler(tornado.web.RequestHandler):
             self.chk_and_launch_docker(sessname, creds, authtok, user_id)
             
 
+    def clear_container_cookies(self):
+        for name in ["sessname", "hostshell", "hostupload", "hostipnb", "sign"]:
+            self.clear_cookie(name)
+
+    def set_container_cookies(self, cookies):
+        max_session_time = cfg['expire']
+        if max_session_time == 0:
+            max_session_time = AuthHandler.AUTH_VALID_SECS
+        expires = datetime.datetime.utcnow() + datetime.timedelta(seconds=max_session_time)
+        
+        for n,v in cookies.iteritems():
+            self.set_cookie(n, str(v), expires=expires)
+
+    def set_lb_tracker_cookie(self):
+        self.set_cookie('lb', signstr(CloudHelper.instance_id(), cfg['sesskey']), expires_days=30)
+
     def chk_and_launch_docker(self, sessname, creds, authtok, user_id):
         cont = JBoxContainer.get_by_name(sessname)
+        nhops = int(self.get_argument('h', 0))
+        log_info("got hop " + repr(nhops) + " for session " + repr(sessname))
+        log_info("have existing container for " + repr(sessname) + ": " + repr(None != cont))
+        if (None != cont):
+            log_info("container running: " + str(cont.is_running()))
         
-        # TODO: check if container is not running and is backed up
-        if ((None == cont) or (not cont.is_running())) and (JBoxContainer.num_active() >= cfg['numlocalmax']):
-            nhops = self.get_argument('hop', 0)
+        if ((None == cont) or (not cont.is_running())) and (not CloudHelper.should_accept_session()):
+            if None != cont:
+                cont.backup()
+                cont.delete()
+            self.clear_container_cookies()
+            self.set_header('Connection', 'close')
+            self.request.connection.no_keep_alive = True
             if nhops > cfg['numhopmax']:
                 rendertpl(self, "index.tpl", cfg=cfg, err="Maximum number of JuliaBox instances active. Please try after sometime.")
             else:
-                self.redirect('/?hop=' + str(nhops+1))
+                self.redirect('/?h=' + str(nhops+1))
         else:
             cont = JBoxContainer.launch_by_name(sessname, True)
             (shellport, uplport, ipnbport) = cont.get_host_ports()
             sign = signstr(sessname + str(shellport) + str(uplport) + str(ipnbport), cfg["sesskey"])
-            self.set_cookie("sessname", sessname)
-            self.set_cookie("hostshell", str(shellport))
-            self.set_cookie("hostupload", str(uplport))
-            self.set_cookie("hostipnb", str(ipnbport))
-            self.set_cookie("sign", sign)
-
+            
+            self.set_container_cookies({
+                    "sessname": sessname,
+                    "hostshell": shellport,
+                    "hostupload": uplport,
+                    "hostipnb": ipnbport,
+                    "sign": sign
+                })
+            self.set_lb_tracker_cookie()
             rendertpl(self, "ipnbsess.tpl", sessname=sessname, cfg=cfg, creds=creds, authtok=authtok, user_id=user_id)
 
     def renew_creds(self, creds):
@@ -265,9 +293,9 @@ class AdminHandler(tornado.web.RequestHandler):
                 "admin_user" : admin_user,
                 "sessname" : sessname, 
                 "user_id" : user_id, 
-                "created" : cont.time_created(), 
-                "started" : cont.time_started(),
-                "allowed_till" : (cont.time_started() + datetime.timedelta(seconds=cfg['expire'])),
+                "created" : isodate.datetime_isoformat(cont.time_created()), 
+                "started" : isodate.datetime_isoformat(cont.time_started()),
+                "allowed_till" : isodate.datetime_isoformat((cont.time_started() + datetime.timedelta(seconds=cfg['expire']))),
                 "mem" : cont.get_memory_allocated(), 
                 "cpu" : cont.get_cpu_allocated(),
                 "expire" : cfg['expire'],
@@ -372,6 +400,10 @@ class PingHandler(tornado.web.RequestHandler):
 def do_housekeeping():
     server_delete_timeout = cfg['expire'];
     JBoxContainer.maintain(delete_timeout=server_delete_timeout, delete_stopped_timeout=cfg['delete_stopped_timeout'], stop_timeout=cfg['inactivity_timeout'], protected_names=cfg['protected_docknames'])
+    if cfg['scale_down'] and (JBoxContainer.num_active() == 0) and CloudHelper.should_terminate():
+        log_info("terminating to scale down")
+        do_backups()
+        CloudHelper.terminate_instance()
 
 def do_backups():
     JBoxContainer.backup_all()
@@ -389,6 +421,7 @@ if __name__ == "__main__":
     backup_bucket = cloud_cfg['backup_bucket']
     make_sure_path_exists(backup_location)
     JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], [os.path.join(backup_location, '${CNAME}')], backup_location, cfg['numlocalmax'], backup_bucket=backup_bucket)
+    JBoxContainer.publish_container_stats()
     
     JBoxUser._init(table_name=cloud_cfg.get('jbox_users', 'jbox_users'), enckey=cfg['sesskey'])
     JBoxAccounting._init(table_name=cloud_cfg.get('jbox_accounting', 'jbox_accounting'))

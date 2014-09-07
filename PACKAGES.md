@@ -4,7 +4,7 @@ Following packages are installed by default. Additional packages can be installe
 
 However, user installed packages may not be retained across sessions. Also since the JuliaBox user is not a priviledged user, packages requiring additional system packages may not install correctly. There will be an alternate mechanism for installing additional packages in the future.
 
-- 15 required packages:
+- 17 required packages:
     - Clp
     - DataFrames
     - DataStructures
@@ -12,6 +12,8 @@ However, user installed packages may not be retained across sessions. Also since
     - Gadfly
     - HDF5
     - IJulia
+    - Interact
+    - Ipopt
     - Iterators
     - JuMP
     - MCMC
@@ -20,7 +22,7 @@ However, user installed packages may not be retained across sessions. Also since
     - Optim
     - PyPlot
     - SymPy
-- 37 additional packages:
+- 38 additional packages:
     - ArrayViews
     - BinDeps
     - Calculus
@@ -50,6 +52,7 @@ However, user installed packages may not be retained across sessions. Also since
     - PDMats
     - PyCall
     - REPLCompletions
+    - Reactive
     - Reexport
     - ReverseDiffSource
     - ReverseDiffSparse

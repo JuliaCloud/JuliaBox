@@ -1,19 +1,19 @@
 {
     "port" : 8888,
     "gauth" : $$GAUTH,
-    "dhostlocal" : True,
     
+    # Self teminate if required to scale down
+    "scale_down" : False,
     # Number of active containers to allow per instance
     "numlocalmax" : $$NUM_LOCALMAX,
-    
     # Maximum number of hops through the load balancer till the installation is declared overloaded
     "numhopmax": 10,
+    
+    # Installation specific session key. Used for encryption and signing. 
     "sesskey" : "$$SESSKEY",
     
     # Users that have access to the admin tab
     "admin_users" : ["$$ADMIN_USER"],
-    
-    "dhosts" : [],
     
     # Sessions which will not be timed out and auto-cleaned up
     "protected_sessions" : [],

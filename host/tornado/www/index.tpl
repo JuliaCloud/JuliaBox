@@ -47,6 +47,9 @@
         	}
         	return true;
         }
+        {% if len(err) > 0 %}
+        	alert("{{err}}");
+        {% end %}
     </script>
   </head>
 
