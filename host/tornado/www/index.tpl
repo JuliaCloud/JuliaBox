@@ -83,7 +83,6 @@
 	</div><!-- 6 col -->
       </div>
     </div>
-    <div class="container notice" style="border-box: rounded; border-radius: 6px; text-align: center; padding: 1em 4em; margin: 2em auto; background: #da7a3e">Hello Hacker News! :-) JuliaBox is a work in progress. <br/> While we are glad to hear your feedback, we are trying hard to cope with the traffic from the unexpected HN post. You may not be able to log in till the crowd thins.</div>
     <div class="container features-container">
       <div class="col-md-3 col-sm-6">
 	<img class="icon" src="/assets/img/ipynblogo.png">
