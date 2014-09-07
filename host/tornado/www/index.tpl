@@ -83,7 +83,7 @@
 	</div><!-- 6 col -->
       </div>
     </div>
-    <div class="container notice" style="text-align: center; padding: 1em 4em; background: #da7a3e"><b>Hello Hacker News! :-) JuliaBox is a work in progress. While we are glad to hear your feedback, we are trying hard to cope with the traffic from the unexpected HN post. You may not be able to log in till the crowd thins.</b></div>
+    <div class="container notice" style="text-align: center; padding: 1em 4em; margin: 2em 0; background: #da7a3e"><b>Hello Hacker News! :-) JuliaBox is a work in progress. While we are glad to hear your feedback, we are trying hard to cope with the traffic from the unexpected HN post. You may not be able to log in till the crowd thins.</b></div>
     <div class="container features-container">
       <div class="col-md-3 col-sm-6">
 	<img class="icon" src="/assets/img/ipynblogo.png">
