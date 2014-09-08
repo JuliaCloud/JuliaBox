@@ -59,7 +59,7 @@
         }
         function resetState() {
             deleteAllCookies();
-            window.location = "//accounts.google.com/logout?continue=" + encodeURI(window.location);
+            window.location = "//accounts.google.com/logout";
         }
     </script>
   </head>
