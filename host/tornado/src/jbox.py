@@ -71,10 +71,14 @@ class MainHandler(tornado.web.RequestHandler):
                     verified = jbuser.get_verified()
                     invite_code = self.get_argument("invite_code", False)
                     if not verified and invite_code:
-                        invite = JBoxInvite(invite_code)
+                        try:
+                            invite = JBoxInvite(invite_code)
+                        except:
+                            invite = None
                         # set verified flag
-                        if invite.is_invited(user_id):
+                        if (invite != None) and invite.is_invited(user_id):
                             jbuser.set_verified()
+                            jbuser.save()
                             self.redirect('/hostlaunchipnb/')
                         else:
                             rendertpl(self, "index.tpl", cfg=cfg, state=self.state(
