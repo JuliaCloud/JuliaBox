@@ -258,7 +258,7 @@ var JuliaBox = (function(){
     	
     	logout_at_browser: function () {
 			for (var it in $.cookie()) {
-				if(it in ["sessname", "hostshell", "hostupload", "hostipnb", "sign", "juliabox"]) {
+				if(["sessname", "hostshell", "hostupload", "hostipnb", "sign", "juliabox"].indexOf(it) > -1) {
 					$.removeCookie(it);
 				}
 			}

@@ -16,13 +16,17 @@ RUN apt-get install -y \
 		pandoc \
         && apt-get clean
 
+RUN mkdir -p /.julia \
+	&& chmod 777 /.julia
+
 USER juser
 ENV HOME /home/juser
 WORKDIR /home/juser
 
+RUN echo "export JULIA_PKGDIR=/.julia" >> /home/juser/.bashrc
 RUN ipython profile create julia
-RUN julia -e 'Pkg.init(); Pkg.add("IJulia"); Pkg.add("PyPlot"); Pkg.add("Gadfly"); Pkg.add("DataFrames"); Pkg.add("DataStructures"); Pkg.add("HDF5"); Pkg.add("Iterators"); Pkg.add("MCMC"); Pkg.add("NumericExtensions"); Pkg.add("Optim"); Pkg.add("JuMP"); Pkg.add("SymPy");'
-RUN julia -e 'Pkg.add("GLPKMathProgInterface"); Pkg.add("Clp"); Pkg.add("NLopt"); Pkg.add("Ipopt"); Pkg.add("Interact");'
+RUN export JULIA_PKGDIR=/.julia && julia -e 'Pkg.init(); Pkg.add("IJulia"); Pkg.add("PyPlot"); Pkg.add("Gadfly"); Pkg.add("DataFrames"); Pkg.add("DataStructures"); Pkg.add("HDF5"); Pkg.add("Iterators"); Pkg.add("MCMC"); Pkg.add("NumericExtensions"); Pkg.add("Optim"); Pkg.add("JuMP"); Pkg.add("SymPy");'
+RUN export JULIA_PKGDIR=/.julia && julia -e 'Pkg.add("GLPKMathProgInterface"); Pkg.add("Clp"); Pkg.add("NLopt"); Pkg.add("Ipopt"); Pkg.add("Interact");'
 
 RUN echo "c.NotebookApp.open_browser = False" >> /home/juser/.ipython/profile_julia/ipython_notebook_config.py \
 	&& echo "c.NotebookApp.ip = \"*\"" >> /home/juser/.ipython/profile_julia/ipython_notebook_config.py
