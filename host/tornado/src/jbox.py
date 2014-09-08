@@ -51,7 +51,19 @@ class MainHandler(tornado.web.RequestHandler):
                 return
 
         if None == jbox_cookie:
-            rendertpl(self, "index.tpl", cfg=cfg, state=self.state())
+            verified = int(self.get_argument("invite_success", -1))
+            if self.get_argument("invite_success", "") != "":
+                self.clear_cookie("is_invite")                
+                if verified == 1:
+                    msg = "Your account has already been approved"
+                elif verified == 2:
+                    msg = "You have already registered for an invite"
+                else:
+                    msg="Thank you for your interest! We will get back to you with an invitation soon."
+                state = self.state(success=msg)
+            else:
+                state = self.state()
+            rendertpl(self, "index.tpl", cfg=cfg, state=state)
         else:
             user_id = jbox_cookie['u']
             sessname = esc_sessname(user_id)
@@ -59,19 +71,6 @@ class MainHandler(tornado.web.RequestHandler):
             if cfg["gauth"]:
                 try:
                     jbuser = JBoxUser(user_id)
-                    verified = jbuser.get_verified()
-                    if self.get_argument("invite_success", "false") == "true":
-                        if verified == 1:
-                            msg = "Your account has already been approved"
-                        elif verified == 2:
-                            msg = "You have already registered for an invite"
-                        else:
-                            msg="Thank you for your interest! We will get back to you with an invitation soon."
-
-                        rendertpl(self, "index.tpl",
-                                cfg=cfg,
-                                state=self.state(success=msg))
-                        return
                 except:
                     # stale cookie. we don't have the user in our database anymore
                     log_info("stale cookie. we don't have the user in our database anymore. user: " + user_id)
@@ -184,7 +183,6 @@ class MainHandler(tornado.web.RequestHandler):
     def state(self, **kwargs):
         s = dict(error="", success="", info="", ask_invite_code=False, user_id="")
         s.update(**kwargs)
-        print s
         return s
 
 class AuthHandler(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
@@ -226,16 +224,19 @@ class AuthHandler(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
                     #log_info(creds.to_json())
                 else:
                     if self.get_cookie("is_invite", "no") == "yes":
-                        self.clear_cookie("is_invite")
-                        if not jbuser.get_verified() == 1:
+                        #self.clear_cookie("is_invite")
+                        verified = jbuser.get_verified()
+                        if verified != 1:
                             jbuser.set_verified(2)
                             jbuser.save()
-                        self.redirect('/?invite_success=true')
+                        self.redirect('/?invite_success=' + str(verified))
+                        return
                     else:
                         self.set_session_cookie(user_id)
                         if jbuser.is_new:
                             jbuser.save()
                     self.redirect('/')
+                    return
             else:
                 if state == 'ask_gdrive':
                     jbox_cookie = AuthHandler.get_session_cookie(self)
