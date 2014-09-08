@@ -84,6 +84,7 @@
 	</div>
 	<div class="col-md-6">
 	  <div class="big-button col-md-8 col-md-offset-2 col-sm-offset-0">
+            <br>
 	   {% if cfg["gauth"] %}
           <div class="sign-in-container">
             {% if len(state["error"]) > 0 %}
@@ -101,20 +102,24 @@
                 {{state["success"]}}
             </div>
             {% end %}
-            {% if len(state["success"]) == 0 and len(state["info"]) == 0 and len(state["error"]) == 0%} <br><br><br> {% end %}
+            {% if len(state["success"]) == 0 and len(state["info"]) == 0 and len(state["error"]) == 0 %}<br><br>{% end %}
             {% if state["ask_invite_code"] %}
-            <form action="/"><input type="text" class="form-control" name="invite_code" placeholder="Type in the invite code, hit return."></input></form> <br>
-            <div>Logging in as {{ state["user_id"] }}. <a href="javascript:resetState();">Change</a>.</div>
+            <form action="/">
+                <div>Logging in as {{ state["user_id"] }}. <a href="javascript:resetState();">Change</a>.</div>
+                <input type="text" class="form-control col-md-6" name="invite_code" placeholder="Type in the invite code, hit return."><br><br>
+                <input class="btn btn-default btn-block" type="submit" value="Go!">
             </form>
             {% else %}
-            <div style="font-size: 1.25em; color: #666"><a href="/hostlaunchipnb/">Sign in</a> <em>or</em> <br></div>
+            <a class="btn btn-default btn-block gauth-btn" href="/hostlaunchipnb/">Sign in via Google</a>
             {% end %}
+                <p style="padding-top: 1em; text-align: center; font-family: raleway"><em>or</em></p>
+	      <a class="btn btn-primary btn-block gauth-btn" href="/?invite=true">Sign up for an invite</a>
           </div>
-	      <a class="btn btn-lg btn-primary btn-block gauth-btn" href="/?invite=true">Sign up for an invite</a>
       {% else %}
 	      <input type="text" placeholder="Choose a session name. Hit Return &#x23ce;" class="form-control sessname-box" name="sessname" required autofocus>
 	      <input style="display:none" type="submit"  value="Launch">
       {% end %}
+        <br>
 	  </div>
 	</div><!-- 6 col -->
       </div>
