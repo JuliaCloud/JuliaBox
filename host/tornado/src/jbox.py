@@ -2,6 +2,7 @@
 
 from jbox_util import log_info, esc_sessname, read_config, make_sure_path_exists, unquote, CloudHelper
 from jbox_user import JBoxUser
+from jbox_invites import JBoxInvite
 from jbox_accounting import JBoxAccounting
 from jbox_container import JBoxContainer
 from jbox_crypto import signstr
@@ -42,8 +43,17 @@ def is_valid_req(req):
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         jbox_cookie = AuthHandler.get_session_cookie(self)
+        if cfg["invite_only"]:
+            if self.get_argument("invite", False):
+                self.set_cookie("is_invite", "yes")
+                self.redirect('/hostlaunchipnb/')
+                return
+            if self.get_argument("invite_success", False) == "true":
+                rendertpl(self, "index.tpl", cfg=cfg, state=self.state(success="Thank you for your interest! We will get back to you with an invitation soon."))
+                return
+
         if None == jbox_cookie:
-            rendertpl(self, "index.tpl", cfg=cfg, err='')
+            rendertpl(self, "index.tpl", cfg=cfg, state=self.state())
         else:
             user_id = jbox_cookie['u']
             sessname = esc_sessname(user_id)
@@ -56,7 +66,30 @@ class MainHandler(tornado.web.RequestHandler):
                     log_info("stale cookie. we don't have the user in our database anymore. user: " + user_id)
                     self.redirect('/hostlaunchipnb/')
                     return
-                
+ 
+                if cfg["invite_only"]:
+                    verified = jbuser.get_verified()
+                    invite_code = self.get_argument("invite_code", False)
+                    if not verified and invite_code:
+                        invite = JBoxInvite(invite_code)
+                        # set verified flag
+                        if invite.is_invited(user_id):
+                            jbuser.set_verified()
+                            self.redirect('/hostlaunchipnb/')
+                        else:
+                            rendertpl(self, "index.tpl", cfg=cfg, state=self.state(
+                                error='You entered an invalid invitation code. Try again or request a new invitation.',
+                                ask_invite_code=True, user_id=user_id))
+                            return
+ 
+                    if not verified:
+                        # Ask for an invite token
+                        rendertpl(self, "index.tpl", cfg=cfg,
+                                  state=self.state(
+                                      info='Enter the invitation code',
+                                      ask_invite_code=True, user_id=user_id))
+                        return
+
                 creds = jbuser.get_gtok()
                 if creds != None:
                     try:
@@ -108,7 +141,7 @@ class MainHandler(tornado.web.RequestHandler):
             self.set_header('Connection', 'close')
             self.request.connection.no_keep_alive = True
             if nhops > cfg['numhopmax']:
-                rendertpl(self, "index.tpl", cfg=cfg, err="Maximum number of JuliaBox instances active. Please try after sometime.")
+                rendertpl(self, "index.tpl", cfg=cfg, state=state.state(error="Maximum number of JuliaBox instances active. Please try after sometime.", success=''))
             else:
                 self.redirect('/?h=' + str(nhops+1))
         else:
@@ -132,7 +165,12 @@ class MainHandler(tornado.web.RequestHandler):
         creds.refresh(http)
         creds = json.loads(creds.to_json())
         return creds
-    
+
+    def state(self, **kwargs):
+        s = dict(error="", success="", info="", ask_invite_code=False, user_id="")
+        s.update(**kwargs)
+        print s
+        return s
 
 class AuthHandler(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
     AUTH_COOKIE = 'juliabox'
@@ -172,10 +210,17 @@ class AuthHandler(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
                     #log_info(str(user))
                     #log_info(creds.to_json())
                 else:
-                    self.set_session_cookie(user_id)
-                    if jbuser.is_new:
-                        jbuser.save()
-                self.redirect('/')
+                    if self.get_cookie("is_invite", "no") == "yes":
+                        self.clear_cookie("is_invite")
+                        if not jbuser.get_verified():
+                            jbuser.set_verified(2)
+                            jbuser.save()
+                        self.redirect('/?invite_success=true')
+                    else:
+                        self.set_session_cookie(user_id)
+                        if jbuser.is_new:
+                            jbuser.save()
+                    self.redirect('/')
             else:
                 if state == 'ask_gdrive':
                     jbox_cookie = AuthHandler.get_session_cookie(self)
@@ -421,6 +466,8 @@ if __name__ == "__main__":
     JBoxContainer.publish_container_stats()
     
     JBoxUser._init(table_name=cloud_cfg.get('jbox_users', 'jbox_users'), enckey=cfg['sesskey'])
+    #JBoxInvite._create_table()
+    JBoxInvite._init(table_name=cloud_cfg.get('jbox_invites', 'jbox_invites'), enckey=cfg['sesskey'])
     JBoxAccounting._init(table_name=cloud_cfg.get('jbox_accounting', 'jbox_accounting'))
     
     application = tornado.web.Application([

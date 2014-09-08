@@ -3,7 +3,6 @@
     <meta charset="utf-8" />
     <title>JuliaBox &mdash; {{d["user_id"]}}</title>
     <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
-    <link href='//fonts.googleapis.com/css?family=Raleway|Inconsolata' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" type="text/css" href="/assets/css/frames.css">
 
     <script type="text/javascript" src="//use.typekit.net/cpz5ogz.js"></script>
