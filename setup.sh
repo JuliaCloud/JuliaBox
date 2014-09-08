@@ -134,6 +134,12 @@ function configure_resty_tornado {
     else
         sed  -i s/\$\$GAUTH/False/g $TORNADO_CONF_DIR/tornado.conf
     fi
+    if test $OPT_INVITE -eq 1; then
+        sed  -i s/\$\$INVITE/True/g $TORNADO_CONF_DIR/tornado.conf
+    else
+        sed  -i s/\$\$INVITE/False/g $TORNADO_CONF_DIR/tornado.conf
+    fi
+
     sed  -i s/\$\$ADMIN_USER/$ADMIN_USER/g $TORNADO_CONF_DIR/tornado.conf
     sed  -i s/\$\$NUM_LOCALMAX/$NUM_LOCALMAX/g $TORNADO_CONF_DIR/tornado.conf
     sed  -i s/\$\$EXPIRE/$EXPIRE/g $TORNADO_CONF_DIR/tornado.conf
@@ -147,10 +153,11 @@ function configure_resty_tornado {
 
 OPT_INSTALL=1
 OPT_GOOGLE=0
+OPT_INVITE=0
 NUM_LOCALMAX=10 
 EXPIRE=0
 
-while getopts  "u:dgn:t:k:s:" FLAG
+while getopts  "u:dgn:t:k:s:i:" FLAG
 do
   if test $FLAG == '?'
      then
@@ -167,6 +174,10 @@ do
   elif test $FLAG == 'g'
      then
         OPT_GOOGLE=1
+
+  elif test $FLAG == 'i'
+     then
+        OPT_INVITE=1
 
   elif test $FLAG == 'n'
      then

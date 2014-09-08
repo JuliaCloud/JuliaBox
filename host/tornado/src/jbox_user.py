@@ -10,7 +10,7 @@ class JBoxUser():
     TABLE = None
     ENCKEY = None
         
-    def __init__(self, user_id, create=False):
+    def __init__(self, user_id, create=False, verified=0):
         if None == JBoxUser.TABLE:
             self.is_new = False
             return
@@ -22,6 +22,7 @@ class JBoxUser():
             if create:
                 self.item = JBoxUser.TABLE.new_item(hash_key=user_id)
                 self.item['time_created'] = datetime.datetime.now(pytz.utc).isoformat()
+                self.item['verified'] = verified
                 self.is_new = True
             else:
                 raise
@@ -41,7 +42,17 @@ class JBoxUser():
         if None == JBoxUser.TABLE:
             return        
         self.item['gtok'] = encrypt(gtok, JBoxUser.ENCKEY)
-    
+
+    def set_verified(self, verified=1):
+        if JBoxUser.TABLE is None:
+            return        
+        self.item['verified'] = verified
+
+    def get_verified(self, verified=True):
+        if JBoxUser.TABLE is None:
+            return
+        return self.item['verified'] if self.item.has_key('verified') else 0
+
     def get_gtok(self):
         if None == JBoxUser.TABLE:
             return None

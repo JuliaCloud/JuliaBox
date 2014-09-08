@@ -1,6 +1,7 @@
 {
     "port" : 8888,
     "gauth" : $$GAUTH,
+    "invite_only" : $$INVITE,
     
     # Self teminate if required to scale down
     "scale_down" : False,
@@ -56,6 +57,7 @@
     	
     	# Configure names for tables and buckets
 	    "jbox_users": "jbox_users",
+	    "jbox_invites": "jbox_invites",
 	    "jbox_accounting": "jbox_accounting",
 	    "backup_bucket": "juliabox_userbackup",
 	    
