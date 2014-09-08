@@ -43,13 +43,11 @@ def is_valid_req(req):
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         jbox_cookie = AuthHandler.get_session_cookie(self)
+
         if cfg["invite_only"]:
             if self.get_argument("invite", False):
                 self.set_cookie("is_invite", "yes")
                 self.redirect('/hostlaunchipnb/')
-                return
-            if self.get_argument("invite_success", False) == "true":
-                rendertpl(self, "index.tpl", cfg=cfg, state=self.state(success="Thank you for your interest! We will get back to you with an invitation soon."))
                 return
 
         if None == jbox_cookie:
@@ -61,6 +59,19 @@ class MainHandler(tornado.web.RequestHandler):
             if cfg["gauth"]:
                 try:
                     jbuser = JBoxUser(user_id)
+                    verified = jbuser.get_verified()
+                    if self.get_argument("invite_success", "false") == "true":
+                        if verified == 1:
+                            msg = "Your account has already been approved"
+                        elif verified == 2:
+                            msg = "You have already registered for an invite"
+                        else:
+                            msg="Thank you for your interest! We will get back to you with an invitation soon."
+
+                        rendertpl(self, "index.tpl",
+                                cfg=cfg,
+                                state=self.state(success=msg))
+                        return
                 except:
                     # stale cookie. we don't have the user in our database anymore
                     log_info("stale cookie. we don't have the user in our database anymore. user: " + user_id)
@@ -68,7 +79,7 @@ class MainHandler(tornado.web.RequestHandler):
                     return
  
                 if cfg["invite_only"]:
-                    verified = jbuser.get_verified()
+                    verified = jbuser.get_verified() == 1
                     invite_code = self.get_argument("invite_code", False)
                     if not verified and invite_code:
                         try:
@@ -216,7 +227,7 @@ class AuthHandler(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
                 else:
                     if self.get_cookie("is_invite", "no") == "yes":
                         self.clear_cookie("is_invite")
-                        if not jbuser.get_verified():
+                        if not jbuser.get_verified() == 1:
                             jbuser.set_verified(2)
                             jbuser.save()
                         self.redirect('/?invite_success=true')

@@ -51,7 +51,7 @@ class JBoxUser():
     def get_verified(self, verified=True):
         if JBoxUser.TABLE is None:
             return
-        return self.item.has_key('verified') and self.item['verified'] == 1
+        return 0 if self.item.has_key('verified') else self.item['verified']
 
     def get_gtok(self):
         if None == JBoxUser.TABLE:
