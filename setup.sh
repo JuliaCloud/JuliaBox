@@ -21,6 +21,7 @@ function usage {
   echo ' -d             : Only recreate docker image - do not install/update other software'
   echo ' -n  <num>      : Maximum number of active containers. Deafult 10.'
   echo ' -t  <seconds>  : Auto delete containers older than specified seconds. 0 means never expire. Default 0.'
+  echo ' -i             : Install in an invite only mode.'
   echo
   echo 'Post setup, additional configuration parameters may be set in jbox.user '
   echo 'Please see README.md (https://github.com/JuliaLang/JuliaBox) for more details '
@@ -157,7 +158,7 @@ OPT_INVITE=0
 NUM_LOCALMAX=10 
 EXPIRE=0
 
-while getopts  "u:dgn:t:k:s:i:" FLAG
+while getopts  "u:idgn:t:k:s:" FLAG
 do
   if test $FLAG == '?'
      then
@@ -215,7 +216,7 @@ if test $OPT_INSTALL -eq 1; then
     sleep 1
 fi
 
-pull_docker_image
+build_docker_image
 configure_resty_tornado
 
 echo
