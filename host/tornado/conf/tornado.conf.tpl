@@ -25,13 +25,17 @@
     "mem_limit" : 1000000000,
     # Max 1024 cpu slices. default maximum allowed is 1/8th of total cpu slices. multiplier can be applied from user profile.
     "cpu_limit" : 128,
+    # Max size of user files allowed. Default maximum allowed is 50MB. Disk images of stopped containers will be backed up every 10 minutes
+    "disk_limit" : 50000000,
     
     # Seconds to wait before clearing an inactive session, for example, when the user closes the browser window (protected_sessions are not affected)
     "inactivity_timeout" : 300,
     # Upper time limit for a user session before it is auto-deleted. 0 means never expire (protected_sessions are not affected)
     "expire" : $$EXPIRE,
     # Seconds before a stopped container is backed up and deleted.
-    "delete_stopped_timeout" : 7200,
+    "delete_stopped_timeout" : 600,
+    # Number of parallel threads to run for backups
+    "backup_threads" : 2,
     
     # The docker image to launch
     "docker_image" : "$$DOCKER_IMAGE",

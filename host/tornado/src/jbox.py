@@ -298,6 +298,7 @@ class AdminHandler(tornado.web.RequestHandler):
                 "allowed_till" : isodate.datetime_isoformat((cont.time_started() + datetime.timedelta(seconds=cfg['expire']))),
                 "mem" : cont.get_memory_allocated(), 
                 "cpu" : cont.get_cpu_allocated(),
+                "disk" : cont.get_disk_allocated(),
                 "expire" : cfg['expire'],
                 "sections" : sections,
                 "loads" : loads,
@@ -399,15 +400,11 @@ class PingHandler(tornado.web.RequestHandler):
 
 def do_housekeeping():
     server_delete_timeout = cfg['expire'];
-    JBoxContainer.maintain(delete_timeout=server_delete_timeout, delete_stopped_timeout=cfg['delete_stopped_timeout'], stop_timeout=cfg['inactivity_timeout'], protected_names=cfg['protected_docknames'])
-    if cfg['scale_down'] and (JBoxContainer.num_active() == 0) and CloudHelper.should_terminate():
+    JBoxContainer.maintain(max_timeout=server_delete_timeout, inactive_timeout=cfg['inactivity_timeout'], protected_names=cfg['protected_docknames'])
+    if cfg['scale_down'] and (JBoxContainer.num_active() == 0) and (JBoxContainer.num_stopped() == 0) and CloudHelper.should_terminate():
         log_info("terminating to scale down")
-        do_backups()
+        #do_backups()
         CloudHelper.terminate_instance()
-
-def do_backups():
-    JBoxContainer.backup_all()
-
     
 
 if __name__ == "__main__":
@@ -420,7 +417,7 @@ if __name__ == "__main__":
     backup_location = os.path.expanduser(cfg['backup_location'])
     backup_bucket = cloud_cfg['backup_bucket']
     make_sure_path_exists(backup_location)
-    JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], [os.path.join(backup_location, '${CNAME}')], backup_location, cfg['numlocalmax'], backup_bucket=backup_bucket)
+    JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], [os.path.join(backup_location, '${CNAME}')], backup_location, cfg['numlocalmax'], cfg['disk_limit'], backup_bucket=backup_bucket)
     JBoxContainer.publish_container_stats()
     
     JBoxUser._init(table_name=cloud_cfg.get('jbox_users', 'jbox_users'), enckey=cfg['sesskey'])
@@ -443,18 +440,6 @@ if __name__ == "__main__":
     log_info("Container maintenance every " + str(run_interval/(60*1000)) + " minutes")
     ct = tornado.ioloop.PeriodicCallback(do_housekeeping, run_interval, ioloop)
     ct.start()
-
-    # backup user files every 1 hour
-    # check: configured expiry time must be at least twice greater than this
-    run_interval = int(cfg['delete_stopped_timeout'])*1000/2
-    if run_interval > 0:
-        run_interval = min(run_interval, 60*60*1000)
-    else:
-        run_interval = 60*60*1000
-    log_info("Container backups every " + str(run_interval/(60*1000)) + " minutes")
-    log_info("Stopped containers would be deleted after " + str(int(cfg['delete_stopped_timeout'])/60) + " minutes")
-    cbackup = tornado.ioloop.PeriodicCallback(do_backups, run_interval, ioloop)
-    cbackup.start()
     
     ioloop.start()
 

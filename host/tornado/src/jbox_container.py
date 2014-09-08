@@ -14,6 +14,7 @@ class JBoxContainer:
     VOLUMES = ['/juliabox']
     LOCAL_TZ_OFFSET = 0
     BACKUP_LOC = None
+    DISK_LIMIT = None
     BACKUP_BUCKET = None
     MAX_CONTAINERS = 0
     VALID_CONTAINERS = {}
@@ -56,6 +57,9 @@ class JBoxContainer:
             return mem
         return psutil.virtual_memory().total
 
+    def get_disk_allocated(self):
+        return JBoxContainer.DISK_LIMIT
+
     def debug_str(self):
         if None == self.dbgstr:
             self.dbgstr = "JBoxContainer id=" + str(self.dockid) + ", name=" + str(self.get_name())
@@ -74,7 +78,7 @@ class JBoxContainer:
         return []
         
     @staticmethod
-    def configure(dckr, image, mem_limit, cpu_limit, host_volumes, backup_loc, max_containers, backup_bucket=None):
+    def configure(dckr, image, mem_limit, cpu_limit, host_volumes, backup_loc, max_containers, disk_limit, backup_bucket=None):
         JBoxContainer.DCKR = dckr
         JBoxContainer.DCKR_IMAGE = image
         JBoxContainer.MEM_LIMIT = mem_limit
@@ -82,6 +86,7 @@ class JBoxContainer:
         JBoxContainer.LOCAL_TZ_OFFSET = JBoxContainer.local_time_offset()
         JBoxContainer.HOST_VOLUMES = host_volumes
         JBoxContainer.BACKUP_LOC = backup_loc
+        JBoxContainer.DISK_LIMIT = disk_limit
         JBoxContainer.BACKUP_BUCKET = backup_bucket
         JBoxContainer.MAX_CONTAINERS = max_containers
 
@@ -150,14 +155,14 @@ class JBoxContainer:
 
     
     @staticmethod    
-    def maintain(delete_timeout=0, delete_stopped_timeout=0, stop_timeout=0, protected_names=[]):
+    def maintain(max_timeout=0, inactive_timeout=0, protected_names=[]):
         log_info("Starting container maintenance...")
         tnow = datetime.datetime.now(pytz.utc)
         tmin = datetime.datetime(datetime.MINYEAR, 1, 1, tzinfo=pytz.utc)
 
-        delete_before = (tnow - datetime.timedelta(seconds=delete_timeout)) if (delete_timeout > 0) else tmin
-        stop_before = (tnow - datetime.timedelta(seconds=stop_timeout)) if (stop_timeout > 0) else tmin
-        delete_stopped_before = tnow - datetime.timedelta(seconds=delete_stopped_timeout) if (delete_stopped_timeout > 0) else tmin
+        stop_before = (tnow - datetime.timedelta(seconds=max_timeout)) if (max_timeout > 0) else tmin
+        stop_inacive_before = (tnow - datetime.timedelta(seconds=inactive_timeout)) if (inactive_timeout > 0) else tmin
+        #delete_stopped_before = tnow - datetime.timedelta(seconds=delete_stopped_timeout) if (delete_stopped_timeout > 0) else tmin
 
         all_containers = JBoxContainer.DCKR.containers(all=True)
         all_cnames = {}
@@ -179,19 +184,19 @@ class JBoxContainer:
                 log_info("Discovered new container " + cont.debug_str())
                 JBoxContainer.record_ping(cname)
 
-            if cont.time_started() < delete_before:
+            if cont.time_started() < stop_before:
                 # don't allow running beyond the limit for long running sessions
                 #log_info("time_started " + str(cont.time_started()) + " delete_before: " + str(delete_before) + " cond: " + str(cont.time_started() < delete_before))
                 log_info("Running beyond allowed time " + cont.debug_str())
-                cont.delete()
-            elif (None != last_ping) and c_is_active and (last_ping < stop_before):
+                cont.stop()
+            elif (None != last_ping) and c_is_active and (last_ping < stop_inacive_before):
                 # if inactive for too long, stop it
                 #log_info("last_ping " + str(last_ping) + " stop_before: " + str(stop_before) + " cond: " + str(last_ping < stop_before))
                 log_info("Inactive beyond allowed time " + cont.debug_str())
                 cont.stop()
-            elif (not c_is_active) and (cont.time_finished() < delete_stopped_before):
-                log_info("Deleting stopped container " + cont.debug_str())
-                cont.delete()
+            #elif (not c_is_active) and (cont.time_finished() < delete_stopped_before):
+            #    log_info("Deleting stopped container " + cont.debug_str())
+            #    cont.delete()
 
         # delete ping entries for non exixtent containers
         for cname in JBoxContainer.PINGS.keys():
@@ -235,12 +240,21 @@ class JBoxContainer:
         return CloudHelper.pull_file_from_s3(JBoxContainer.BACKUP_BUCKET, local_file, metadata_only=metadata_only)
 
     @staticmethod
-    def backup_all():
+    def backup_and_cleanup(delete_stopped_timeout):
         log_info("Starting container backup...")
+        tnow = datetime.datetime.now(pytz.utc)
+        tmin = datetime.datetime(datetime.MINYEAR, 1, 1, tzinfo=pytz.utc)
+
+        delete_stopped_before = tnow - datetime.timedelta(seconds=delete_stopped_timeout) if (delete_stopped_timeout > 0) else tmin
+        
         all_containers = JBoxContainer.DCKR.containers(all=True)
         for cdesc in all_containers:
             cont = JBoxContainer(cdesc['Id'])
-            cont.backup()
+            c_is_active = cont.is_running()
+            if (not c_is_active) and (cont.time_finished() < delete_stopped_before):
+                cont.backup()
+                cont.delete()
+        log_info("Finished container backup.")
 
     def backup(self):
         log_info("Backing up " + self.debug_str() + " at " + str(JBoxContainer.BACKUP_LOC))
@@ -268,6 +282,11 @@ class JBoxContainer:
 
         bkup_resp = JBoxContainer.DCKR.copy(self.dockid, '/home/juser/')
         bkup_data = bkup_resp.read(decode_content=True)
+        bkup_len = len(bkup_data)
+        if bkup_len > JBoxContainer.DISK_LIMIT:
+            log_info("Back up size more than configure limit for " + self.debug_str() + ". Size: " + str(bkup_len))
+            return
+            
         with gzip.open(bkup_file, 'w') as f:
             f.write(bkup_data)
         log_info("Backed up " + self.debug_str() + " into " + bkup_file)
@@ -340,6 +359,11 @@ class JBoxContainer:
     def num_active():
         active_containers = JBoxContainer.DCKR.containers(all=False)
         return len(active_containers)
+
+    @staticmethod
+    def num_stopped():
+        all_containers = JBoxContainer.DCKR.containers(all=True)
+        return len(all_containers) - JBoxContainer.num_active()
 
     @staticmethod
     def get_by_name(name):
