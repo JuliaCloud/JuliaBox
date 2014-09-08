@@ -56,6 +56,19 @@
 		    }
 		};
 		
+		function size_with_suffix(sz) {
+	    	var suffix = "";
+	    	if(sz >= 1000000000) {
+	    		sz = (sz * 1.0 / 1000000000);
+	    		suffix = " GB";
+	    	}
+	    	else {
+	    		sz = (sz * 1.0 / 1000000);
+	    		suffix = " MB";
+	    	}
+	    	return ((Math.round(sz) === sz) ? Math.round(sz).toFixed(0) : sz.toFixed(2)) + suffix;
+		};
+		
 	    $(document).ready(function() {
 	    	$('#showsshkey').click(function(event){
 	    		event.preventDefault();
@@ -75,18 +88,9 @@
 	    	$('#disp_date_start').html((new Date('{{d["started"]}}')).toLocaleString());
 	    	$('#disp_date_allowed_till').html((new Date('{{d["allowed_till"]}}')).toLocaleString());
 	    	
-	    	var mem_allocated = {{d["mem"]}};
-	    	var mem_suffix = "";
-	    	if(mem_allocated >= 1000000000) {
-	    		mem_allocated = (mem_allocated * 1.0 / 1000000000);
-	    		mem_suffix = " GB";
-	    	}
-	    	else {
-	    		mem_allocated = (mem_allocated * 1.0 / 1000000).toFixed(2);
-	    		mem_suffix = " MB";	    		
-	    	}
-	    	mem_allocated = ((Math.round(mem_allocated) === mem_allocated) ? Math.round(mem_allocated).toFixed(0) : mem_allocated.toFixed(2)) + mem_suffix;
-	    	$('#disp_mem').html(mem_allocated);
+	    	$('#disp_mem').html(size_with_suffix({{d["mem"]}}));
+	    	$('#disp_disk').html(size_with_suffix({{d["disk"]}}));
+	    	
 	    	show_time_remaining();
 	    	disp_timer = setInterval(show_time_remaining, 60000);
 	    });
@@ -101,6 +105,7 @@
 	<tr><td>Session last started at:</td><td><span id='disp_date_start'></span></td></tr>
 	<tr><td>Session allowed till:</td><td><span id='disp_date_allowed_till'></span></td></tr>
 	<tr><td>Time remaining:</td><td><span id='disp_time_remaining'> of {{d["expire"]}} secs</span></td></tr>	
+	<tr><td>File Backup Quota:</td><td><span id='disp_disk'></span></td></tr>
 	<tr><td>Allocated Memory:</td><td><span id='disp_mem'></span></td></tr>
 	<tr><td>Allocated CPUs:</td><td>{{d["cpu"]}}</td></tr>
 	<tr><td>SSH Public Key:</td><td><a href="#" id="showsshkey">View</a></td></tr>
