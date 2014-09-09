@@ -8,6 +8,15 @@ class JBoxUserV2():
     CONN = None
     TABLE = None
     ENCKEY = None
+    
+    STATUS_ACTIVE = 0
+    STATUS_INACTIVE = 1
+    
+    ACTIVATION_NONE = 0
+    ACTIVATION_GRANTED = 1
+    ACTIVATION_REQUESTED = 2
+    
+    RESOURCE_PROFILE_BASIC = 1
         
     def __init__(self, user_id, create=False):
         if None == JBoxUserV2.TABLE:
@@ -24,6 +33,15 @@ class JBoxUserV2():
                 self.is_new = True
             else:
                 raise
+
+    def get_user_id(self):
+        return self.item['user_id']
+
+    def get_status(self):
+        return self.item.get('status', JBoxUserV2.STATUS_ACTIVE)
+    
+    def set_status(self, status):
+        self.item['status'] = status
 
     def set_time(self, prefix, dt=None):
         if None == dt:
@@ -69,7 +87,7 @@ class JBoxUserV2():
     def get_activation_state(self):
         if JBoxUserV2.TABLE is None:
             return (None, None)
-        return (self.item.get('activation_code', None), self.item.get('activation_status', 1))
+        return (self.item.get('activation_code', None), self.item.get('activation_status', JBoxUserV2.ACTIVATION_NONE))
     
     def set_gtok(self, gtok):
         if None == JBoxUserV2.TABLE:
@@ -93,7 +111,7 @@ class JBoxUserV2():
     def get_container_type(self):
         if JBoxUserV2.TABLE is None:
             return (None, None)
-        return (self.item.get('image', None), self.item.get('resource_profile', 1))
+        return (self.item.get('image', None), self.item.get('resource_profile', JBoxUserV2.RESOURCE_PROFILE_BASIC))
     
     @staticmethod
     def _init(table_name='jbox_users_v2', enckey=None):
