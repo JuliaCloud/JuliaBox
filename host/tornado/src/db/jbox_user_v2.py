@@ -102,10 +102,11 @@ class JBoxUserV2():
         epoch = datetime.datetime.fromtimestamp(0, pytz.utc)
         return epoch + datetime.timedelta(seconds=secs)
     
-    def save(self):
+    def save(self, set_time=True):
         if None == JBoxUserV2.TABLE:
             return
-        self.set_time("update")
+        if set_time:
+            self.set_time("update")
         self.item.put()
     
     def delete(self):
@@ -124,7 +125,7 @@ class JBoxUserV2():
             return None
         if JBoxUserV2.TABLE is None:
             return (None, None)
-        return (self.item.get('activation_code', None), self.item.get('activation_status', JBoxUserV2.ACTIVATION_NONE))
+        return (self.item.get('activation_code', ''), self.item.get('activation_status', JBoxUserV2.ACTIVATION_NONE))
     
     def set_gtok(self, gtok):
         if None == JBoxUserV2.TABLE:
