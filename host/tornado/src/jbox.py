@@ -336,6 +336,9 @@ class AdminHandler(tornado.web.RequestHandler):
 
         user_id = jbox_cookie['u']
         cont = JBoxContainer.get_by_name(sessname)
+        
+        if None == cont:
+            seld.send_error()
 
         juliaboxver, upgrade_available = self.get_upgrade_available(cont)
         if self.do_upgrade(cont, upgrade_available):
