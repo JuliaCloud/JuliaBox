@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 from jbox_util import log_info, esc_sessname, read_config, make_sure_path_exists, unquote, CloudHelper
-from jbox_user import JBoxUser
+from db.jbox_user_v2 import JBoxUserV2
 from jbox_invites import JBoxInvite
 from jbox_accounting import JBoxAccounting
 from jbox_container import JBoxContainer
@@ -51,12 +51,12 @@ class MainHandler(tornado.web.RequestHandler):
                 return
 
         if None == jbox_cookie:
-            verified = int(self.get_argument("invite_success", -1))
-            if self.get_argument("invite_success", "") != "":
+            which_msg = int(self.get_argument("_msg", JBoxUserV2.ACTIVATION_NONE))
+            if self.get_argument("_msg", "") != "":
                 self.clear_cookie("is_invite")                
-                if verified == 1:
+                if which_msg == JBoxUserV2.ACTIVATION_GRANTED:
                     msg = "Your account has already been approved"
-                elif verified == 2:
+                elif which_msg == JBoxUserV2.ACTIVATION_REQUESTED:
                     msg = "You have already registered for an invite"
                 else:
                     msg="Thank you for your interest! We will get back to you with an invitation soon."
@@ -70,7 +70,7 @@ class MainHandler(tornado.web.RequestHandler):
             
             if cfg["gauth"]:
                 try:
-                    jbuser = JBoxUser(user_id)
+                    jbuser = JBoxUserV2(user_id)
                 except:
                     # stale cookie. we don't have the user in our database anymore
                     log_info("stale cookie. we don't have the user in our database anymore. user: " + user_id)
@@ -78,8 +78,8 @@ class MainHandler(tornado.web.RequestHandler):
                     return
  
                 if cfg["invite_only"]:
-                    verified = (jbuser.get_verified() == 1)
-                    if not verified:
+                    code, status = jbuser.get_activation_state()
+                    if status != JBoxUserV2.ACTIVATION_GRANTED:
                         invite_code = self.get_argument("invite_code", False)
                         if invite_code != False:
                             try:
@@ -88,8 +88,7 @@ class MainHandler(tornado.web.RequestHandler):
                                 invite = None
 
                             if (invite != None) and invite.is_invited(user_id):
-                                jbuser.set_verified()
-                                jbuser.set_invite_code(invite_code)
+                                jbuser.set_activation_state(invite_code, JBoxUserV2.ACTIVATION_GRANTED)
                                 jbuser.save()
                                 self.redirect('/hostlaunchipnb/')
                                 return
@@ -214,7 +213,7 @@ class AuthHandler(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
                 user_id = user_info['email']
                 sessname = esc_sessname(user_id)
 
-                jbuser = JBoxUser(user_id, create=True)
+                jbuser = JBoxUserV2(user_id, create=True)
                 if state == 'store_creds':
                     creds = self.make_credentials(user)
                     jbuser.set_gtok(base64.b64encode(creds.to_json()))
@@ -223,12 +222,11 @@ class AuthHandler(tornado.web.RequestHandler, tornado.auth.GoogleOAuth2Mixin):
                     #log_info(creds.to_json())
                 else:
                     if self.get_cookie("is_invite", "no") == "yes":
-                        #self.clear_cookie("is_invite")
-                        verified = jbuser.get_verified()
-                        if verified != 1:
-                            jbuser.set_verified(2)
+                        code, status = jbuser.get_activation_state()
+                        if status != JBoxUserV2.ACTIVATION_GRANTED:
+                            jbuser.set_activation_state(code, JBoxUserV2.ACTIVATION_REQUESTED)
                             jbuser.save()
-                        self.redirect('/?invite_success=' + str(verified))
+                        self.redirect('/?_msg=' + str(status))
                         return
                     else:
                         self.set_session_cookie(user_id)
@@ -480,7 +478,7 @@ if __name__ == "__main__":
     JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], [os.path.join(backup_location, '${CNAME}')], backup_location, cfg['numlocalmax'], cfg['disk_limit'], backup_bucket=backup_bucket)
     JBoxContainer.publish_container_stats()
     
-    JBoxUser._init(table_name=cloud_cfg.get('jbox_users', 'jbox_users'), enckey=cfg['sesskey'])
+    JBoxUserV2._init(table_name=cloud_cfg.get('jbox_users_v2', 'jbox_users_v2'), enckey=cfg['sesskey'])
     #JBoxInvite._create_table()
     JBoxInvite._init(table_name=cloud_cfg.get('jbox_invites', 'jbox_invites'), enckey=cfg['sesskey'])
     JBoxAccounting._init(table_name=cloud_cfg.get('jbox_accounting', 'jbox_accounting'))
