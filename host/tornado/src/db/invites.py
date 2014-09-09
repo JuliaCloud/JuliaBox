@@ -1,5 +1,5 @@
 import boto.dynamodb.exceptions
-import datetime, pytz
+import datetime, isodate, pytz
 
 from jbox_util import log_info, CloudHelper
 
@@ -21,7 +21,9 @@ class JBoxInvite():
                 if len(invite_code) < 6:
                     raise(Exception("Invite code is too short. Must be at least 6 chars."))
                 self.item = JBoxInvite.TABLE.new_item(hash_key=invite_id)
-                self.item['time_created'] = datetime.datetime.now(pytz.utc).isoformat()
+                now = datetime.datetime.now(pytz.utc)
+                self.item['time_created'] = now.isoformat()
+                self.item['expires_on'] = (now + datetime.datetime.timedelta(1)).isoformat() # 1 day
                 self.item['invited'] = invited
                 self.is_new = True
             else:
@@ -43,8 +45,18 @@ class JBoxInvite():
             return        
         if not self.item: return
         if self.item['invited'] is None: return False
+        try:
+            expires = isodate.parse_datetime(self.item['expires_on'])
+        except:
+            log_info("Error parsing invite code expiry date: " + str(self.item['invite_id']) + str(self.item['expires_on']))
+            return False
+
+        if expires < datetime.datetime.now(pytz.utc):
+            # This invite code has expired, and hence invalid
+            return False
         if self.item['invited'] == '*': # Anyone is allowed
             return True
+
         ids = map(str.strip, self.item['invited'].split(","))
         return user_id in ids
 
