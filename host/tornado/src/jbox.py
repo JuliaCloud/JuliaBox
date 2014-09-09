@@ -1,9 +1,9 @@
 #! /usr/bin/env python
 
 from jbox_util import log_info, esc_sessname, read_config, make_sure_path_exists, unquote, CloudHelper
-from db.jbox_user_v2 import JBoxUserV2
-from jbox_invites import JBoxInvite
-from jbox_accounting import JBoxAccounting
+from db.user_v2 import JBoxUserV2
+from db.invites import JBoxInvite
+from db.accounting import JBoxAccounting
 from jbox_container import JBoxContainer
 from jbox_crypto import signstr
 
