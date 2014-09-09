@@ -9,6 +9,8 @@ def log_info(s):
     sys.stdout.flush()
 
 def esc_sessname(s):
+    if None == s:
+        return s
     return s.replace("@", "_at_").replace(".", "_")
 
 def read_config():
@@ -39,6 +41,8 @@ def make_sure_path_exists(path):
 
 
 def unquote(s):
+    if None == s:
+        return s
     s = s.strip()
     if s[0] == '"':
         return s[1:-1]

@@ -332,11 +332,11 @@ class AdminHandler(tornado.web.RequestHandler):
     def get(self):
         sessname = unquote(self.get_cookie("sessname"))
         jbox_cookie = AuthHandler.get_session_cookie(self)
-        user_id = jbox_cookie['u']
-
-        if len(sessname) == 0:
+        
+        if (None == sessname) or (len(sessname) == 0) or (None == jbox_cookie):
             self.send_error()
 
+        user_id = jbox_cookie['u']
         cont = JBoxContainer.get_by_name(sessname)
 
         juliaboxver, upgrade_available = self.get_upgrade_available(cont)
