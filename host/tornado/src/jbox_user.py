@@ -48,10 +48,20 @@ class JBoxUser():
             return        
         self.item['verified'] = verified
 
-    def get_verified(self, verified=True):
+    def get_verified(self):
         if JBoxUser.TABLE is None:
-            return
+            return 0
         return self.item['verified'] if self.item.has_key('verified') else 0
+
+    def set_invite_code(self, invite_code):
+        if JBoxUser.TABLE is None:
+            return        
+        self.item['invitecode'] = invite_code
+    
+    def get_invite_code(self):
+        if JBoxUser.TABLE is None:
+            return None
+        return self.item['invitecode'] if self.item.has_key('invitecode') else None     
 
     def get_gtok(self):
         if None == JBoxUser.TABLE:

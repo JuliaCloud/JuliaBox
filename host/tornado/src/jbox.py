@@ -78,30 +78,29 @@ class MainHandler(tornado.web.RequestHandler):
                     return
  
                 if cfg["invite_only"]:
-                    verified = jbuser.get_verified() == 1
-                    invite_code = self.get_argument("invite_code", False)
-                    if not verified and invite_code:
-                        try:
-                            invite = JBoxInvite(invite_code)
-                        except:
-                            invite = None
-                        # set verified flag
-                        if (invite != None) and invite.is_invited(user_id):
-                            jbuser.set_verified()
-                            jbuser.save()
-                            self.redirect('/hostlaunchipnb/')
-                        else:
-                            rendertpl(self, "index.tpl", cfg=cfg, state=self.state(
-                                error='You entered an invalid invitation code. Try again or request a new invitation.',
-                                ask_invite_code=True, user_id=user_id))
-                            return
- 
+                    verified = (jbuser.get_verified() == 1)
                     if not verified:
-                        # Ask for an invite token
-                        rendertpl(self, "index.tpl", cfg=cfg,
-                                  state=self.state(
-                                      info='Enter the invitation code',
-                                      ask_invite_code=True, user_id=user_id))
+                        invite_code = self.get_argument("invite_code", False)
+                        if invite_code != False:
+                            try:
+                                invite = JBoxInvite(invite_code)
+                            except:
+                                invite = None
+
+                            if (invite != None) and invite.is_invited(user_id):
+                                jbuser.set_verified()
+                                jbuser.set_invite_code(invite_code)
+                                jbuser.save()
+                                self.redirect('/hostlaunchipnb/')
+                                return
+                            else:
+                                error_msg = 'You entered an invalid invitation code. Try again or request a new invitation.'
+                        else:
+                            error_msg = 'Enter the invitation code'
+                                
+                        rendertpl(self, "index.tpl", cfg=cfg, state=self.state(
+                            error=error_msg,
+                            ask_invite_code=True, user_id=user_id))
                         return
 
                 creds = jbuser.get_gtok()
