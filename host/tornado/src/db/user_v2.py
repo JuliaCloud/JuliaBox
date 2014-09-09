@@ -50,6 +50,7 @@ class JBoxUserV2():
             if create:
                 self.item = JBoxUserV2.TABLE.new_item(hash_key=user_id)
                 self.set_time("create")
+                self.set_activation_state('-', JBoxUserV2.ACTIVATION_NONE)
                 self.is_new = True
             else:
                 raise
@@ -125,7 +126,7 @@ class JBoxUserV2():
             return None
         if JBoxUserV2.TABLE is None:
             return (None, None)
-        return (self.item.get('activation_code', ''), self.item.get('activation_status', JBoxUserV2.ACTIVATION_NONE))
+        return (self.item.get('activation_code', '-'), self.item.get('activation_status', JBoxUserV2.ACTIVATION_NONE))
     
     def set_gtok(self, gtok):
         if None == JBoxUserV2.TABLE:
