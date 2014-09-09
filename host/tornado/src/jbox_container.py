@@ -1,5 +1,5 @@
 import os, time, gzip, isodate, datetime, pytz, tarfile, sets, json, multiprocessing, psutil
-from jbox_accounting import JBoxAccounting
+from db.accounting import JBoxAccounting
 from jbox_util import log_info, CloudHelper
 
 class JBoxContainer:
