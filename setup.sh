@@ -19,7 +19,8 @@ function usage {
   echo ' -k  <key>      : Google OAuth2 key (client id).'
   echo ' -s  <secret>   : Google OAuth2 client secret.'
   echo ' -d             : Only recreate docker image - do not install/update other software'
-  echo ' -n  <num>      : Maximum number of active containers. Deafult 10.'
+  echo ' -n  <num>      : Maximum number of active containers. Default 2.'
+  echo ' -v  <num>      : Maximum number of mountable volumes. Default 2.'
   echo ' -t  <seconds>  : Auto delete containers older than specified seconds. 0 means never expire. Default 0.'
   echo ' -i             : Install in an invite only mode.'
   echo
@@ -86,10 +87,16 @@ function configure_docker {
     sudo service docker stop
     if grep -q "^DOCKER_OPTS" /etc/default/docker ; then
       echo "/etc/default/docker has an entry for DOCKER_OPTS..."
-      echo "Please ensure DOCKER_OPTS has option '-g /mnt/docker' to use ephemeral storage (on EC2) "
+      echo "Please ensure DOCKER_OPTS has appropriate options"
     else
-      echo "Configuring docker to use /mnt/docker for image/container storage"
-      sudo sh -c "echo 'DOCKER_OPTS=\" -g /mnt/docker \"' >> /etc/default/docker"
+      # set loop data size to that required for max containers plus 5 additional
+      LOOPDATASZ=$(((NUM_LOCALMAX+5)*2))
+      echo "Configuring docker to use"
+      echo "    -  /mnt/docker for image/container storage"
+      echo "    - devicemapper fs"
+      echo "    - base image size 2GB"
+      echo "    - loopdatasize ${LOOPDATASZ}GB"
+      sudo sh -c "echo 'DOCKER_OPTS=\"--storage-driver=devicemapper --storage-opt dm.basesize=2G  dm.loopdatasize=${LOOPDATASZ}G -g /mnt/docker \"' >> /etc/default/docker"
     fi
     sudo service docker start
 
@@ -99,15 +106,19 @@ function configure_docker {
 
 function build_docker_image {
     echo "Building docker image ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ..."
-    sudo docker build -t ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} docker/IJulia/
+    sudo docker build --rm=true -t ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} docker/IJulia/
     sudo docker tag ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:latest
 }
 
 function pull_docker_image {
     echo "Pulling docker image ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ..."
-    sudo docker pull tanmaykm/juliabox_dev:latest
-    sudo docker tag tanmaykm/juliabox_dev:latest ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER}
-    sudo docker tag tanmaykm/juliabox_dev:latest ${DOCKER_IMAGE}:latest
+    sudo docker pull tanmaykm/${DOCKER_IMAGE}:${DOCKER_IMAGE_VER}
+    sudo docker tag tanmaykm/${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER}
+    sudo docker tag tanmaykm/${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:latest
+}
+
+function make_user_home {
+	${PWD}/docker/mk_user_home.sh
 }
 
 function gen_sesskey {
@@ -143,6 +154,7 @@ function configure_resty_tornado {
 
     sed  -i s/\$\$ADMIN_USER/$ADMIN_USER/g $TORNADO_CONF_DIR/tornado.conf
     sed  -i s/\$\$NUM_LOCALMAX/$NUM_LOCALMAX/g $TORNADO_CONF_DIR/tornado.conf
+    sed  -i s/\$\$NUM_DISKSMAX/$NUM_DISKSMAX/g $TORNADO_CONF_DIR/tornado.conf
     sed  -i s/\$\$EXPIRE/$EXPIRE/g $TORNADO_CONF_DIR/tornado.conf
     sed  -i s,\$\$DOCKER_IMAGE,$DOCKER_IMAGE,g $TORNADO_CONF_DIR/tornado.conf
     sed  -i s,\$\$CLIENT_SECRET,$CLIENT_SECRET,g $TORNADO_CONF_DIR/tornado.conf
@@ -155,10 +167,11 @@ function configure_resty_tornado {
 OPT_INSTALL=1
 OPT_GOOGLE=0
 OPT_INVITE=0
-NUM_LOCALMAX=10 
+NUM_LOCALMAX=2
+NUM_DISKSMAX=2
 EXPIRE=0
 
-while getopts  "u:idgn:t:k:s:" FLAG
+while getopts  "u:idgn:v:t:k:s:" FLAG
 do
   if test $FLAG == '?'
      then
@@ -183,6 +196,10 @@ do
   elif test $FLAG == 'n'
      then
         NUM_LOCALMAX=$OPTARG
+
+  elif test $FLAG == 'v'
+     then
+        NUM_DISKSMAX=$OPTARG
 
   elif test $FLAG == 't'
      then
@@ -216,7 +233,8 @@ if test $OPT_INSTALL -eq 1; then
     sleep 1
 fi
 
-build_docker_image
+pull_docker_image
+make_user_home
 configure_resty_tornado
 
 echo

@@ -1,4 +1,4 @@
-import os, sys, time, errno, datetime, psutil, isodate, pytz
+import os, sys, time, errno, datetime, psutil, isodate, pytz, shutil
 import boto.dynamodb, boto.utils, boto.ec2, boto.ec2.cloudwatch
 from boto.s3.key import Key
 
@@ -8,6 +8,7 @@ def log_info(s):
     print (ts + "  " + s)
     sys.stdout.flush()
 
+# TODO: this scheme of escaping ssession names can result in clashes. change to a better scheme probably one using lower case and upper case characters
 def esc_sessname(s):
     if None == s:
         return s
@@ -39,6 +40,32 @@ def make_sure_path_exists(path):
         if exception.errno != errno.EEXIST:
             raise
 
+def _apply_to_path_element(path, file_fn, dir_fn, link_fn):
+    if os.path.islink(path):
+        link_fn(path)
+    elif os.path.isfile(path):
+        file_fn(path)
+    elif os.path.isdir(path):
+        dir_fn(path)
+    else:
+        raise Exception("Unknown file type for " + path)
+
+def apply_to_path_elements(path, file_fn, dir_fn, link_fn, include_itself, topdown):
+    for root,dirs,files in os.walk(path, topdown=topdown):
+        for f in files :
+            _apply_to_path_element(os.path.join(root,f), file_fn, dir_fn, link_fn)
+        for d in dirs :
+            _apply_to_path_element(os.path.join(root,d), file_fn, dir_fn, link_fn)
+            
+    if include_itself:
+        _apply_to_path_element(path, file_fn, dir_fn, link_fn)
+            
+def ensure_writable(path, include_iteslf=False):
+    apply_to_path_elements(path, lambda p: os.chmod(p, 0555), lambda p: os.chmod(p, 0777), lambda p: None, include_iteslf, True)
+
+def ensure_delete(path, include_itself=False):
+    ensure_writable(path, include_itself)
+    apply_to_path_elements(path, lambda p: os.remove(p), lambda p: os.rmdir(p), lambda p: os.remove(p), include_itself, False)
 
 def unquote(s):
     if None == s:
