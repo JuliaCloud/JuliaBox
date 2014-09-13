@@ -1,6 +1,6 @@
 import os, time, gzip, isodate, datetime, pytz, tarfile, sets, json, multiprocessing, psutil
 from db.accounting import JBoxAccounting
-from jbox_util import log_info, CloudHelper
+from jbox_util import log_info, CloudHelper, ensure_delete
 
 class JBoxContainer:
     CONTAINER_PORT_BINDINGS = {4200: ('127.0.0.1',), 8000: ('127.0.0.1',), 8998: ('127.0.0.1',)}
@@ -11,13 +11,17 @@ class JBoxContainer:
     MEM_LIMIT = None
     CPU_LIMIT = 1024   # By default all groups have 1024 shares. A group with 100 shares will get a ~10% portion of the CPU time (https://wiki.archlinux.org/index.php/Cgroups)
     PORTS = [4200, 8000, 8998]
-    VOLUMES = ['/juliabox']
+    VOLUMES = ['/home/juser']
     LOCAL_TZ_OFFSET = 0
+    FS_LOC = None
+    USER_HOME_IMG = None
     BACKUP_LOC = None
     DISK_LIMIT = None
     BACKUP_BUCKET = None
     MAX_CONTAINERS = 0
+    MAX_DISKS = 0
     VALID_CONTAINERS = {}
+    DISK_USE_STATUS = {}
 
     def __init__(self, dockid):
         self.dockid = dockid
@@ -32,7 +36,19 @@ class JBoxContainer:
         if None == self.props:
             self.props = JBoxContainer.DCKR.inspect_container(self.dockid)
         return self.props
-         
+    
+    def get_disk_ids_used(self):
+        used = []
+        try:
+            props = self.get_props()
+            vols = props['Volumes']
+            for _cpath,hpath in vols.iteritems():
+                if hpath.startswith(JBoxContainer.FS_LOC):
+                    used.append(int(hpath.split('/')[-1]))
+        except:
+            return []
+        return used
+        
     def get_host_ports(self):
         if None == self.host_ports:
             props = self.get_props()
@@ -78,25 +94,62 @@ class JBoxContainer:
         return []
         
     @staticmethod
-    def configure(dckr, image, mem_limit, cpu_limit, host_volumes, backup_loc, max_containers, disk_limit, backup_bucket=None):
+    def configure(dckr, image, mem_limit, cpu_limit, disk_limit, host_volumes, fs_loc, backup_loc, user_home_img, max_containers, max_disks, backup_bucket=None):
         JBoxContainer.DCKR = dckr
         JBoxContainer.DCKR_IMAGE = image
         JBoxContainer.MEM_LIMIT = mem_limit
         JBoxContainer.CPU_LIMIT = cpu_limit
         JBoxContainer.LOCAL_TZ_OFFSET = JBoxContainer.local_time_offset()
         JBoxContainer.HOST_VOLUMES = host_volumes
+        JBoxContainer.FS_LOC = fs_loc
+        JBoxContainer.USER_HOME_IMG = user_home_img
         JBoxContainer.BACKUP_LOC = backup_loc
         JBoxContainer.DISK_LIMIT = disk_limit
         JBoxContainer.BACKUP_BUCKET = backup_bucket
         JBoxContainer.MAX_CONTAINERS = max_containers
+        JBoxContainer.MAX_DISKS = max_disks
+        JBoxContainer.refresh_disk_use_status()
+    
+    @staticmethod
+    def refresh_disk_use_status(container_id_list=None, container_obj_list=None):
+        for idx in range(0, JBoxContainer.MAX_DISKS):
+            JBoxContainer.DISK_USE_STATUS[idx] = False
+        
+        if None == container_obj_list:
+            container_obj_list = []
+            
+            if None == container_id_list:
+                container_id_list = JBoxContainer.DCKR.containers(all=True)
+
+            for cdesc in container_id_list:
+                cid = cdesc['Id']
+                cont = JBoxContainer(cid)
+                container_obj_list.append(cont)
+        
+        nfree = JBoxContainer.MAX_DISKS
+        for cont in container_obj_list:
+            for disk_id in cont.get_disk_ids_used():
+                JBoxContainer.DISK_USE_STATUS[disk_id] = True
+                nfree -= 1
+        log_info("Disk free: " + str(nfree) + "/" + str(JBoxContainer.MAX_DISKS))
+    
+    @staticmethod
+    def disk_ids_used_pct():
+        return min(100, max(0, (sum(JBoxContainer.DISK_USE_STATUS.values()) * 100)/len(JBoxContainer.DISK_USE_STATUS)))
+    
+    @staticmethod
+    def get_unused_disk_id():
+        for idx in range(0, JBoxContainer.MAX_DISKS):
+            if not JBoxContainer.DISK_USE_STATUS[idx]:
+                return idx
+        return -1
+
+    @staticmethod
+    def mark_disk_used(idx, used=True):
+        JBoxContainer.DISK_USE_STATUS[idx] = used
 
     @staticmethod
     def create_new(name):
-        mount_point = os.path.join(JBoxContainer.BACKUP_LOC, name)
-        if not os.path.exists(mount_point):
-            os.makedirs(mount_point)
-            os.chmod(mount_point, 0777)
-        
         jsonobj = JBoxContainer.DCKR.create_container(JBoxContainer.DCKR_IMAGE, 
                                                       detach=True, 
                                                       mem_limit=JBoxContainer.MEM_LIMIT,
@@ -108,7 +161,7 @@ class JBoxContainer:
         dockid = jsonobj["Id"]
         cont = JBoxContainer(dockid)
         log_info("Created " + cont.debug_str())
-        cont.create_restore_file()
+        #cont.create_restore_file()
         return cont
 
     @staticmethod
@@ -151,7 +204,10 @@ class JBoxContainer:
         cont_load_pct = min(100, max(0, nactive * 100 / JBoxContainer.MAX_CONTAINERS))
         CloudHelper.publish_stats("ContainersUsed", "Percent", cont_load_pct)
         
-        CloudHelper.publish_stats("Load", "Percent", max(cont_load_pct, disk_used_pct, mem_used_pct, cpu_used_pct))
+        disk_ids_used_pct = JBoxContainer.disk_ids_used_pct()
+        CloudHelper.publish_stats("DiskIdsUsed", "Percent", disk_ids_used_pct)
+                
+        CloudHelper.publish_stats("Load", "Percent", max(cont_load_pct, disk_used_pct, mem_used_pct, cpu_used_pct, disk_ids_used_pct))
 
     
     @staticmethod    
@@ -166,9 +222,11 @@ class JBoxContainer:
 
         all_containers = JBoxContainer.DCKR.containers(all=True)
         all_cnames = {}
+        container_obj_list = []
         for cdesc in all_containers:
             cid = cdesc['Id']
             cont = JBoxContainer(cid)
+            container_obj_list.append(cont)
             cname = cont.get_name()
             all_cnames[cname] = cid
 
@@ -194,9 +252,6 @@ class JBoxContainer:
                 #log_info("last_ping " + str(last_ping) + " stop_before: " + str(stop_before) + " cond: " + str(last_ping < stop_before))
                 log_info("Inactive beyond allowed time " + cont.debug_str())
                 cont.stop()
-            #elif (not c_is_active) and (cont.time_finished() < delete_stopped_before):
-            #    log_info("Deleting stopped container " + cont.debug_str())
-            #    cont.delete()
 
         # delete ping entries for non exixtent containers
         for cname in JBoxContainer.PINGS.keys():
@@ -205,6 +260,7 @@ class JBoxContainer:
         
         JBoxContainer.VALID_CONTAINERS = all_cnames
         JBoxContainer.publish_container_stats()
+        JBoxContainer.refresh_disk_use_status(container_obj_list=container_obj_list)
         log_info("Finished container maintenance.")
     
     @staticmethod
@@ -267,10 +323,10 @@ class JBoxContainer:
         if not self.is_running():
             k = JBoxContainer.pull_from_s3(bkup_file, True)
             bkup_file_mtime = None
-            if os.path.exists(bkup_file):
-                bkup_file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(bkup_file), pytz.utc) + datetime.timedelta(seconds=JBoxContainer.LOCAL_TZ_OFFSET)
-            elif None != k:
+            if None != k:
                 bkup_file_mtime = JBoxContainer.parse_iso_time(k.get_metadata('backup_time'))
+            elif os.path.exists(bkup_file):
+                bkup_file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(bkup_file), pytz.utc) + datetime.timedelta(seconds=JBoxContainer.LOCAL_TZ_OFFSET)
     
             if None != bkup_file_mtime:
                 tstart = self.time_started()
@@ -280,18 +336,27 @@ class JBoxContainer:
                     log_info("Already backed up " + self.debug_str())
                     return
 
-        bkup_resp = JBoxContainer.DCKR.copy(self.dockid, '/home/juser/')
-        bkup_data = bkup_resp.read(decode_content=True)
-        bkup_len = len(bkup_data)
-        if bkup_len > JBoxContainer.DISK_LIMIT:
-            log_info("Back up size more than configure limit for " + self.debug_str() + ". Size: " + str(bkup_len))
+        disk_ids_used = self.get_disk_ids_used()
+        if len(disk_ids_used) > 0:
+            if len(disk_ids_used) > 1:
+                log_info("Can not backup more than one disks per user yet. Backing up the first disk.")
+        elif len(disk_ids_used) == 0:
+            log_info("No disks to backup")
             return
-            
-        with gzip.open(bkup_file, 'w') as f:
-            f.write(bkup_data)
-        log_info("Backed up " + self.debug_str() + " into " + bkup_file)
-        self.filter_backup_file()
+
+        disk_id_used = disk_ids_used[0]
+        disk_path = os.path.join(JBoxContainer.FS_LOC, str(disk_id_used))
+        bkup_tar = tarfile.open(bkup_file, 'w:gz')
         
+        for f in os.listdir(disk_path):
+            if f.startswith('.') and ((not f.startswith('.ssh')) or (not f.startswith('.git')) or (not f.startswith('.juliabox'))):
+                continue
+            full_path = os.path.join(disk_path, f)
+            bkup_tar.add(full_path, os.path.join('juser', f))
+        bkup_tar.close()
+        os.chmod(bkup_file, 0666)
+        ensure_delete(disk_path)
+
         # Upload to S3 if so configured. Delete from local if successful.
         bkup_file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(bkup_file), pytz.utc) + datetime.timedelta(seconds=JBoxContainer.LOCAL_TZ_OFFSET)
         if None != JBoxContainer.BACKUP_BUCKET:
@@ -299,61 +364,49 @@ class JBoxContainer:
                 os.remove(bkup_file)
                 log_info("Moved backup to S3 " + self.debug_str())
 
-    def filter_backup_file(self):
-        cname = self.get_name()
-        src = os.path.join(JBoxContainer.BACKUP_LOC, cname[1:] + ".tar.gz")
-        dest = os.path.join(JBoxContainer.BACKUP_LOC, cname[1:] + "_filtered.tar.gz")
-        log_info("Filtering required files from backup " + src + " to " + dest)
-        
-        src_tar = tarfile.open(src, 'r:gz')
-        dest_tar = tarfile.open(dest, 'w:gz')
-        for info in src_tar.getmembers():
-            if info.name.startswith('juser/.') and not (info.name.startswith('juser/.ssh') or info.name.startswith('juser/.juliabox')):
-                continue
-            if info.name.startswith('juser/resty'):
-                continue
-            dest_tar.addfile(info, src_tar.extractfile(info))
-        src_tar.close()
-        dest_tar.close()
-        os.chmod(dest, 0666)
-        log_info("Created filtered file " + dest)
+    @staticmethod
+    def create_disk():
+        disk_id = JBoxContainer.get_unused_disk_id()
+        if disk_id < 0:
+            raise Exception("No free disk available")
+        disk_path = os.path.join(JBoxContainer.FS_LOC, str(disk_id))
+        ensure_delete(disk_path)
+        JBoxContainer.restore_user_home(disk_path)
+        return (disk_id, disk_path)
 
-        # delete local copy of backup if we have it on s3
-        os.remove(src)
-        os.rename(dest, src)
+    @staticmethod
+    def restore_user_home(disk_path):
+        user_home = tarfile.open(JBoxContainer.USER_HOME_IMG, 'r:gz')
+        user_home.extractall(disk_path)
+        user_home.close()
 
-    def create_restore_file(self):
+    def restore_backup_to_disk(self, disk_path):
         cname = self.get_name()
         if cname == None:
-            return
+            raise Exception("Could not get container name")
         
         src = os.path.join(JBoxContainer.BACKUP_LOC, cname[1:] + ".tar.gz")
         k = JBoxContainer.pull_from_s3(src)     # download from S3 if exists
         if not os.path.exists(src):
             return
-
-        dest = os.path.join(JBoxContainer.BACKUP_LOC, cname[1:], "restore.tar.gz")
-        log_info("Filtering out restore info from backup " + src + " to " + dest)
-
+        log_info("Filtering out restore info from backup " + src + " to " + disk_path)
+        
         src_tar = tarfile.open(src, 'r:gz')
-        dest_tar = tarfile.open(dest, 'w:gz')
         for info in src_tar.getmembers():
-            if info.name.startswith('juser/.') and not info.name.startswith('juser/.ssh'):
+            if not info.name.startswith('juser/'):
                 continue
-            if info.name.startswith('juser/resty'):
+            if info.name.startswith('juser/.') and ((not info.name.startswith('juser/.ssh')) or (not info.name.startswith('juser/.git'))):
                 continue
             info.name = info.name[6:]
             if len(info.name) == 0:
                 continue
-            dest_tar.addfile(info, src_tar.extractfile(info))
+            src_tar.extract(info, disk_path)
         src_tar.close()
-        dest_tar.close()
-        os.chmod(dest, 0666)
-        log_info("Created restore file " + dest)
-
+        log_info("Restored backup at " + disk_path)
         # delete local copy of backup if we have it on s3
         if None != k:
             os.remove(src)
+
 
     @staticmethod
     def num_active():
@@ -425,6 +478,11 @@ class JBoxContainer:
         else:
             log_info("Already stopped " + self.debug_str())
 
+    def get_host_volume(self, hvol, disk_id):
+        hvol = hvol.replace('${CNAME}', self.get_name())
+        hvol = hvol.replace('${DISK_ID}', str(disk_id))
+        return hvol
+        
     def start(self):
         self.refresh()
         log_info("Starting " + self.debug_str())
@@ -432,9 +490,13 @@ class JBoxContainer:
             log_info("Already started " + self.debug_str())
             return
 
+        disk_id,disk_path = JBoxContainer.create_disk()
+        self.restore_backup_to_disk(disk_path)
+        JBoxContainer.mark_disk_used(disk_id)
+        
         vols = {}
         for hvol,cvol in zip(JBoxContainer.HOST_VOLUMES, JBoxContainer.VOLUMES):
-            hvol = hvol.replace('${CNAME}', self.get_name())
+            hvol = self.get_host_volume(hvol, disk_id)
             vols[hvol] = {'bind': cvol, 'ro': False}
 
         JBoxContainer.DCKR.start(self.dockid, port_bindings=JBoxContainer.CONTAINER_PORT_BINDINGS, binds=vols)
@@ -467,17 +529,11 @@ class JBoxContainer:
         cname = self.get_name()
         if self.is_running():
             self.kill()
+        
         JBoxContainer.DCKR.remove_container(self.dockid)
         if cname != None:
             JBoxContainer.PINGS.pop(cname, None)
         log_info("Deleted " + self.debug_str())
-        # remove mount point
-        try:
-            mount_point = os.path.join(JBoxContainer.BACKUP_LOC, cname[1:])
-            os.rmdir(mount_point)
-            log_info("Removed mount point " + mount_point)
-        except:
-            log_info("Error removing mount point " + self.debug_str())
 
     def record_usage(self):
         start_time = self.time_created()
