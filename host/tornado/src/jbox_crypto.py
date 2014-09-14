@@ -1,5 +1,6 @@
-import zlib, struct, base64, hmac, hashlib
+import zlib, struct, base64, hmac, hashlib, os
 from Crypto.Cipher import AES
+from Crypto.PublicKey import RSA
 
 IV = 16 * '\x00'
 
@@ -36,4 +37,9 @@ def decrypt(ciphertext, secret, lazy=True, checksum=True):
 def signstr(s, k):
     h = hmac.new(k, s, hashlib.sha1)
     return base64.b64encode(h.digest())
- 
+
+def ssh_keygen(size=2048):
+    rsa_key = RSA.generate(size, os.urandom)
+    public_key = rsa_key.publickey().exportKey(format='OpenSSH')
+    private_key = rsa_key.exportKey()
+    return (public_key, private_key)

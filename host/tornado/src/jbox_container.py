@@ -1,6 +1,7 @@
-import os, time, gzip, isodate, datetime, pytz, tarfile, sets, json, multiprocessing, psutil
+import os, time, isodate, datetime, pytz, tarfile, json, multiprocessing, psutil
 from db.accounting import JBoxAccounting
 from jbox_util import log_info, CloudHelper, ensure_delete
+from jbox_crypto import ssh_keygen
 
 class JBoxContainer:
     CONTAINER_PORT_BINDINGS = {4200: ('127.0.0.1',), 8000: ('127.0.0.1',), 8998: ('127.0.0.1',)}
@@ -352,7 +353,7 @@ class JBoxContainer:
         bkup_tar = tarfile.open(bkup_file, 'w:gz')
         
         for f in os.listdir(disk_path):
-            if f.startswith('.') and ((not f.startswith('.ssh')) or (not f.startswith('.git')) or (not f.startswith('.juliabox'))):
+            if f.startswith('.') and (f in ['.julia', '.ipython']):
                 continue
             full_path = os.path.join(disk_path, f)
             bkup_tar.add(full_path, os.path.join('juser', f))
@@ -398,7 +399,7 @@ class JBoxContainer:
         for info in src_tar.getmembers():
             if not info.name.startswith('juser/'):
                 continue
-            if info.name.startswith('juser/.') and ((not info.name.startswith('juser/.ssh')) or (not info.name.startswith('juser/.git'))):
+            if info.name.startswith('juser/.') and (info.name.split('/')[1] in ['.juliabox', '.julia', '.ipython']):
                 continue
             info.name = info.name[6:]
             if len(info.name) == 0:
@@ -410,6 +411,31 @@ class JBoxContainer:
         if None != k:
             os.remove(src)
 
+    def gen_ssh_key(self, disk_path):
+        ssh_path = os.path.join(disk_path, '.ssh')
+        ssh_key_path = os.path.join(ssh_path, 'id_rsa')
+        ssh_pub_key_path = os.path.join(ssh_path, 'id_rsa.pub')
+        
+        if not os.path.exists(ssh_path):
+            os.mkdir(ssh_path)
+            os.chmod(ssh_path, 0700)
+        
+        if os.path.exists(ssh_key_path) and os.path.exists(ssh_pub_key_path):
+            return
+        if os.path.exists(ssh_key_path) and not os.access(ssh_key_path, os.W_OK):
+            os.chmod(ssh_key_path, 0600)
+        if os.path.exists(ssh_pub_key_path) and not os.access(ssh_pub_key_path, os.W_OK):
+            os.chmod(ssh_key_path, 0644)
+
+        public_key, private_key = ssh_keygen()
+        public_key = public_key + " juliabox\n"
+        private_key = private_key + "\n"
+        with open(ssh_key_path, 'w') as f:
+            f.write(private_key)
+        with open(ssh_pub_key_path, 'w') as f:
+            f.write(public_key)
+        os.chmod(ssh_key_path, 0600)
+        os.chmod(ssh_pub_key_path, 0644)
 
     @staticmethod
     def num_active():
@@ -495,6 +521,7 @@ class JBoxContainer:
 
         disk_id,disk_path = JBoxContainer.create_disk()
         self.restore_backup_to_disk(disk_path)
+        self.gen_ssh_key(disk_path)
         JBoxContainer.mark_disk_used(disk_id)
         
         vols = {}
