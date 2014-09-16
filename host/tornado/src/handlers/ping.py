@@ -1,20 +1,23 @@
 import tornado
 
-from jbox_util import log_info, esc_sessname
+from jbox_util import log_info, esc_sessname, read_config
 from jbox_crypto import signstr
 from jbox_handler import JBoxHandler
+from jbox_container import JBoxContainer
+
+cfg = read_config()
 
 def is_valid_req(req):
     sessname = req.get_cookie("sessname")
     if None == sessname:
         return False
-    sessname = sessname.replace('"', '')
+    sessname  = sessname.replace('"', '')
     hostshell = req.get_cookie("hostshell").replace('"', '')
-    hostupl = req.get_cookie("hostupload").replace('"', '')
-    hostipnb = req.get_cookie("hostipnb").replace('"', '')
-    signval = req.get_cookie("sign").replace('"', '')
+    hostupl   = req.get_cookie("hostupload").replace('"', '')
+    hostipnb  = req.get_cookie("hostipnb").replace('"', '')
+    signval   = req.get_cookie("sign").replace('"', '')
     
-    sign = signstr(sessname + hostshell + hostupl + hostipnb, self.config("sesskey"))
+    sign = signstr(sessname + hostshell + hostupl + hostipnb, cfg["sesskey"])
     if (sign != signval):
         log_info('not valid req. signature not matching')
         return False

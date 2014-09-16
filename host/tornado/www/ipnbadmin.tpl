@@ -170,6 +170,27 @@ You are on the latest JuliaBox version: {{d["juliaboxver"]}} <br/>
     <br/><br/>
     
 {% end %}
+
+{% if d["show_report"] %}
+    <h3 id="stats">System statistics</h3>
+    <p> Stats for the: 
+       {% if d["report_span"] == "day" %}
+        <b>Day</b> | <a href="/hostadmin/?range=week#stats">Week</a>
+       {% else %}
+        <a href="/hostadmin/?range=day#stats">Day</a> | <b>Week</b>
+       {% end %}
+    </p>
+    <table class="table table-striped">
+        <tr><td>Number of sessions</td><td>{{d["report"]["session_count"]}}</td></tr>
+        <tr><td>Average time spent</td><td>{{d["report"]["avg_time"]}}</td></tr>
+    </table>
+    <h3>Most used containers</h3>
+    <table class="table table-striped">
+      {% for x in d["report"]["images_used"] %}
+        <tr><td>{{x["image_id"]}}</td><td>{{x["count"]}}</td></tr>
+      {% end %}
+    </table>
+{% end %}
 </body>
 </html>
 

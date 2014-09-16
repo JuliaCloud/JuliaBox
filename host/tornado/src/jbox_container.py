@@ -482,6 +482,5 @@ class JBoxContainer:
     def record_usage(self):
         start_time = self.time_created()
         finish_time = self.time_finished()
-        duration = (finish_time - start_time).total_seconds()
-        acct = JBoxAccounting(self.get_name(), duration, json.dumps(self.get_image_names()), time_stopped=finish_time.isoformat())
+        acct = JBoxAccounting(self.get_name(), json.dumps(self.get_image_names()),  start_time, time_stopped=finish_time)
         acct.save()

@@ -21,7 +21,7 @@ class JBoxUserV2():
         
         - status
         - organization
-        - system_profile
+        - role
         - gtok
     """
     NAME = None
@@ -32,6 +32,10 @@ class JBoxUserV2():
     STATUS_ACTIVE = 0
     STATUS_INACTIVE = 1
     
+    ROLE_USER = 0
+    ROLE_REPORT = 10
+    ROLE_ADMIN = 20
+
     ACTIVATION_NONE = 0
     ACTIVATION_GRANTED = 1
     ACTIVATION_REQUESTED = 2
@@ -63,6 +67,11 @@ class JBoxUserV2():
         if None == JBoxUserV2.TABLE:
             return None
         return self.item.get('status', JBoxUserV2.STATUS_ACTIVE)
+
+    def get_role(self):
+        if None == JBoxUserV2.TABLE:
+            return None
+        return self.item.get('role', JBoxUserV2.ROLE_USER)
     
     def set_status(self, status):
         if None == JBoxUserV2.TABLE:

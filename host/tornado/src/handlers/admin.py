@@ -1,11 +1,15 @@
 import datetime
+from datetime import datetime
+from datetime import timedelta
 
 import isodate
 
-from jbox_util import unquote
+from jbox_util import unquote, CloudHelper
 from jbox_handler import JBoxHandler
 from jbox_container import JBoxContainer
 from handlers.auth import AuthHandler
+from db.user_v2 import JBoxUserV2
+from db.accounting_v2 import JBoxAccountingV2
 
 class AdminHandler(JBoxHandler):
     def get(self):
@@ -14,6 +18,7 @@ class AdminHandler(JBoxHandler):
         
         if (None == sessname) or (len(sessname) == 0) or (None == jbox_cookie):
             self.send_error()
+            return
 
         user_id = jbox_cookie['u']
         cont = JBoxContainer.get_by_name(sessname)
@@ -24,29 +29,50 @@ class AdminHandler(JBoxHandler):
             self.write(response)
             return
 
-        admin_user = (sessname in self.config("admin_sessnames")) or (self.config("admin_sessnames") == [])
+        user = JBoxUserV2(user_id)
+        show_report = (sessname in self.config("report_sessnames", []) or \
+                        user.get_role() == JBoxUserV2.ROLE_REPORT)
+
+        admin_user = (sessname in self.config("admin_sessnames", []) or \
+                        user.get_role() == JBoxUserV2.ROLE_ADMIN)
+        show_report = show_report or admin_user
 
         sections = []
         loads = []
+        report = {}
+        report_span = 'day'
+
+        if admin_user:
+            sections, loads = self.admin_stats()
+
+        if show_report:
+            today = datetime.now()
+            if self.get_argument('range', 'day') == 'week':
+                dates = [today - timedelta(days=i) for i in range(6, -1, -1)]
+                report_span = 'week'
+            else:
+                dates = [today]
+            report = JBoxAccountingV2.get_stats(dates)
+
         d = dict(
                 admin_user=admin_user,
+                show_report=show_report,
+                report_span = report_span,
                 sessname=sessname, 
                 user_id=user_id, 
                 created=isodate.datetime_isoformat(cont.time_created()), 
                 started=isodate.datetime_isoformat(cont.time_started()),
-                allowed_till=isodate.datetime_isoformat((cont.time_started() + datetime.timedelta(seconds=self.config('expire')))),
+                allowed_till=isodate.datetime_isoformat((cont.time_started() + timedelta(seconds=self.config('expire')))),
                 mem=cont.get_memory_allocated(), 
                 cpu=cont.get_cpu_allocated(),
                 disk=cont.get_disk_allocated(),
                 expire=self.config('expire'),
                 sections=sections,
                 loads=loads,
+                report=report,
                 juliaboxver=juliaboxver,
                 upgrade_available=upgrade_available
             )
-
-        if admin_user:
-            self.do_admin(sections, loads)
 
         self.rendertpl("ipnbadmin.tpl", d=d, cfg=self.config())
     
@@ -69,8 +95,11 @@ class AdminHandler(JBoxHandler):
             if ':' not in upgrade_available:
                 upgrade_available = upgrade_available + ':latest'
         return (juliaboxver, upgrade_available)
-        
-    def do_admin(self, sections, loads):
+
+    def admin_stats(self):
+        sections = []
+        loads = []
+
         iac = []
         ac = []
         sections.append(["Active", ac])
@@ -124,3 +153,4 @@ class AdminHandler(JBoxHandler):
             for n,v in machine_loads.iteritems():
                 loads.append({'instance': n, 'load': v})
 
+        return sections, loads
