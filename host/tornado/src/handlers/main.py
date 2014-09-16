@@ -122,7 +122,7 @@ class MainHandler(JBoxHandler):
             self.set_header('Connection', 'close')
             self.request.connection.no_keep_alive = True
             if nhops > self.config('numhopmax', 0):
-                self.rendertpl("index.tpl", cfg=self.config(), state=state.state(error="Maximum number of JuliaBox instances active. Please try after sometime.", success=''))
+                self.rendertpl("index.tpl", cfg=self.config(), state=self.state(error="Maximum number of JuliaBox instances active. Please try after sometime.", success=''))
             else:
                 self.redirect('/?h=' + str(nhops+1))
         else:

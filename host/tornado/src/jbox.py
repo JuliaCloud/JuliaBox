@@ -14,6 +14,7 @@ import docker
 import datetime, traceback, isodate, pytz, httplib2
 from oauth2client import GOOGLE_REVOKE_URI, GOOGLE_TOKEN_URI
 from oauth2client.client import OAuth2Credentials, _extract_id_token
+
 from handlers.admin import AdminHandler
 from handlers.main import MainHandler
 from handlers.auth import AuthHandler
@@ -36,9 +37,13 @@ if __name__ == "__main__":
     CloudHelper.configure(has_s3=cloud_cfg['s3'], has_dynamodb=cloud_cfg['dynamodb'], has_cloudwatch=cloud_cfg['cloudwatch'], region=cloud_cfg['region'], install_id=cloud_cfg['install_id'])
     
     backup_location = os.path.expanduser(cfg['backup_location'])
+    user_home_img = os.path.expanduser(cfg['user_home_image'])
+    mnt_location = os.path.expanduser(cfg['mnt_location'])
     backup_bucket = cloud_cfg['backup_bucket']
     make_sure_path_exists(backup_location)
-    JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], [os.path.join(backup_location, '${CNAME}')], backup_location, cfg['numlocalmax'], cfg['disk_limit'], backup_bucket=backup_bucket)
+    JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], cfg['disk_limit'], 
+                            [os.path.join(mnt_location, '${DISK_ID}')], mnt_location, backup_location, user_home_img, 
+                            cfg['numlocalmax'], cfg["numdisksmax"], backup_bucket=backup_bucket)
     JBoxContainer.publish_container_stats()
     
     JBoxUserV2._init(table_name=cloud_cfg.get('jbox_users_v2', 'jbox_users_v2'), enckey=cfg['sesskey'])
@@ -58,8 +63,8 @@ if __name__ == "__main__":
     
     ioloop = tornado.ioloop.IOLoop.instance()
 
-    # run container maintainence every 10 minutes
-    run_interval = 10*60*1000
+    # run container maintainence every 5 minutes
+    run_interval = 5*60*1000
     log_info("Container maintenance every " + str(run_interval/(60*1000)) + " minutes")
     ct = tornado.ioloop.PeriodicCallback(do_housekeeping, run_interval, ioloop)
     ct.start()
