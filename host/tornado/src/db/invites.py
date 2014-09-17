@@ -44,7 +44,7 @@ class JBoxInvite():
         if None == JBoxInvite.TABLE:
             return        
         if not self.item: return
-        if self.item['invited'] is None: return False
+        if self.item.get('invited', None): return False
         try:
             expires = isodate.parse_datetime(self.item['expires_on'])
         except:

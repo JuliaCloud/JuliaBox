@@ -62,6 +62,7 @@
 	    "jbox_users_v2": "jbox_users_v2",
 	    "jbox_invites": "jbox_invites",
 	    "jbox_accounting": "jbox_accounting",
+	    "jbox_accounting_v2": "jbox_accounting_v2",
 	    "backup_bucket": "juliabox_userbackup",
 	    
     	"dummy" : "dummy"

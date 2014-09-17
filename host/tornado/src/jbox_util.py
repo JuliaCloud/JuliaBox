@@ -2,7 +2,6 @@ import os, sys, time, errno, datetime, psutil, isodate, pytz, shutil
 import boto.dynamodb, boto.utils, boto.ec2, boto.ec2.cloudwatch
 from boto.s3.key import Key
 
-
 def log_info(s):
     ts = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
     print (ts + "  " + s)
@@ -384,3 +383,13 @@ class CloudHelper:
         if (k != None) and (not metadata_only):
             k.get_contents_to_filename(local_file)
         return k
+
+class LoggerMixin(object):
+    def log(self, lvl, msg):
+        log_info(lvl + ": " + type(self).__name__ + ": " + msg)
+    def log_info(self, msg):
+        self.log('INFO', msg)
+    def log_error(self, msg):
+        self.log('INFO', msg)
+    def log_debug(self, msg):
+        self.log('DEBUG', msg)

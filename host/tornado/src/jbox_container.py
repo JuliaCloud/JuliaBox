@@ -198,7 +198,10 @@ class JBoxContainer:
         
         disk_used_pct = 0
         for x in psutil.disk_partitions():
-            disk_used_pct = max(psutil.disk_usage(x.mountpoint).percent, disk_used_pct)
+            try:
+                disk_used_pct = max(psutil.disk_usage(x.mountpoint).percent, disk_used_pct)
+            except:
+                pass
         CloudHelper.publish_stats("DiskUsed", "Percent", disk_used_pct)
         
         cont_load_pct = min(100, max(0, nactive * 100 / JBoxContainer.MAX_CONTAINERS))
@@ -538,6 +541,5 @@ class JBoxContainer:
     def record_usage(self):
         start_time = self.time_created()
         finish_time = self.time_finished()
-        duration = (finish_time - start_time).total_seconds()
-        acct = JBoxAccounting(self.get_name(), duration, json.dumps(self.get_image_names()), time_stopped=finish_time.isoformat())
+        acct = JBoxAccounting(self.get_name(), json.dumps(self.get_image_names()),  start_time, time_stopped=finish_time)
         acct.save()
