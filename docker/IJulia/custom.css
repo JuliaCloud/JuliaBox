@@ -2,8 +2,8 @@ body {
 	font-size: 11pt;
 	font-family: raleway, 'Trebuchet MS', Arial, sans-serif !important
 }
-body:not(.notebook_app) div.navbar-inner {
-	display: none
+body:not(.notebook_app) div#header[style] {
+	display: none !important;
 }
 input[type=file] {
 	font-family: raleway, 'Trebuchet MS', Arial, sans-serif
