@@ -376,6 +376,7 @@ class JBoxContainer:
         disk_path = os.path.join(JBoxContainer.FS_LOC, str(disk_id))
         ensure_delete(disk_path)
         JBoxContainer.restore_user_home(disk_path)
+        JBoxContainer.setup_instance_config(disk_path)
         return (disk_id, disk_path)
 
     @staticmethod
@@ -383,6 +384,12 @@ class JBoxContainer:
         user_home = tarfile.open(JBoxContainer.USER_HOME_IMG, 'r:gz')
         user_home.extractall(disk_path)
         user_home.close()
+
+    @staticmethod
+    def setup_instance_config(disk_path):
+        nbconfig = os.path.join(disk_path, '.ipython/profile_julia/ipython_notebook_config.py')
+        with open(nbconfig, "a") as nbconfig_file:
+            nbconfig_file.write("c.NotebookApp.websocket_url = 'ws://" + CloudHelper.instance_public_hostname() + "'\n")
 
     def restore_backup_to_disk(self, disk_path):
         cname = self.get_name()

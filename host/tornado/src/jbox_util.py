@@ -85,6 +85,7 @@ class CloudHelper:
     CLOUDWATCH_CONN = None
     ENABLED = {}
     INSTANCE_ID = None
+    PUBLIC_HOSTNAME = None
     SELF_STATS = {}
     # STATS_CACHE = {} # TODO: cache stats
     
@@ -96,6 +97,15 @@ class CloudHelper:
             else:
                 CloudHelper.INSTANCE_ID = boto.utils.get_instance_metadata()['instance-id']
         return CloudHelper.INSTANCE_ID
+
+    @staticmethod
+    def instance_public_hostname():
+        if None == CloudHelper.PUBLIC_HOSTNAME:
+            if not CloudHelper.ENABLED['cloudwatch']:
+                CloudHelper.PUBLIC_HOSTNAME = 'localhost'
+            else:
+                CloudHelper.PUBLIC_HOSTNAME = boto.utils.get_instance_metadata()['public-hostname']
+        return CloudHelper.PUBLIC_HOSTNAME
 
     @staticmethod
     def instance_attrs(instance_id=None):

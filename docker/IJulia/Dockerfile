@@ -1,7 +1,7 @@
 # Docker file for JuliaBox
-# Version:11
+# Version:12
 
-FROM tanmaykm/juliaboxjulia:julia_v0.3_4
+FROM tanmaykm/juliaboxjulia:julia_v0.3_5
 
 MAINTAINER Tanmay Mohapatra
 
@@ -13,7 +13,6 @@ RUN apt-get install -y \
 		libnlopt0 \
 		gfortran \
 		&& apt-get clean
-
 
 # add juser
 RUN groupadd juser \

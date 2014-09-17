@@ -11,6 +11,7 @@ rm ${JUSER_HOME}/setup_julia.sh
 
 echo "c.NotebookApp.open_browser = False" >> ${JUSER_HOME}/.ipython/profile_julia/ipython_notebook_config.py
 echo "c.NotebookApp.ip = \"*\"" >> ${JUSER_HOME}/.ipython/profile_julia/ipython_notebook_config.py
+echo "c.NotebookApp.allow_origin = \"*\"" >> ${JUSER_HOME}/.ipython/profile_julia/ipython_notebook_config.py
 cp docker/IJulia/custom.css ${JUSER_HOME}/.ipython/profile_julia/static/custom/custom.css
 
 mkdir -p ${JUSER_HOME}/.juliabox juser/.juliabox/tornado

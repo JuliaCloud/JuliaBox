@@ -90,13 +90,13 @@ function configure_docker {
       echo "Please ensure DOCKER_OPTS has appropriate options"
     else
       # set loop data size to that required for max containers plus 5 additional
-      LOOPDATASZ=$(((NUM_LOCALMAX+5)*2))
+      LOOPDATASZ=$(((NUM_LOCALMAX+5)*3))
       echo "Configuring docker to use"
       echo "    -  /mnt/docker for image/container storage"
       echo "    - devicemapper fs"
-      echo "    - base image size 2GB"
+      echo "    - base image size 3GB"
       echo "    - loopdatasize ${LOOPDATASZ}GB"
-      sudo sh -c "echo 'DOCKER_OPTS=\"--storage-driver=devicemapper --storage-opt dm.basesize=2G  dm.loopdatasize=${LOOPDATASZ}G -g /mnt/docker \"' >> /etc/default/docker"
+      sudo sh -c "echo 'DOCKER_OPTS=\"--storage-driver=devicemapper --storage-opt dm.basesize=3G --storage-opt dm.loopdatasize=${LOOPDATASZ}G -g /mnt/docker \"' >> /etc/default/docker"
     fi
     sudo service docker start
 
@@ -112,9 +112,9 @@ function build_docker_image {
 
 function pull_docker_image {
     echo "Pulling docker image ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ..."
-    sudo docker pull tanmaykm/${DOCKER_IMAGE}:${DOCKER_IMAGE_VER}
-    sudo docker tag tanmaykm/${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER}
-    sudo docker tag tanmaykm/${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:latest
+    sudo docker pull tanmaykm/juliabox:${DOCKER_IMAGE_VER}
+    sudo docker tag tanmaykm/juliabox:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER}
+    sudo docker tag tanmaykm/juliabox:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:latest
 }
 
 function make_user_home {
