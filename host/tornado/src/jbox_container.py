@@ -198,7 +198,10 @@ class JBoxContainer:
         
         disk_used_pct = 0
         for x in psutil.disk_partitions():
-            disk_used_pct = max(psutil.disk_usage(x.mountpoint).percent, disk_used_pct)
+            try:
+                disk_used_pct = max(psutil.disk_usage(x.mountpoint).percent, disk_used_pct)
+            except:
+                pass
         CloudHelper.publish_stats("DiskUsed", "Percent", disk_used_pct)
         
         cont_load_pct = min(100, max(0, nactive * 100 / JBoxContainer.MAX_CONTAINERS))
