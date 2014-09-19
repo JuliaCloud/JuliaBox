@@ -1,21 +1,20 @@
-import datetime
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import isodate
 
 from jbox_util import unquote, CloudHelper
-from jbox_handler import JBoxHandler
+from handlers.handler_base import JBoxHandler
 from jbox_container import JBoxContainer
 from handlers.auth import AuthHandler
 from db.user_v2 import JBoxUserV2
 from db.accounting_v2 import JBoxAccountingV2
 
+
 class AdminHandler(JBoxHandler):
     def get(self):
         sessname = unquote(self.get_cookie("sessname"))
         jbox_cookie = AuthHandler.get_session_cookie(self)
-        
+
         if (None == sessname) or (len(sessname) == 0) or (None == jbox_cookie):
             self.send_error()
             return
@@ -34,11 +33,11 @@ class AdminHandler(JBoxHandler):
             return
 
         user = JBoxUserV2(user_id)
-        show_report = (sessname in self.config("report_sessnames", []) or \
-                        user.get_role() == JBoxUserV2.ROLE_REPORT)
+        show_report = (sessname in self.config("report_sessnames", []) or
+                       user.get_role() == JBoxUserV2.ROLE_REPORT)
 
-        admin_user = (sessname in self.config("admin_sessnames", []) or \
-                        user.get_role() == JBoxUserV2.ROLE_ADMIN)
+        admin_user = (sessname in self.config("admin_sessnames", []) or
+                      user.get_role() == JBoxUserV2.ROLE_ADMIN)
         show_report = show_report or admin_user
 
         sections = []
@@ -59,37 +58,38 @@ class AdminHandler(JBoxHandler):
             report = JBoxAccountingV2.get_stats(dates)
 
         d = dict(
-                admin_user=admin_user,
-                show_report=show_report,
-                report_span = report_span,
-                sessname=sessname, 
-                user_id=user_id, 
-                created=isodate.datetime_isoformat(cont.time_created()), 
-                started=isodate.datetime_isoformat(cont.time_started()),
-                allowed_till=isodate.datetime_isoformat((cont.time_started() + timedelta(seconds=self.config('expire')))),
-                mem=cont.get_memory_allocated(), 
-                cpu=cont.get_cpu_allocated(),
-                disk=cont.get_disk_allocated(),
-                expire=self.config('expire'),
-                sections=sections,
-                loads=loads,
-                report=report,
-                juliaboxver=juliaboxver,
-                upgrade_available=upgrade_available
-            )
+            admin_user=admin_user,
+            show_report=show_report,
+            report_span=report_span,
+            sessname=sessname,
+            user_id=user_id,
+            created=isodate.datetime_isoformat(cont.time_created()),
+            started=isodate.datetime_isoformat(cont.time_started()),
+            allowed_till=isodate.datetime_isoformat((cont.time_started() + timedelta(seconds=self.config('expire')))),
+            mem=cont.get_memory_allocated(),
+            cpu=cont.get_cpu_allocated(),
+            disk=cont.get_disk_allocated(),
+            expire=self.config('expire'),
+            sections=sections,
+            loads=loads,
+            report=report,
+            juliaboxver=juliaboxver,
+            upgrade_available=upgrade_available
+        )
 
         self.rendertpl("ipnbadmin.tpl", d=d, cfg=self.config())
-    
+
     def do_upgrade(self, cont, upgrade_available):
         upgrade_id = self.get_argument("upgrade_id", '')
-        if (upgrade_id == 'me') and (upgrade_available != None):
+        if (upgrade_id == 'me') and (upgrade_available is not None):
             cont.stop()
             cont.backup()
             cont.delete()
             return True
         return False
 
-    def get_upgrade_available(self, cont):
+    @staticmethod
+    def get_upgrade_available(cont):
         cont_images = cont.get_image_names()
         juliaboxver = cont_images[0]
         if (JBoxContainer.DCKR_IMAGE in cont_images) or ((JBoxContainer.DCKR_IMAGE + ':latest') in cont_images):
@@ -97,8 +97,8 @@ class AdminHandler(JBoxHandler):
         else:
             upgrade_available = JBoxContainer.DCKR_IMAGE
             if ':' not in upgrade_available:
-                upgrade_available = upgrade_available + ':latest'
-        return (juliaboxver, upgrade_available)
+                upgrade_available += ':latest'
+        return juliaboxver, upgrade_available
 
     def admin_stats(self):
         sections = []
@@ -108,11 +108,11 @@ class AdminHandler(JBoxHandler):
         ac = []
         sections.append(["Active", ac])
         sections.append(["Inactive", iac])
-        
+
         delete_id = self.get_argument("delete_id", '')
         stop_id = self.get_argument("stop_id", '')
-        stop_all = (self.get_argument('stop_all', None) != None)
-        
+        stop_all = (self.get_argument('stop_all', None) is not None)
+
         if stop_all:
             all_containers = JBoxContainer.DCKR.containers(all=False)
             for c in all_containers:
@@ -120,10 +120,10 @@ class AdminHandler(JBoxHandler):
                 cname = cont.get_name()
 
                 if None == cname:
-                    log_info("Admin: Not stopping unknown " + cont.debug_str())
+                    self.log_info("Admin: Not stopping unknown " + cont.debug_str())
                 elif cname not in self.config("protected_docknames"):
                     cont.stop()
-                        
+
         elif not (stop_id == ''):
             cont = JBoxContainer(stop_id)
             cont.stop()
@@ -134,27 +134,27 @@ class AdminHandler(JBoxHandler):
         # get them all again (in case we deleted some)
         jsonobj = JBoxContainer.DCKR.containers(all=all)
         for c in jsonobj:
-            o = {}
+            o = dict()
             o["Id"] = c["Id"][0:12]
             o["Status"] = c["Status"]
-            if ("Names" in c) and (c["Names"] != None): 
+            if ("Names" in c) and (c["Names"] is not None):
                 o["Name"] = c["Names"][0]
             else:
                 o["Name"] = "/None"
-            
-            if (c["Ports"] == None) or (c["Ports"] == []):
+
+            if (c["Ports"] is None) or (c["Ports"] == []):
                 iac.append(o)
             else:
                 ac.append(o)
-        
+
         # get cluster loads
         average_load = CloudHelper.get_cluster_average_stats('Load')
         if None != average_load:
             loads.append({'instance': 'Average', 'load': average_load})
-            
+
         machine_loads = CloudHelper.get_cluster_stats('Load')
         if None != machine_loads:
-            for n,v in machine_loads.iteritems():
+            for n, v in machine_loads.iteritems():
                 loads.append({'instance': n, 'load': v})
 
         return sections, loads

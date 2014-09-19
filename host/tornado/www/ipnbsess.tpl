@@ -107,6 +107,7 @@
     <div class="tab-content modules">    	
         <div id="ijulia" class="tab-pane active">
             <iframe src="/hostipnbsession/" id="ijulia-frame" frameborder="0" height="100%" width="100%"></iframe>
+            <iframe src="/cors/" id="ijulia-cors" frameborder="0" height="0" width="0" style="display: none"></iframe>
         </div>
         <div id="console" class="tab-pane content-pad"></div>
         <div id="docs" class="tab-pane"></div>

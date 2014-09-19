@@ -8,8 +8,8 @@ function cp_tornado_userconf {
     # copy user configuration files to appropriate places
     if [ -e "jbox.user" ]
     then
-        cp -f ${PWD}/jbox.user ${PWD}/${TORNADO_DIR}/conf
+        cp -f ${JBOX_DIR}/jbox.user ${JBOX_DIR}/${TORNADO_DIR}/conf
     else
-        rm -f ${PWD}/${TORNADO_CONF_DIR}/jbox.user
+        rm -f ${JBOX_DIR}/${TORNADO_CONF_DIR}/jbox.user
     fi
 }
