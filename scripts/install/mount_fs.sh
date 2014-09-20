@@ -44,12 +44,18 @@ do
     if [ ! -e ${IMG} ]
     then
         sudo dd if=/dev/zero of=${IMG} bs=1024 count=${FS_SIZE_MB}000 || error_exit "Error creating disk image file"
+        sudo losetup ${LOOP} ${IMG} || error_exit "Error mapping ${IMG} to ${LOOP}"
+        sudo mkfs -t ext3 -m 1 -v ${LOOP} || error_exit "Error making ext3 filesystem at ${LOOP}"
+    else
+        sudo losetup ${LOOP} ${IMG} || error_exit "Error mapping ${IMG} to ${LOOP}"
     fi
 
-    sudo losetup ${LOOP} ${IMG} || error_exit "Error mapping ${IMG} to ${LOOP}"
-    sudo mkfs -t ext3 -m 1 -v ${LOOP} || error_exit "Error making ext3 filesystem at ${LOOP}"
-    sudo mkdir -p ${MNT} || error_exit "Error creating mount point ${MNT}"
+    if [ ! -e ${MNT} ]
+    then
+        sudo mkdir -p ${MNT} || error_exit "Error creating mount point ${MNT}"
+    fi
+
     sudo mount ${LOOP} ${MNT} || error_exit "Error mounting filesystem at ${MNT}"
-    sudo chown -R ${ID}:${ID} ${MNT} || error_eixt "Error changing file ownership on ${MNT}"
+    sudo chown -R ${ID}:${ID} ${MNT} || error_exit "Error changing file ownership on ${MNT}"
 done
 

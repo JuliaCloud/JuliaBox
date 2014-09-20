@@ -24,5 +24,8 @@ do
     sudo losetup -d $l || error_exit "Error deleting $l"
 done
 
-echo "Deleting files..."
-sudo \rm -rf /mnt/jbox/*
+if [ "$1" == "del" ]
+then
+    echo "Deleting files..."
+    sudo \rm -rf /mnt/jbox/*
+fi
