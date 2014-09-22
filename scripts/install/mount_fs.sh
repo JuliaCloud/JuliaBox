@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 # Mount JuliaBox loopback volumes
 
-if [ $# -ne 2 ]
+if [ $# -ne 3 ]
 then
     echo "Usage: sudo mount_fs.sh <ndisks> <ds_size_mb> <fs_user_id>"
     exit 1

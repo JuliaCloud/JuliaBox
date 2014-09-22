@@ -41,8 +41,14 @@ class JBox(LoggerMixin):
         if 'jbox_accounting_v2' in cloud_cfg:
             JBoxAccountingV2.NAME = cloud_cfg['jbox_accounting_v2']
 
-        CloudHelper.configure(has_s3=cloud_cfg['s3'], has_dynamodb=cloud_cfg['dynamodb'],
-                              has_cloudwatch=cloud_cfg['cloudwatch'], region=cloud_cfg['region'],
+        CloudHelper.configure(has_s3=cloud_cfg['s3'],
+                              has_dynamodb=cloud_cfg['dynamodb'],
+                              has_cloudwatch=cloud_cfg['cloudwatch'],
+                              has_autoscale=cloud_cfg['autoscale'],
+                              scale_up_at_load=cloud_cfg['scale_up_at_load'],
+                              scale_up_policy=cloud_cfg['scale_up_policy'],
+                              autoscale_group=cloud_cfg['autoscale_group'],
+                              region=cloud_cfg['region'],
                               install_id=cloud_cfg['install_id'])
 
         backup_location = os.path.expanduser(cfg['backup_location'])
@@ -86,7 +92,7 @@ class JBox(LoggerMixin):
         server_delete_timeout = JBox.cfg['expire']
         JBoxContainer.maintain(max_timeout=server_delete_timeout, inactive_timeout=JBox.cfg['inactivity_timeout'],
                                protected_names=JBox.cfg['protected_docknames'])
-        if JBox.cfg['scale_down'] and (JBoxContainer.num_active() == 0) and \
+        if JBox.cfg['cloud_host']['scale_down'] and (JBoxContainer.num_active() == 0) and \
                 (JBoxContainer.num_stopped() == 0) and CloudHelper.should_terminate():
             JBox.log_info("terminating to scale down")
             CloudHelper.terminate_instance()
