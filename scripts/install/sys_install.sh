@@ -68,10 +68,12 @@ function configure_docker {
     # Devicemapper storage can be used if disk quotas are desired. However it is less stable than aufs.
     sudo mkdir -p /mnt/docker
     sudo service docker stop
-    if grep -q "^DOCKER_OPTS" /etc/default/docker ; then
+    if grep -q "^DOCKER_OPTS" /etc/default/docker
+    then
         echo "/etc/default/docker has an entry for DOCKER_OPTS..."
         echo "Please ensure DOCKER_OPTS has appropriate options"
-    elif [ $DOCKER_FS == "DEVICEMAPPER" ]
+    elif [ "$DOCKER_FS" == "DEVICEMAPPER" ]
+    then
         # set loop data size to that required for max containers plus 5 additional
         LOOPDATASZ=$(((NUM_LOCALMAX+5)*3))
         echo "Configuring docker to use"

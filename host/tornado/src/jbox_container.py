@@ -37,6 +37,8 @@ class JBoxContainer(LoggerMixin):
     MAX_DISKS = 0
     VALID_CONTAINERS = {}
     DISK_USE_STATUS = {}
+    INITIAL_DISK_USED_PCT = None
+    LAST_CPU_PCT = None
 
     def __init__(self, dockid):
         self.dockid = dockid
@@ -198,7 +200,7 @@ class JBoxContainer(LoggerMixin):
         if cont is None:
             cont = JBoxContainer.create_new(name)
 
-        if not cont.is_running():
+        if not (cont.is_running() or cont.is_restarting()):
             cont.start()
         else:
             cont.restart()
@@ -212,7 +214,10 @@ class JBoxContainer(LoggerMixin):
         nactive = JBoxContainer.num_active()
         CloudHelper.publish_stats("NumActiveContainers", "Count", nactive)
 
-        cpu_used_pct = psutil.cpu_percent()
+        curr_cpu_used_pct = psutil.cpu_percent()
+        last_cpu_used_pct = curr_cpu_used_pct if JBoxContainer.LAST_CPU_PCT is None else JBoxContainer.LAST_CPU_PCT
+        JBoxContainer.LAST_CPU_PCT = curr_cpu_used_pct
+        cpu_used_pct = int((curr_cpu_used_pct + last_cpu_used_pct)/2)
 
         mem_used_pct = psutil.virtual_memory().percent
         CloudHelper.publish_stats("MemUsed", "Percent", mem_used_pct)
@@ -223,6 +228,9 @@ class JBoxContainer(LoggerMixin):
                 disk_used_pct = max(psutil.disk_usage(x.mountpoint).percent, disk_used_pct)
             except:
                 pass
+        if JBoxContainer.INITIAL_DISK_USED_PCT is None:
+            JBoxContainer.INITIAL_DISK_USED_PCT = disk_used_pct
+        disk_used_pct = max(0, (disk_used_pct - JBoxContainer.INITIAL_DISK_USED_PCT))
         CloudHelper.publish_stats("DiskUsed", "Percent", disk_used_pct)
 
         cont_load_pct = min(100, max(0, nactive * 100 / JBoxContainer.MAX_CONTAINERS))
@@ -257,7 +265,7 @@ class JBoxContainer(LoggerMixin):
                 JBoxContainer.log_debug("Ignoring " + cont.debug_str())
                 continue
 
-            c_is_active = cont.is_running()
+            c_is_active = cont.is_running() or cont.is_restarting()
             last_ping = JBoxContainer.get_last_ping(cname)
 
             # if we don't have a ping record, create one (we must have restarted) 
@@ -333,8 +341,11 @@ class JBoxContainer(LoggerMixin):
         all_containers = JBoxContainer.DCKR.containers(all=True)
         for cdesc in all_containers:
             cont = JBoxContainer(cdesc['Id'])
-            c_is_active = cont.is_running()
-            if (not c_is_active) and (cont.time_finished() < delete_stopped_before):
+            c_is_active = cont.is_running() or cont.is_restarting()
+            fin_time = cont.time_finished()
+            # check that finish time is not absurdly small (indicates a continer that's starting up)
+            fin_time_not_zero = (tnow-fin_time).total_seconds() < (365*24*60*60)
+            if (not c_is_active) and fin_time_not_zero and (fin_time < delete_stopped_before):
                 cont.backup()
                 cont.delete()
         JBoxContainer.log_info("Finished container backup.")
@@ -347,7 +358,7 @@ class JBoxContainer(LoggerMixin):
 
         bkup_file = os.path.join(JBoxContainer.BACKUP_LOC, cname[1:] + ".tar.gz")
 
-        if not self.is_running():
+        if not (self.is_running() or self.is_restarting()):
             k = JBoxContainer.pull_from_s3(bkup_file, True)
             bkup_file_mtime = None
             if k is not None:
@@ -519,6 +530,11 @@ class JBoxContainer(LoggerMixin):
         state = props['State']
         return state['Running'] if 'Running' in state else False
 
+    def is_restarting(self):
+        props = self.get_props()
+        state = props['State']
+        return state['Restarting'] if 'Restarting' in state else False
+
     def time_started(self):
         props = self.get_props()
         return JBoxContainer.parse_iso_time(props['State']['StartedAt'])
@@ -540,7 +556,7 @@ class JBoxContainer(LoggerMixin):
             JBoxContainer.log_info("Stopped " + self.debug_str())
             self.record_usage()
         else:
-            JBoxContainer.log_info("Already stopped " + self.debug_str())
+            JBoxContainer.log_info("Already stopped or restarting" + self.debug_str())
 
     def get_host_volume(self, hvol, disk_id):
         hvol = hvol.replace('${CNAME}', self.get_name())
@@ -550,7 +566,7 @@ class JBoxContainer(LoggerMixin):
     def start(self):
         self.refresh()
         JBoxContainer.log_info("Starting " + self.debug_str())
-        if self.is_running():
+        if self.is_running() or self.is_restarting():
             JBoxContainer.log_info("Already started " + self.debug_str())
             return
 
@@ -592,7 +608,7 @@ class JBoxContainer(LoggerMixin):
         JBoxContainer.log_info("Deleting " + self.debug_str())
         self.refresh()
         cname = self.get_name()
-        if self.is_running():
+        if self.is_running() or self.is_restarting():
             self.kill()
 
         JBoxContainer.DCKR.remove_container(self.dockid)

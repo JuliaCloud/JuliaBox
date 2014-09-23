@@ -4,6 +4,7 @@ import time
 import errno
 import datetime
 import pytz
+import traceback
 
 import psutil
 import isodate
@@ -11,6 +12,7 @@ import boto.dynamodb
 import boto.utils
 import boto.ec2
 import boto.ec2.cloudwatch
+import boto.ec2.autoscale
 from boto.s3.key import Key
 
 
@@ -23,7 +25,7 @@ def log_info(s):
 # TODO: This scheme of escaping ssession names can result in clashes.
 #       Change to a better scheme probably one using lower case and upper case characters
 def esc_sessname(s):
-    if None == s:
+    if s is None:
         return s
     return s.replace("@", "_at_").replace(".", "_")
 
@@ -97,7 +99,7 @@ def ensure_delete(path, include_itself=False):
 
 
 def unquote(s):
-    if None == s:
+    if s is None:
         return s
     s = s.strip()
     if s[0] == '"':
@@ -132,6 +134,10 @@ class CloudHelper(LoggerMixin):
     S3_CONN = None
     S3_BUCKETS = {}
     CLOUDWATCH_CONN = None
+    AUTOSCALE_CONN = None
+    AUTOSCALE_GROUP = None
+    SCALE_UP_POLICY = None
+    SCALE_UP_AT_LOAD = 80
     ENABLED = {}
     INSTANCE_ID = None
     PUBLIC_HOSTNAME = None
@@ -140,7 +146,7 @@ class CloudHelper(LoggerMixin):
 
     @staticmethod
     def instance_id():
-        if None == CloudHelper.INSTANCE_ID:
+        if CloudHelper.INSTANCE_ID is None:
             if not CloudHelper.ENABLED['cloudwatch']:
                 CloudHelper.INSTANCE_ID = 'localhost'
             else:
@@ -149,7 +155,7 @@ class CloudHelper(LoggerMixin):
 
     @staticmethod
     def instance_public_hostname():
-        if None == CloudHelper.PUBLIC_HOSTNAME:
+        if CloudHelper.PUBLIC_HOSTNAME is None:
             if not CloudHelper.ENABLED['cloudwatch']:
                 CloudHelper.PUBLIC_HOSTNAME = 'localhost'
             else:
@@ -158,9 +164,9 @@ class CloudHelper(LoggerMixin):
 
     @staticmethod
     def instance_attrs(instance_id=None):
-        if None == instance_id:
+        if instance_id is None:
             instance_id = CloudHelper.instance_id()
-        if CloudHelper.ENABLED['cloudwatch']:
+        if instance_id != 'localhost':
             attrs = CloudHelper.connect_ec2().get_only_instances([instance_id])
             if len(attrs) > 0:
                 return attrs[0]
@@ -178,33 +184,41 @@ class CloudHelper(LoggerMixin):
         else:
             CloudHelper.log_debug("cloudwatch disabled. can not get uptime")
             return 0
-        minutes = (uptime.seconds + uptime.microseconds / 1000000.0) / 60.0
+        minutes = int(uptime.total_seconds()/60)
         return minutes
 
     @staticmethod
-    def configure(has_s3=True, has_dynamodb=True, has_cloudwatch=True, region='us-east-1', install_id='JuliaBox'):
+    def configure(has_s3=True, has_dynamodb=True, has_cloudwatch=True, has_autoscale=True,
+                  scale_up_at_load=80, scale_up_policy=None, autoscale_group=None,
+                  region='us-east-1', install_id='JuliaBox'):
         CloudHelper.ENABLED['s3'] = has_s3
         CloudHelper.ENABLED['dynamodb'] = has_dynamodb
         CloudHelper.ENABLED['cloudwatch'] = has_cloudwatch
+        CloudHelper.ENABLED['autoscale'] = has_autoscale
+
+        CloudHelper.SCALE_UP_AT_LOAD = scale_up_at_load
+        CloudHelper.SCALE_UP_POLICY = scale_up_policy
+        CloudHelper.AUTOSCALE_GROUP = autoscale_group
+
         CloudHelper.INSTALL_ID = install_id
         CloudHelper.REGION = region
 
     @staticmethod
     def connect_ec2():
-        if (None == CloudHelper.EC2_CONN) and CloudHelper.ENABLED['cloudwatch']:
+        if (CloudHelper.EC2_CONN is None) and CloudHelper.ENABLED['cloudwatch']:
             CloudHelper.EC2_CONN = boto.ec2.connect_to_region(CloudHelper.REGION)
         return CloudHelper.EC2_CONN
 
     @staticmethod
     def connect_dynamodb():
         """ Return a connection to AWS DynamoDB at the configured region """
-        if (None == CloudHelper.DYNAMODB_CONN) and CloudHelper.ENABLED['dynamodb']:
+        if (CloudHelper.DYNAMODB_CONN is None) and CloudHelper.ENABLED['dynamodb']:
             CloudHelper.DYNAMODB_CONN = boto.dynamodb.connect_to_region(CloudHelper.REGION)
         return CloudHelper.DYNAMODB_CONN
 
     @staticmethod
     def connect_s3():
-        if (None == CloudHelper.S3_CONN) and CloudHelper.ENABLED['s3']:
+        if (CloudHelper.S3_CONN is None) and CloudHelper.ENABLED['s3']:
             CloudHelper.S3_CONN = boto.connect_s3()
         return CloudHelper.S3_CONN
 
@@ -219,21 +233,32 @@ class CloudHelper(LoggerMixin):
 
     @staticmethod
     def connect_cloudwatch():
-        if (None == CloudHelper.CLOUDWATCH_CONN) and CloudHelper.ENABLED['cloudwatch']:
+        if (CloudHelper.CLOUDWATCH_CONN is None) and CloudHelper.ENABLED['cloudwatch']:
             CloudHelper.CLOUDWATCH_CONN = boto.ec2.cloudwatch.connect_to_region(CloudHelper.REGION)
         return CloudHelper.CLOUDWATCH_CONN
+
+    @staticmethod
+    def connect_autoscale():
+        if (CloudHelper.AUTOSCALE_CONN is None) and CloudHelper.ENABLED['autoscale']:
+            CloudHelper.AUTOSCALE_CONN = boto.ec2.autoscale.connect_to_region(CloudHelper.REGION)
+        return CloudHelper.AUTOSCALE_CONN
 
     @staticmethod
     def get_metric_dimensions(metric_name, metric_namespace=None):
         if metric_namespace is None:
             metric_namespace = CloudHelper.INSTALL_ID
 
-        metrics = CloudHelper.connect_cloudwatch().list_metrics()
+        next_token = None
         dims = {}
-        for m in metrics:
-            if m.name == metric_name and m.namespace == metric_namespace:
+
+        while True:
+            metrics = CloudHelper.connect_cloudwatch().list_metrics(next_token=next_token, metric_name=metric_name, namespace=metric_namespace)
+            for m in metrics:
                 for n_dim, v_dim in m.dimensions.iteritems():
                     dims[n_dim] = dims.get(n_dim, []) + v_dim
+            next_token = metrics.next_token
+            if next_token is None:
+                break
         if len(dims) == 0:
             CloudHelper.log_info("invalid metric " + '.'.join([metric_namespace, metric_name]))
             return None
@@ -260,18 +285,38 @@ class CloudHelper(LoggerMixin):
         # - ami changeover
         # - hourly window
         # - load
-        return str(int(load)) + '_' + instance_id
+        #return str(1000 + int(load)) + '_' + instance_id
+        return instance_id
+
+    @staticmethod
+    def add_instance():
+        if not CloudHelper.ENABLED['autoscale']:
+            return
+        try:
+            CloudHelper.connect_autoscale().execute_policy(CloudHelper.SCALE_UP_POLICY,
+                                                       as_group=CloudHelper.AUTOSCALE_GROUP,
+                                                       honor_cooldown='true')
+        except:
+            CloudHelper.log_error("Error requesting scale up")
+            traceback.print_exc()
 
     @staticmethod
     def terminate_instance(instance=None):
         if not CloudHelper.ENABLED['cloudwatch']:
             return
 
-        if None == instance:
+        if instance is None:
             instance = CloudHelper.instance_id()
 
         CloudHelper.log_info("Terminating instance: " + instance)
-        CloudHelper.connect_ec2().terminate_instances(instance_ids=[instance])
+        try:
+            if CloudHelper.ENABLED['autoscale']:
+                CloudHelper.connect_autoscale().terminate_instance(instance, decrement_capacity=True)
+            else:
+                CloudHelper.connect_ec2().terminate_instances(instance_ids=[instance])
+        except:
+            CloudHelper.log_error("Error terminating instance to scale down")
+            traceback.print_exc()
 
     @staticmethod
     def should_terminate():
@@ -281,7 +326,7 @@ class CloudHelper(LoggerMixin):
         uptime = CloudHelper.uptime_minutes()
 
         # if uptime less than hour and half return false
-        if uptime < 90:
+        if (uptime is not None) and (uptime < 90):
             CloudHelper.log_debug("not terminating as uptime (" + repr(uptime) + ") < 90")
             return False
 
@@ -309,15 +354,22 @@ class CloudHelper(LoggerMixin):
     def should_accept_session():
         self_load = CloudHelper.get_instance_stats(CloudHelper.instance_id(), 'Load')
         CloudHelper.log_debug("Load self: " + repr(self_load))
+
+        if CloudHelper.ENABLED['cloudwatch']:
+            cluster_load = CloudHelper.get_cluster_stats('Load')
+            avg_load = CloudHelper.get_cluster_average_stats('Load', results=cluster_load)
+            CloudHelper.log_debug("Load cluster: " + repr(cluster_load) + " avg: " + repr(avg_load))
+
+            if avg_load >= CloudHelper.SCALE_UP_AT_LOAD:
+                CloudHelper.log_info("Requesting scale up as cluster average load " +
+                                     str(avg_load) + " > " + str(CloudHelper.SCALE_UP_AT_LOAD))
+                CloudHelper.add_instance()
+
         if self_load >= 100:
             return False
 
         if not CloudHelper.ENABLED['cloudwatch']:
             return True
-
-        cluster_load = CloudHelper.get_cluster_stats('Load')
-        avg_load = CloudHelper.get_cluster_average_stats('Load', results=cluster_load)
-        CloudHelper.log_debug("Load cluster: " + repr(cluster_load) + " avg: " + repr(avg_load))
 
         # if not least loaded, accept
         if self_load >= avg_load:
@@ -371,6 +423,14 @@ class CloudHelper(LoggerMixin):
         return None
 
     @staticmethod
+    def get_autoscaled_instances():
+        group = CloudHelper.connect_autoscale().get_all_groups([CloudHelper.AUTOSCALE_GROUP])[0]
+        instances_ids = [i.instance_id for i in group.instances]
+        reservations = CloudHelper.connect_ec2().get_all_reservations(instances_ids)
+        instances = [i.id for r in reservations for i in r.instances]
+        return instances
+
+    @staticmethod
     def get_cluster_stats(stat_name, namespace=None):
         if not CloudHelper.ENABLED['cloudwatch']:
             if stat_name in CloudHelper.SELF_STATS:
@@ -379,15 +439,21 @@ class CloudHelper(LoggerMixin):
                 return None
 
         dims = CloudHelper.get_metric_dimensions(stat_name, namespace)
-        if None == dims:
+        if dims is None:
             return None
+
+        if CloudHelper.ENABLED['autoscale']:
+            instances = CloudHelper.get_autoscaled_instances()
+        else:
+            instances = None
 
         stats = {}
         if 'InstanceID' in dims:
             for instance in dims['InstanceID']:
-                instance_load = CloudHelper.get_instance_stats(instance, stat_name, namespace)
-                if instance_load is not None:
-                    stats[instance] = instance_load
+                if (instances is None) or (instance in instances):
+                    instance_load = CloudHelper.get_instance_stats(instance, stat_name, namespace)
+                    if instance_load is not None:
+                        stats[instance] = instance_load
 
         return stats
 

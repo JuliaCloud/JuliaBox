@@ -3,8 +3,6 @@
     "gauth" : $$GAUTH,
     "invite_only" : $$INVITE,
     
-    # Self teminate if required to scale down
-    "scale_down" : False,
     # Number of active containers to allow per instance
     "numlocalmax" : $$NUM_LOCALMAX,
     # Number of disks available to be mounted to images
@@ -56,7 +54,15 @@
     	"s3": True,
     	"dynamodb": True,
     	"cloudwatch": True,
-    	
+    	"autoscale": True,
+
+    	"autoscale_group": "juliabox",
+        # Average cluster load at which to initiate scale up
+    	"scale_up_at_load": 70,
+    	"scale_up_policy": "addinstance",
+        # Self teminate if required to scale down
+        "scale_down" : False,
+
     	# Configure names for tables and buckets
 	    "backup_bucket": "juliabox_userbackup",
 	    
