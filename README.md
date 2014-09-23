@@ -29,9 +29,9 @@
 - JuliaBox uses Amazon DynamoDB to store user credentials, S3 to store user data, and Python Boto package to access AWS. To set them up:
     - Log in to Amazon AWS.
     - Create a DynamoDB table named `jbox_users` with hash key attribute `user_id`.
-    - Create a S3 bucket named `juliabox_userbackup`.
+    - Create a S3 bucket named `juliabox-userbackup`.
     - Create a Amazon IAM user named `juliabox` and get the AWS credentials for the user.
-    - Grant read and write permissions to `juliabox` user for `jbox_users` DynamoDB table and `juliabox_userbackup` S3 bucket.
+    - Grant read and write permissions to `juliabox` user for `jbox_users` DynamoDB table and `juliabox-userbackup` S3 bucket.
     - Create a boto configuration file with the above AWS credentials as described here: <http://boto.readthedocs.org/en/latest/boto_config_tut.html>.
 - Run `setup.sh` with appropriate options.
     - `admin_username` above is the session name for an "administration" session. If not using Google auth, select something non-guessable.

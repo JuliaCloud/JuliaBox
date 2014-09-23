@@ -64,7 +64,7 @@
         "scale_down" : False,
 
     	# Configure names for tables and buckets
-	    "backup_bucket": "juliabox_userbackup",
+	    "backup_bucket": "juliabox-userbackup",
 	    
     	"dummy" : "dummy"
     },
