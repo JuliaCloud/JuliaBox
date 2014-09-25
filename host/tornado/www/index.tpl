@@ -110,10 +110,11 @@
                 <input class="btn btn-default btn-block" type="submit" value="Go!">
             </form>
             {% else %}
-            <a class="btn btn-default btn-block gauth-btn" href="/hostlaunchipnb/">Sign in via Google</a>
+<br>
+            <a class="btn btn-primary btn-block gauth-btn" title="JuliaBox is currently invite-only" href="/hostlaunchipnb/">Sign in via Google</a>
             {% end %}
-                <p style="padding-top: 1em; text-align: center; font-family: raleway"><em>or</em></p>
-	      <a class="btn btn-primary btn-block gauth-btn" href="/?invite=true">Sign up for an invite</a>
+                <!-- <p style="padding-top: 1em; text-align: center; font-family: raleway"><em>or</em></p>
+	      <a class="btn btn-primary btn-block gauth-btn" href="/?invite=true">Sign up for an invite</a> -->
           </div>
       {% else %}
 	      <input type="text" placeholder="Choose a session name. Hit Return &#x23ce;" class="form-control sessname-box" name="sessname" required autofocus>
