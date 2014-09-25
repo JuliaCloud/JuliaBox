@@ -70,7 +70,7 @@ class MainHandler(JBoxHandler):
                             else:
                                 error_msg = 'You entered an invalid invitation code. Try again or request a new invitation.'
                         else:
-                            error_msg = 'Enter the invitation code'
+                            error_msg = 'Enter an invitation code to proceed.'
 
                         self.rendertpl("index.tpl", cfg=self.config(), state=self.state(
                             error=error_msg,
