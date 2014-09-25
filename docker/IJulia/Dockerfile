@@ -12,6 +12,7 @@ RUN apt-get install -y \
 		glpk-utils \
 		libnlopt0 \
 		gfortran \
+		imagemagick \
 		&& apt-get clean
 
 # add juser

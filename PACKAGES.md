@@ -4,7 +4,7 @@ Following packages are installed by default. Additional packages can be installe
 
 However, user installed packages may not be retained across sessions. Also since the JuliaBox user is not a priviledged user, packages requiring additional system packages may not install correctly. There will be an alternate mechanism for installing additional packages in the future.
 
-- 17 required packages:
+19 required packages:
     - Clp
     - DataFrames
     - DataStructures
@@ -12,6 +12,7 @@ However, user installed packages may not be retained across sessions. Also since
     - Gadfly
     - HDF5
     - IJulia
+    - Images
     - Interact
     - Ipopt
     - Iterators
@@ -21,8 +22,10 @@ However, user installed packages may not be retained across sessions. Also since
     - NumericExtensions
     - Optim
     - PyPlot
+    - SIUnits
     - SymPy
-- 38 additional packages:
+
+39 additional packages:
     - ArrayViews
     - BinDeps
     - Calculus
@@ -33,7 +36,7 @@ However, user installed packages may not be retained across sessions. Also since
     - Contour
     - DataArrays
     - Datetime
-    - Distance
+    - Distances
     - Distributions
     - DualNumbers
     - FixedPointNumbers
@@ -44,11 +47,11 @@ However, user installed packages may not be retained across sessions. Also since
     - ImmutableArrays
     - JSON
     - KernelDensity
+    - LaTeXStrings
     - Loess
     - MathProgBase
     - Nettle
     - NumericFuns
-    - Options
     - PDMats
     - PyCall
     - REPLCompletions
@@ -59,6 +62,7 @@ However, user installed packages may not be retained across sessions. Also since
     - SHA
     - SortingAlgorithms
     - StatsBase
+    - TexExtensions
     - URIParser
     - ZMQ
 
