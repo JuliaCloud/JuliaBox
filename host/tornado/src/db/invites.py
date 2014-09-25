@@ -40,7 +40,7 @@ class JBoxInvite(JBoxDB):
         if (self.table() is None) or (self.item is None):
             return  # is this handled well?
 
-        if self.item.get('invited', None):
+        if self.item.get('invited', None) is None:
             return False
 
         try:
