@@ -7,3 +7,5 @@ julia -e 'Pkg.init(); Pkg.add("IJulia"); Pkg.add("PyPlot"); Pkg.add("SIUnits"); 
 julia -e 'Pkg.add("Optim"); Pkg.add("JuMP"); Pkg.add("GLPKMathProgInterface"); Pkg.add("Clp");'
 
 julia -e 'Pkg.add("NLopt"); Pkg.add("Ipopt");'
+
+julia -e 'Pkg.add("Images");'
