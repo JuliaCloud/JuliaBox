@@ -89,7 +89,7 @@
           <div class="sign-in-container">
             {% if len(state["error"]) > 0 %}
             <div class="alert alert-danger" role="alert">
-                {{state["error"]}}
+                <span>{{state["error"]}}</span>
             </div>
             {% end %}
             {% if len(state["info"]) > 0 %}
@@ -104,10 +104,12 @@
             {% end %}
             {% if len(state["success"]) == 0 and len(state["info"]) == 0 and len(state["error"]) == 0 %}<br><br>{% end %}
             {% if state["ask_invite_code"] %}
+		<div>Logging in as {{ state["user_id"] }}. <a href="javascript:resetState();">Change</a>.</div>
             <form action="/">
-                <div>Logging in as {{ state["user_id"] }}. <a href="javascript:resetState();">Change</a>.</div>
-                <input type="text" class="form-control col-md-6" name="invite_code" placeholder="Type in the invite code, hit return."><br><br>
-                <input class="btn btn-default btn-block" type="submit" value="Go!">
+		<div class="row">
+			<input type="text" style="padding: .4em; color: black" class="col-md-9" name="invite_code">
+			<input class="btn col-md-3 btn-primary" type="submit" value="Go!">
+		</div>
             </form>
             {% else %}
 <br>
