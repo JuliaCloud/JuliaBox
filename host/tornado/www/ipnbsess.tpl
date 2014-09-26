@@ -92,11 +92,7 @@
                     <li><a href="#filesync" data-toggle="tab" title="Sync &amp; Share"><em class="icon-uniE602"></em><span>Sync</span></a></li>
                     <li class="pull-right"><a href="#" id="logout_btn" title="Logout" class="pull-right"><em class="icon-uniE604"></em></a></li>
                     <li class="pull-right"><a href="#docs" data-toggle="tab" title="Docs"><em class="icon-uniE605"></em></a></li>
-{% if admin_user %}
-                    <li class="pull-right"><a href="#admin" data-toggle="tab" title="Admin"><em class="icon-uniE607"></em></a></li>
-{% else %}
-                    <li class="pull-right"><a href="#admin" data-toggle="tab" title="Account"><em class="icon-uniE606"></em></a></li>
-{% end %}
+                    <li class="pull-right"><a href="#admin" data-toggle="tab" title="{% if admin_user %} Admin {% else %} Account {% end %}"><em class="icon-uniE607"></em></a></li>
                     </ul>
                 </div>
             </div><!-- row -->
