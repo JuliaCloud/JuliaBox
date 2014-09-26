@@ -8,4 +8,4 @@ julia -e 'Pkg.add("Optim"); Pkg.add("JuMP"); Pkg.add("GLPKMathProgInterface"); P
 
 julia -e 'Pkg.add("NLopt"); Pkg.add("Ipopt");'
 
-julia -e 'Pkg.add("Images");'
+julia -e 'Pkg.add("Images"); Pkg.add("ODE"); Pkg.add("Sundials");'
