@@ -64,6 +64,8 @@ class MainHandler(JBoxHandler):
 
                             if (invite is not None) and invite.is_invited(user_id):
                                 jbuser.set_activation_state(invite_code, JBoxUserV2.ACTIVATION_GRANTED)
+                                invite.increment_count()
+                                invite.save()
                                 jbuser.save()
                                 self.redirect('/hostlaunchipnb/')
                                 return

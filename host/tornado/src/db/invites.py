@@ -58,3 +58,10 @@ class JBoxInvite(JBoxDB):
 
         ids = map(str.strip, self.item['invited'].split(","))
         return user_id in ids
+
+    def increment_count(self):
+        if (self.table() is None) or (self.item is None):
+            return  # is this handled well?
+
+        c = self.item.get('count', 0)
+        self.item['count'] = c + 1
