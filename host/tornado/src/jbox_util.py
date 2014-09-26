@@ -9,6 +9,8 @@ import traceback
 import psutil
 import isodate
 import boto.dynamodb
+import boto.route53
+from boto.route53.record import ResourceRecordSets, Record
 import boto.utils
 import boto.ec2
 import boto.ec2.cloudwatch
@@ -129,15 +131,23 @@ class LoggerMixin(object):
 class CloudHelper(LoggerMixin):
     REGION = 'us-east-1'
     INSTALL_ID = 'JuliaBox'
+
     EC2_CONN = None
     DYNAMODB_CONN = None
+
+    ROUTE53_CONN = None
+    ROUTE53_DOMAIN = ''
+
     S3_CONN = None
     S3_BUCKETS = {}
+
     CLOUDWATCH_CONN = None
+
     AUTOSCALE_CONN = None
     AUTOSCALE_GROUP = None
     SCALE_UP_POLICY = None
     SCALE_UP_AT_LOAD = 80
+
     ENABLED = {}
     INSTANCE_ID = None
     PUBLIC_HOSTNAME = None
@@ -188,17 +198,21 @@ class CloudHelper(LoggerMixin):
         return minutes
 
     @staticmethod
-    def configure(has_s3=True, has_dynamodb=True, has_cloudwatch=True, has_autoscale=True,
+    def configure(has_s3=True, has_dynamodb=True, has_cloudwatch=True, has_autoscale=True, has_route53=True,
                   scale_up_at_load=80, scale_up_policy=None, autoscale_group=None,
+                  route53_domain=None,
                   region='us-east-1', install_id='JuliaBox'):
         CloudHelper.ENABLED['s3'] = has_s3
         CloudHelper.ENABLED['dynamodb'] = has_dynamodb
         CloudHelper.ENABLED['cloudwatch'] = has_cloudwatch
         CloudHelper.ENABLED['autoscale'] = has_autoscale
+        CloudHelper.ENABLED['route53'] = has_route53
 
         CloudHelper.SCALE_UP_AT_LOAD = scale_up_at_load
         CloudHelper.SCALE_UP_POLICY = scale_up_policy
         CloudHelper.AUTOSCALE_GROUP = autoscale_group
+
+        CloudHelper.ROUTE53_DOMAIN = route53_domain
 
         CloudHelper.INSTALL_ID = install_id
         CloudHelper.REGION = region
@@ -215,6 +229,41 @@ class CloudHelper(LoggerMixin):
         if (CloudHelper.DYNAMODB_CONN is None) and CloudHelper.ENABLED['dynamodb']:
             CloudHelper.DYNAMODB_CONN = boto.dynamodb.connect_to_region(CloudHelper.REGION)
         return CloudHelper.DYNAMODB_CONN
+
+    @staticmethod
+    def connect_route53():
+        if (CloudHelper.ROUTE53_CONN is None) and CloudHelper.ENABLED['route53']:
+            CloudHelper.ROUTE53_CONN = boto.route53.connect_to_region(CloudHelper.REGION)
+        return CloudHelper.ROUTE53_CONN
+
+    @staticmethod
+    def make_instance_dns_name():
+        dns_name = CloudHelper.instance_id()
+        if CloudHelper.AUTOSCALE_GROUP is not None:
+            dns_name += ('-' + CloudHelper.AUTOSCALE_GROUP)
+        dns_name += ('.' + CloudHelper.ROUTE53_DOMAIN)
+
+        return dns_name
+
+    @staticmethod
+    def register_instance_dns():
+        if not CloudHelper.ENABLED['route53']:
+            return
+
+        dns_name = CloudHelper.make_instance_dns_name()
+
+        zone = CloudHelper.connect_route53().get_zone(CloudHelper.ROUTE53_DOMAIN)
+        zone.add_cname(dns_name, CloudHelper.instance_public_hostname())
+
+    @staticmethod
+    def deregister_instance_dns():
+        if not CloudHelper.ENABLED['route53']:
+            return
+
+        dns_name = CloudHelper.make_instance_dns_name()
+
+        zone = CloudHelper.connect_route53().get_zone(CloudHelper.ROUTE53_DOMAIN)
+        zone.delete_cname(dns_name)
 
     @staticmethod
     def connect_s3():

@@ -55,8 +55,11 @@
     	"dynamodb": True,
     	"cloudwatch": True,
     	"autoscale": True,
+    	"route53": True,
 
     	"autoscale_group": "juliabox",
+    	"route53_domain": "juliabox.org",
+
         # Average cluster load at which to initiate scale up
     	"scale_up_at_load": 70,
     	"scale_up_policy": "addinstance",

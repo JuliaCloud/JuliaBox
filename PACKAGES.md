@@ -25,7 +25,7 @@ However, user installed packages may not be retained across sessions. Also since
     - SIUnits
     - SymPy
 
-39 additional packages:
+40 additional packages:
     - ArrayViews
     - BinDeps
     - Calculus
@@ -65,4 +65,5 @@ However, user installed packages may not be retained across sessions. Also since
     - TexExtensions
     - URIParser
     - ZMQ
+    - Zlib
 
