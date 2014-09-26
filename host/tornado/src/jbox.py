@@ -45,9 +45,11 @@ class JBox(LoggerMixin):
                               has_dynamodb=cloud_cfg['dynamodb'],
                               has_cloudwatch=cloud_cfg['cloudwatch'],
                               has_autoscale=cloud_cfg['autoscale'],
+                              has_route53=cloud_cfg['route53'],
                               scale_up_at_load=cloud_cfg['scale_up_at_load'],
                               scale_up_policy=cloud_cfg['scale_up_policy'],
                               autoscale_group=cloud_cfg['autoscale_group'],
+                              route53_domain=cloud_cfg['route53_domain'],
                               region=cloud_cfg['region'],
                               install_id=cloud_cfg['install_id'])
 
@@ -83,6 +85,7 @@ class JBox(LoggerMixin):
         self.ct = tornado.ioloop.PeriodicCallback(JBox.do_housekeeping, run_interval, self.ioloop)
 
     def run(self):
+        CloudHelper.register_instance_dns()
         JBoxContainer.publish_container_stats()
         self.ct.start()
         self.ioloop.start()
@@ -95,6 +98,7 @@ class JBox(LoggerMixin):
         if JBox.cfg['cloud_host']['scale_down'] and (JBoxContainer.num_active() == 0) and \
                 (JBoxContainer.num_stopped() == 0) and CloudHelper.should_terminate():
             JBox.log_info("terminating to scale down")
+            CloudHelper.deregister_instance_dns()
             CloudHelper.terminate_instance()
 
 

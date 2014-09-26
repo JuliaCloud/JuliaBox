@@ -224,6 +224,8 @@ class JBoxContainer(LoggerMixin):
 
         disk_used_pct = 0
         for x in psutil.disk_partitions():
+            if x.mountpoint.startswith(JBoxContainer.FS_LOC):
+                continue
             try:
                 disk_used_pct = max(psutil.disk_usage(x.mountpoint).percent, disk_used_pct)
             except:

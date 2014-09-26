@@ -20,6 +20,7 @@ function sysinstall_pystuff {
     sudo pip install boto
     sudo pip install pycrypto
     sudo pip install psutil
+    sudo pip install cli53
 
     git clone https://github.com/dotcloud/docker-py
     cd docker-py
