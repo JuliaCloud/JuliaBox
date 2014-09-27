@@ -11,7 +11,9 @@
     {% else %}
     <link rel="stylesheet" type="text/css" href="/assets/css/base.css" />
     {% end %}
-	
+
+	<script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore-min.js"></script>
+
     <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
     <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/bootbox.js/4.2.0/bootbox.min.js"></script>

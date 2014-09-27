@@ -74,6 +74,11 @@
 	    		parent.JuliaBox.show_ssh_key();
 	    	});
 	    	
+	    	$('#invites-report').click(function(event){
+	    		event.preventDefault();
+	    		parent.JuliaBox.show_invites_report();
+            });
+
 	    	$('#upgrade').click(function(event){
 	    		event.preventDefault();
 	    		parent.JuliaBox.popup_confirm("Newer JuliaBox versions come with more recent versions of Julia and packages.<br/><br/>Files saved in your account would be available after the upgrade. Any unsaved changes would be lost. You will be logged out for the upgrade and will need to log in again.<br/><br/>Please confirm if you wish to upgrade to the latest JuliaBox version.", function(result){
@@ -190,6 +195,10 @@ You are on the latest JuliaBox version: {{d["juliaboxver"]}} <br/>
         <tr><td>{{x["image_id"]}}</td><td>{{x["count"]}}</td></tr>
       {% end %}
     </table>
+{% if d["invites_perm"] %}
+    <p><b><a id="invites-report" href="#">Manage invite codes &rarr;</a></b></p>
+{% end %}
+
 {% end %}
 </body>
 </html>

@@ -35,6 +35,7 @@ class JBoxUserV2(JBoxDB):
     
     ROLE_USER = 0
     ROLE_REPORT = 10
+    ROLE_TICKETS = 15
     ROLE_ADMIN = 20
 
     ACTIVATION_NONE = 0

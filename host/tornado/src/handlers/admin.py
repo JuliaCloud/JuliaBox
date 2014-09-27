@@ -7,6 +7,7 @@ from handlers.handler_base import JBoxHandler
 from jbox_container import JBoxContainer
 from handlers.auth import AuthHandler
 from db.user_v2 import JBoxUserV2
+from db.invites import JBoxInvite
 from db.accounting_v2 import JBoxAccountingV2
 
 
@@ -33,17 +34,26 @@ class AdminHandler(JBoxHandler):
             return
 
         user = JBoxUserV2(user_id)
-        show_report = (sessname in self.config("report_sessnames", []) or
-                       user.get_role() == JBoxUserV2.ROLE_REPORT)
-
-        admin_user = (sessname in self.config("admin_sessnames", []) or
-                      user.get_role() == JBoxUserV2.ROLE_ADMIN)
-        show_report = show_report or admin_user
+        admin_user   = (sessname in self.config("admin_sessnames", []) or
+                        user.get_role() == JBoxUserV2.ROLE_ADMIN)
+        show_report  = (sessname in self.config("report_sessnames", []) or
+                        user.get_role() == JBoxUserV2.ROLE_REPORT) or admin_user
+        invites_perm = (sessname in self.config("tickets_sessnames", []) or
+                        user.get_role() == JBoxUserV2.ROLE_ADMIN) or admin_user
 
         sections = []
         loads = []
         report = {}
         report_span = 'day'
+        invites_info = []
+
+        action = self.get_argument("action", None)
+        #invite_code = self.request.get("invite_code", None)
+        if action == "invites_report" and invites_perm:
+            self.write(dict(
+                code=0,
+                data=[obj for obj in JBoxInvite.table().scan()]))
+            return
 
         if admin_user:
             sections, loads = self.admin_stats()
@@ -60,6 +70,7 @@ class AdminHandler(JBoxHandler):
         d = dict(
             admin_user=admin_user,
             show_report=show_report,
+            invites_perm=invites_perm,
             report_span=report_span,
             sessname=sessname,
             user_id=user_id,

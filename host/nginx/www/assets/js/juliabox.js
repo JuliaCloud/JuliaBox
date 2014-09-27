@@ -1,4 +1,4 @@
-var JuliaBox = (function(){
+var JuliaBox = (function($, _, undefined){
 	var _msg_body = null;
 	var _msg_div = null;
 	var _gauth = null;
@@ -41,12 +41,73 @@ var JuliaBox = (function(){
 	    		}
 	    	});
 	    },
-	    
+
 	    show_ssh_key: function () {
 	    	s = function(sshkey){ bootbox.alert('<pre>' + sshkey.data + '</pre>'); };
 	    	f = function() { bootbox.alert("Oops. Unexpected error while retrieving the ssh key.<br/><br/>Please try again later."); };
 	    	self.comm('/hostupload/sshkey', 'GET', null, s, f);
 	    },
+
+        make_invites_table: function(data) {
+            var invites = data.data;
+
+            function tr(i) {
+		function fmt_date(date) {
+			return new Date(Date.parse(date))
+				.toLocaleString();
+		}
+
+                return _.reduce(
+                    [ i.invite_code
+                    , fmt_date(i.time_created)
+                    , i.max_count || 'Unlimited'
+                    , fmt_date(i.expires_on)
+                    , i.count || 'NA'],
+		    function(row, cell) {
+			    return row.append($("<td/>").text(cell));
+		    }, $("<tr/>"));
+            }
+	    var $header = $("<h2>Existing invite codes</h2>"),
+                $thead = $("<thead></thead>");
+
+            $("<tr></tr>")
+		    .append("<th>Code</th>")
+		    .append("<th>Created</th>")
+		    .append("<th>Max</th>")
+		    .append("<th>Expires</th>")
+		    .append("<th>Used</th>").appendTo($thead)
+
+            var $tbody = _.reduce(
+                    _.map(invites, tr),
+                    function (x, c) { return x.append(c); },
+                    $("<tbody/>")
+                    );
+            var $table = $("<table/>")
+                        .attr("class", "table table-striped")
+                        .append($thead).append($tbody)
+
+	    var $newinvite = $('<form method="POST" action="/hostadmin?action=make_invite"/>')
+	    	.append($('<label for="invite_code">Code</label>' +
+			    '<input class="form-control" id="invite_code" type="text" name="invite_code" placeholder="Create a new code">'))
+		.append($('<label for="expires_on">Expires</label>' +
+			     '<input class="form-control" id="expires_on" type="datetime" name="expires_on" placeholder="Expires on">'))
+	    	.append($('<label for="max_count" for="max_count">Max</label>' +
+			  '<input class="form-control" id="max_count" type="text" name="max_count" placeholder="Max">'))
+	    	.append($('<input class="btn btn-primary" type="submit">'))
+
+	    return $("<div/>").append($header).append($table);
+
+        },
+
+        show_invites_report: function () {
+            s = function(data) {
+                bootbox.alert(self.make_invites_table(data).html());
+            };
+            f = function () {
+                bootbox.alert("Oops. Unexpected error occured while showing invite codes");
+            }
+            self.comm('/hostadmin/?action=invites_report', 'GET', null, s,f);
+        },
 	    
 		do_upgrade: function () {
 			s = function(res) {
@@ -306,5 +367,5 @@ var JuliaBox = (function(){
 	};
 	
 	return self;
-})();
+})(jQuery, _);
 
