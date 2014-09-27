@@ -188,7 +188,7 @@ class JBoxContainer(LoggerMixin):
         return cont
 
     @staticmethod
-    def launch_by_name(name, reuse=True):
+    def launch_by_name(name, email, reuse=True):
         JBoxContainer.log_info("Launching container: " + name)
 
         cont = JBoxContainer.get_by_name(name)
@@ -201,7 +201,7 @@ class JBoxContainer(LoggerMixin):
             cont = JBoxContainer.create_new(name)
 
         if not (cont.is_running() or cont.is_restarting()):
-            cont.start()
+            cont.start(email)
         else:
             cont.restart()
 
@@ -459,6 +459,14 @@ class JBoxContainer(LoggerMixin):
             os.remove(src)
 
     @staticmethod
+    def gen_gitconfig(disk_path, name, email):
+        gitconfig_path = os.path.join(disk_path, '.gitconfig')
+        if os.path.exists(gitconfig_path):
+            return
+        with open(gitconfig_path, 'w') as f:
+            f.write("[user]\n    email = " + email + "\n    name = " + name + "\n")
+
+    @staticmethod
     def gen_ssh_key(disk_path):
         ssh_path = os.path.join(disk_path, '.ssh')
         ssh_key_path = os.path.join(ssh_path, 'id_rsa')
@@ -565,7 +573,7 @@ class JBoxContainer(LoggerMixin):
         hvol = hvol.replace('${DISK_ID}', str(disk_id))
         return hvol
 
-    def start(self):
+    def start(self, email):
         self.refresh()
         JBoxContainer.log_info("Starting " + self.debug_str())
         if self.is_running() or self.is_restarting():
@@ -575,6 +583,7 @@ class JBoxContainer(LoggerMixin):
         disk_id, disk_path = JBoxContainer.create_disk()
         self.restore_backup_to_disk(disk_path)
         JBoxContainer.gen_ssh_key(disk_path)
+        JBoxContainer.gen_gitconfig(disk_path, email.split('@')[0], email)
         JBoxContainer.mark_disk_used(disk_id)
 
         vols = {}

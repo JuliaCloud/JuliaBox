@@ -4,7 +4,7 @@ Following packages are installed by default. Additional packages can be installe
 
 However, user installed packages may not be retained across sessions. Also since the JuliaBox user is not a priviledged user, packages requiring additional system packages may not install correctly. There will be an alternate mechanism for installing additional packages in the future.
 
-19 required packages:
+21 required packages:
     - Clp
     - DataFrames
     - DataStructures
@@ -20,12 +20,14 @@ However, user installed packages may not be retained across sessions. Also since
     - MCMC
     - NLopt
     - NumericExtensions
+    - ODE
     - Optim
     - PyPlot
     - SIUnits
+    - Sundials
     - SymPy
 
-40 additional packages:
+42 additional packages:
     - ArrayViews
     - BinDeps
     - Calculus
@@ -35,7 +37,7 @@ However, user installed packages may not be retained across sessions. Also since
     - Compose
     - Contour
     - DataArrays
-    - Datetime
+    - Dates
     - Distances
     - Distributions
     - DualNumbers
@@ -53,6 +55,7 @@ However, user installed packages may not be retained across sessions. Also since
     - Nettle
     - NumericFuns
     - PDMats
+    - Polynomial
     - PyCall
     - REPLCompletions
     - Reactive
@@ -60,6 +63,7 @@ However, user installed packages may not be retained across sessions. Also since
     - ReverseDiffSource
     - ReverseDiffSparse
     - SHA
+    - Showoff
     - SortingAlgorithms
     - StatsBase
     - TexExtensions
