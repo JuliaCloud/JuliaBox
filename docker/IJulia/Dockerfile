@@ -1,5 +1,5 @@
 # Docker file for JuliaBox
-# Version:12
+# Version:13
 
 FROM tanmaykm/juliaboxjulia:julia_v0.3_5
 
@@ -7,13 +7,56 @@ MAINTAINER Tanmay Mohapatra
 
 # Install additional packages required for Julia packages
 RUN apt-get install -y \
-		hdf5-tools \
-		python-sympy \
-		glpk-utils \
-		libnlopt0 \
-		gfortran \
-		imagemagick \
-		&& apt-get clean
+    hdf5-tools \
+    python-sympy \
+    glpk-utils \
+    libnlopt0 \
+    gfortran \
+    imagemagick \
+    inkscape \
+    && apt-get clean
+
+# Sundials
+RUN apt-get install -y \
+    libsundials-cvode1 \
+    libsundials-cvodes2 \
+    libsundials-ida2 \
+    libsundials-idas0 \
+    libsundials-kinsol1 \
+    libsundials-nvecserial0 \
+    libsundials-serial \
+    libsundials-serial-dev \
+    && apt-get clean
+
+# Cbc
+RUN mkdir cbc; cd cbc; wget http://www.coin-or.org/download/source/Cbc/Cbc-2.8.12.tgz; \
+    tar -xzf Cbc-2.8.12.tgz; cd Cbc-2.8.12; \
+    ./configure --prefix=/usr/local --enable-dependency-linking --without-blas --without-lapack --enable-cbc-parallel; \
+    make install; \
+    echo "/usr/local/lib" > /etc/ld.so.conf.d/cbc.conf; ldconfig; \
+    cd ../..; \
+    rm -rf cbc
+
+# NLopt
+RUN mkdir nlopt; cd nlopt; wget http://ab-initio.mit.edu/nlopt/nlopt-2.4.tar.gz; \
+    tar -xzf nlopt-2.4.tar.gz; cd nlopt-2.4; \
+    ./configure --prefix=/usr/local --enable-shared --without-guile --without-python --without-octave --without-matlab --with-cxx; \
+    make install; \
+    echo "/usr/local/lib" > /etc/ld.so.conf.d/nlopt.conf; ldconfig; \
+    cd ../..; \
+    rm -rf nlopt
+
+# Ipopt
+RUN mkdir ipopt; cd ipopt; wget  http://www.coin-or.org/download/source/Ipopt/Ipopt-3.11.7.tgz; \
+    tar -xzf Ipopt-3.11.7.tgz; cd Ipopt-3.11.7; \
+    cd ThirdParty/Blas; ./get.Blas; ./configure --prefix=/usr/local --disable-shared --with-pic; make install; cd ../..; \
+    cd ThirdParty/Lapack; ./get.Lapack; ./configure --prefix=/usr/local --disable-shared --with-pic; make install; cd ../..; \
+    cd ThirdParty/Mumps; ./get.Mumps; cd ../..; \
+    ./configure --prefix=/usr/local --enable-dependency-linking --with-blas=/usr/local/lib/libcoinblas.a --with-lapack=/usr/local/lib/libcoinlapack.a; \
+    make install; \
+    echo "/usr/local/lib" > /etc/ld.so.conf.d/ipopt.conf; ldconfig; \
+    cd ../..; \
+    rm -rf ipopt
 
 # add juser
 RUN groupadd juser \
