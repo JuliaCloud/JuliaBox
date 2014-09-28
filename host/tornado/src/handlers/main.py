@@ -132,7 +132,7 @@ class MainHandler(JBoxHandler):
             else:
                 self.redirect('/?h=' + str(nhops + 1))
         else:
-            cont = JBoxContainer.launch_by_name(sessname, True)
+            cont = JBoxContainer.launch_by_name(sessname, user_id, True)
             (shellport, uplport, ipnbport) = cont.get_host_ports()
             sign = signstr(sessname + str(shellport) + str(uplport) + str(ipnbport), self.config("sesskey"))
 
