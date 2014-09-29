@@ -10,7 +10,7 @@ import isodate
 import psutil
 
 from db.accounting_v2 import JBoxAccountingV2
-from jbox_util import LoggerMixin, CloudHelper, ensure_delete
+from jbox_util import LoggerMixin, CloudHelper, ensure_delete, esc_sessname
 from jbox_crypto import ssh_keygen
 
 
@@ -431,7 +431,7 @@ class JBoxContainer(LoggerMixin):
             nbconfig_file.write(
                 "c.NotebookApp.websocket_url = 'ws://" + CloudHelper.instance_public_hostname() + "'\n")
 
-    def restore_backup_to_disk(self, disk_path):
+    def restore_backup_to_disk(self, disk_path, old_backup):
         cname = self.get_name()
         if cname is None:
             raise Exception("Could not get container name")
@@ -439,7 +439,13 @@ class JBoxContainer(LoggerMixin):
         src = os.path.join(JBoxContainer.BACKUP_LOC, cname[1:] + ".tar.gz")
         k = JBoxContainer.pull_from_s3(src)  # download from S3 if exists
         if not os.path.exists(src):
+            if old_backup is not None:
+                src = os.path.join(JBoxContainer.BACKUP_LOC, old_backup + ".tar.gz")
+                k = JBoxContainer.pull_from_s3(src)  # download from S3 if exists
+
+        if not os.path.exists(src):
             return
+
         JBoxContainer.log_info("Filtering out restore info from backup " + src + " to " + disk_path)
 
         src_tar = tarfile.open(src, 'r:gz')
@@ -581,7 +587,7 @@ class JBoxContainer(LoggerMixin):
             return
 
         disk_id, disk_path = JBoxContainer.create_disk()
-        self.restore_backup_to_disk(disk_path)
+        self.restore_backup_to_disk(disk_path, old_backup=esc_sessname(email))
         JBoxContainer.gen_ssh_key(disk_path)
         JBoxContainer.gen_gitconfig(disk_path, email.split('@')[0], email)
         JBoxContainer.mark_disk_used(disk_id)

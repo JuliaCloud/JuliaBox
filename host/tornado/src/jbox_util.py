@@ -5,6 +5,7 @@ import errno
 import datetime
 import pytz
 import traceback
+import hashlib
 
 import psutil
 import isodate
@@ -24,12 +25,18 @@ def log_info(s):
     sys.stdout.flush()
 
 
-# TODO: This scheme of escaping ssession names can result in clashes.
-#       Change to a better scheme probably one using lower case and upper case characters
 def esc_sessname(s):
     if s is None:
         return s
     return s.replace("@", "_at_").replace(".", "_")
+
+
+def unique_sessname(s):
+    if s is None:
+        return None
+    name = esc_sessname(s.split('@')[0])
+    hash = hashlib.sha1(s).hexdigest()
+    return '_'.join([name, hash])
 
 
 def read_config():
@@ -50,11 +57,11 @@ def read_config():
 
     cfg["admin_sessnames"] = []
     for ad in cfg["admin_users"]:
-        cfg["admin_sessnames"].append(esc_sessname(ad))
+        cfg["admin_sessnames"].append(unique_sessname(ad))
 
     cfg["protected_docknames"] = []
     for ps in cfg["protected_sessions"]:
-        cfg["protected_docknames"].append("/" + esc_sessname(ps))
+        cfg["protected_docknames"].append("/" + unique_sessname(ps))
 
     return cfg
 
@@ -343,8 +350,8 @@ class CloudHelper(LoggerMixin):
             return
         try:
             CloudHelper.connect_autoscale().execute_policy(CloudHelper.SCALE_UP_POLICY,
-                                                       as_group=CloudHelper.AUTOSCALE_GROUP,
-                                                       honor_cooldown='true')
+                                                           as_group=CloudHelper.AUTOSCALE_GROUP,
+                                                           honor_cooldown='true')
         except:
             CloudHelper.log_error("Error requesting scale up")
             traceback.print_exc()
@@ -413,6 +420,9 @@ class CloudHelper(LoggerMixin):
                 CloudHelper.log_info("Requesting scale up as cluster average load " +
                                      str(avg_load) + " > " + str(CloudHelper.SCALE_UP_AT_LOAD))
                 CloudHelper.add_instance()
+        else:
+            avg_load = self_load
+            cluster_load = []
 
         if self_load >= 100:
             return False

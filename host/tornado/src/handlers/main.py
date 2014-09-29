@@ -7,7 +7,7 @@ from oauth2client.client import OAuth2Credentials
 
 from handlers.handler_base import JBoxHandler
 
-from jbox_util import esc_sessname, CloudHelper
+from jbox_util import unique_sessname, CloudHelper
 from jbox_crypto import signstr
 from handlers.auth import AuthHandler
 from db.user_v2 import JBoxUserV2
@@ -41,7 +41,7 @@ class MainHandler(JBoxHandler):
             self.rendertpl("index.tpl", cfg=self.config(), state=state)
         else:
             user_id = jbox_cookie['u']
-            sessname = esc_sessname(user_id)
+            sessname = unique_sessname(user_id)
 
             if self.config("gauth"):
                 try:
