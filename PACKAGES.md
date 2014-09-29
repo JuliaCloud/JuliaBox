@@ -4,7 +4,7 @@ Following packages are installed by default. Additional packages can be installe
 
 However, user installed packages may not be retained across sessions. Also since the JuliaBox user is not a priviledged user, packages requiring additional system packages may not install correctly. There will be an alternate mechanism for installing additional packages in the future.
 
-21 required packages:
+24 required packages:
     - Clp
     - DataFrames
     - DataStructures
@@ -12,11 +12,13 @@ However, user installed packages may not be retained across sessions. Also since
     - Gadfly
     - HDF5
     - IJulia
+    - ImageView
     - Images
     - Interact
     - Ipopt
     - Iterators
     - JuMP
+    - LinearLeastSquares
     - MCMC
     - NLopt
     - NumericExtensions
@@ -26,10 +28,12 @@ However, user installed packages may not be retained across sessions. Also since
     - SIUnits
     - Sundials
     - SymPy
+    - WAV
 
-42 additional packages:
+46 additional packages:
     - ArrayViews
     - BinDeps
+    - Cairo
     - Calculus
     - Cbc
     - Codecs
@@ -47,6 +51,7 @@ However, user installed packages may not be retained across sessions. Also since
     - Graphs
     - Hexagons
     - ImmutableArrays
+    - IniFile
     - JSON
     - KernelDensity
     - LaTeXStrings
@@ -67,7 +72,8 @@ However, user installed packages may not be retained across sessions. Also since
     - SortingAlgorithms
     - StatsBase
     - TexExtensions
+    - Tk
     - URIParser
+    - Winston
     - ZMQ
     - Zlib
-
