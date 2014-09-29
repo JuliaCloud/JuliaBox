@@ -4,6 +4,7 @@ Following packages are installed by default. Additional packages can be installe
 
 However, user installed packages may not be retained across sessions. Also since the JuliaBox user is not a priviledged user, packages requiring additional system packages may not install correctly. There will be an alternate mechanism for installing additional packages in the future.
 
+````
 24 required packages:
     - Clp
     - DataFrames
@@ -77,3 +78,5 @@ However, user installed packages may not be retained across sessions. Also since
     - Winston
     - ZMQ
     - Zlib
+````
+
