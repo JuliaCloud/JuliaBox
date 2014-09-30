@@ -10,4 +10,3 @@
 - `run/stop.sh`
 - `run/reload.sh`: Re-start the server and apply any changes made to configuration.
 - `run/clean.sh`: Remove all log files.
-- 
