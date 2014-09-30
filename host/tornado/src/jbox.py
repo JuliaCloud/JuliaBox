@@ -85,6 +85,10 @@ class JBox(LoggerMixin):
         self.ct = tornado.ioloop.PeriodicCallback(JBox.do_housekeeping, run_interval, self.ioloop)
 
     def run(self):
+        try:
+            CloudHelper.deregister_instance_dns()
+        except:
+            CloudHelper.log_info("No prior dns registration found for the instance")
         CloudHelper.register_instance_dns()
         JBoxContainer.publish_container_stats()
         self.ct.start()
@@ -98,7 +102,10 @@ class JBox(LoggerMixin):
         if JBox.cfg['cloud_host']['scale_down'] and (JBoxContainer.num_active() == 0) and \
                 (JBoxContainer.num_stopped() == 0) and CloudHelper.should_terminate():
             JBox.log_info("terminating to scale down")
-            CloudHelper.deregister_instance_dns()
+            try:
+                CloudHelper.deregister_instance_dns()
+            except:
+                CloudHelper.log_error("Error deregistering instance dns")
             CloudHelper.terminate_instance()
 
 
