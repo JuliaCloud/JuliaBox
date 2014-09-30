@@ -25,6 +25,6 @@ class CorsHandler(JBoxHandler):
             for cname in ['sessname', 'hostshell', 'hostupload', 'hostipnb', 'sign', 'juliabox']:
                 args[cname] = self.get_cookie(cname)
             args = tornado.escape.url_escape(base64.b64encode(encrypt(json.dumps(args), self.config(key='sesskey'))))
-            url = "//" + CloudHelper.instance_public_hostname() + "/cors/?m=" + args
+            url = "//" + CloudHelper.notebook_websocket_hostname() + "/cors/?m=" + args
             self.log_debug("redirecting to " + url)
             self.redirect(url)

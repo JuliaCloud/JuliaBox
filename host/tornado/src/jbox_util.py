@@ -171,6 +171,12 @@ class CloudHelper(LoggerMixin):
         return CloudHelper.INSTANCE_ID
 
     @staticmethod
+    def notebook_websocket_hostname():
+        if CloudHelper.ENABLED['route53']:
+            return CloudHelper.make_instance_dns_name()
+        return CloudHelper.instance_public_hostname()
+
+    @staticmethod
     def instance_public_hostname():
         if CloudHelper.PUBLIC_HOSTNAME is None:
             if not CloudHelper.ENABLED['cloudwatch']:
