@@ -34,12 +34,11 @@ class AdminHandler(JBoxHandler):
             return
 
         user = JBoxUserV2(user_id)
-        admin_user   = (sessname in self.config("admin_sessnames", []) or
-                        user.get_role() == JBoxUserV2.ROLE_ADMIN)
-        show_report  = (sessname in self.config("report_sessnames", []) or
-                        user.get_role() == JBoxUserV2.ROLE_REPORT) or admin_user
-        invites_perm = (sessname in self.config("tickets_sessnames", []) or
-                        user.get_role() == JBoxUserV2.ROLE_ADMIN) or admin_user
+
+        is_admin = sessname in self.config("admin_sessnames", [])
+        manage_containers = is_admin or user.has_role(JBoxUserV2.ROLE_MANAGE_CONTAINERS)
+        show_report = is_admin or user.has_role(JBoxUserV2.ROLE_ACCESS_STATS)
+        invites_perm = is_admin or user.has_role(JBoxUserV2.ROLE_MANAGE_INVITES)
 
         sections = []
         loads = []
@@ -55,8 +54,8 @@ class AdminHandler(JBoxHandler):
                 data=[obj for obj in JBoxInvite.table().scan()]))
             return
 
-        if admin_user:
-            sections, loads = self.admin_stats()
+        if manage_containers:
+            sections, loads = self.do_containers()
 
         if show_report:
             today = datetime.now()
@@ -68,7 +67,7 @@ class AdminHandler(JBoxHandler):
             report = JBoxAccountingV2.get_stats(dates)
 
         d = dict(
-            admin_user=admin_user,
+            manage_containers=manage_containers,
             show_report=show_report,
             invites_perm=invites_perm,
             report_span=report_span,
@@ -111,7 +110,7 @@ class AdminHandler(JBoxHandler):
                 upgrade_available += ':latest'
         return juliaboxver, upgrade_available
 
-    def admin_stats(self):
+    def do_containers(self):
         sections = []
         loads = []
 
