@@ -33,10 +33,12 @@ class JBoxUserV2(JBoxDB):
     STATUS_ACTIVE = 0
     STATUS_INACTIVE = 1
     
-    ROLE_USER = 0
-    ROLE_REPORT = 10
-    ROLE_TICKETS = 15
-    ROLE_ADMIN = 20
+    ROLE_USER              = 0
+    ROLE_ACCESS_STATS      = 1 << 0
+    ROLE_MANAGE_INVITES    = 1 << 1
+    ROLE_MANAGE_CONTAINERS = 1 << 2
+
+    ROLE_SUPER   = (1 << 33) - 1
 
     ACTIVATION_NONE = 0
     ACTIVATION_GRANTED = 1
@@ -78,7 +80,15 @@ class JBoxUserV2(JBoxDB):
         if self.item is not None:
             return self.item.get('role', JBoxUserV2.ROLE_USER)
         else:
-            return None
+            return JBoxUserV2.ROLE_USER
+
+    def set_role(self, role):
+        if self.item is not None:
+            r = self.item.get('role', JBoxUserV2.ROLE_USER)
+            self.item['role'] = r | role
+
+    def has_role(self, role):
+        return self.get_role() & role == role
 
     def set_status(self, status):
         if self.item is not None:

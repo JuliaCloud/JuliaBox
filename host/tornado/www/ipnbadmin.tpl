@@ -124,7 +124,7 @@ You are on the latest JuliaBox version: {{d["juliaboxver"]}} <br/>
 {% end %}
 <br/>
 
-{% if d["admin_user"] %}
+{% if d["manage_containers"] %}
     <hr/>
     <h3>Administer this installation</h3>
     <hr/>
