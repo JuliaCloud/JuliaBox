@@ -20,14 +20,18 @@ http {
         
         #listen 443 default_server ssl;
 
-        #ssl_certificate   		ssl-bundle.crt;
+        #ssl_certificate        ssl-bundle.crt;
         #ssl_certificate_key    juliabox.key;
         
         #ssl_protocols SSLv3 TLSv1;
         #ssl_ciphers ALL:!aNULL:!ADH:!eNULL:!LOW:!EXP:RC4+RSA:+HIGH:+MEDIUM;
 
+        #if ($http_x_forwarded_proto = 'http') {
+        #    return 302 https://$host$request_uri;
+        #}
+
         #if ($scheme = http) {
-        #    return 301 https://$host$request_uri;
+        #    return 302 https://$host$request_uri;
         #}
 
         root www;

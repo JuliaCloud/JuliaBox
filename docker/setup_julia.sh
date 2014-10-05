@@ -9,3 +9,5 @@ julia -e 'Pkg.add("Optim"); Pkg.add("JuMP"); Pkg.add("GLPKMathProgInterface"); P
 julia -e 'Pkg.add("Cairo");'
 
 julia -e 'Pkg.add("Images"); Pkg.add("ImageView"); Pkg.add("WAV"); Pkg.add("ODE"); Pkg.add("Sundials"); Pkg.add("LinearLeastSquares");'
+
+julia -e 'Pkg.add("BayesNets"); Pkg.add("PDFPlots"); Pkg.add("GraphLayout");'

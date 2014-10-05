@@ -429,7 +429,7 @@ class JBoxContainer(LoggerMixin):
         nbconfig = os.path.join(disk_path, '.ipython/profile_julia/ipython_notebook_config.py')
         with open(nbconfig, "a") as nbconfig_file:
             nbconfig_file.write(
-                "c.NotebookApp.websocket_url = 'ws://" + CloudHelper.notebook_websocket_hostname() + "'\n")
+                "c.NotebookApp.websocket_url = 'wss://" + CloudHelper.notebook_websocket_hostname() + "'\n")
 
     def restore_backup_to_disk(self, disk_path, old_backup):
         cname = self.get_name()
