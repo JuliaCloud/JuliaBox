@@ -63,6 +63,7 @@ RUN groupadd juser \
 
 USER juser
 ENV HOME /home/juser
+ENV PATH /usr/local/texlive/2014/bin/x86_64-linux:/usr/local/bin:/usr/bin:/bin:/usr/games
 WORKDIR /home/juser
 
 # 4200: http port for console
