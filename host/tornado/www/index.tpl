@@ -157,6 +157,12 @@
 	</p>
       </div>
     </div>
+
+    <div class="footer">
+        <div class="container u-center">
+        Thank you <img class="aws-logo" src="/assets/img/aws-logo.png" > for generously hosting JuliaBox!
+        </div>
+    </div>
     <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
     <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
 	<script>
