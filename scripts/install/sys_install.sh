@@ -65,9 +65,7 @@ function sysinstall_docker {
 }
 
 function configure_docker {
-    # On EC2 we use the ephemeral storage for the images and the docker aufs filsystem store
     # Devicemapper storage can be used if disk quotas are desired. However it is less stable than aufs.
-    sudo mkdir -p /mnt/docker
     sudo service docker stop
     if grep -q "^DOCKER_OPTS" /etc/default/docker
     then
@@ -76,16 +74,15 @@ function configure_docker {
     elif [ "$DOCKER_FS" == "DEVICEMAPPER" ]
     then
         # set loop data size to that required for max containers plus 5 additional
-        LOOPDATASZ=$(((NUM_LOCALMAX+5)*3))
+        LOOPDATASZ=$(((NUM_LOCALMAX+5)*6))
         echo "Configuring docker to use"
-        echo "    -  /mnt/docker for image/container storage"
         echo "    - devicemapper fs"
-        echo "    - base image size 3GB"
+        echo "    - base image size 6GB"
         echo "    - loopdatasize ${LOOPDATASZ}GB"
-        sudo sh -c "echo 'DOCKER_OPTS=\"--storage-driver=devicemapper --storage-opt dm.basesize=3G --storage-opt dm.loopdatasize=${LOOPDATASZ}G -g /mnt/docker\"' >> /etc/default/docker"
+        sudo sh -c "echo 'DOCKER_OPTS=\"--storage-driver=devicemapper --storage-opt dm.basesize=6G --storage-opt dm.loopdatasize=${LOOPDATASZ}G\"' >> /etc/default/docker"
     else
         echo "Configuring docker to use aufs"
-        sudo sh -c "echo 'DOCKER_OPTS=\"-g /mnt/docker\"' >> /etc/default/docker"
+        sudo sh -c "echo 'DOCKER_OPTS=\"--storage-driver=aufs\"' >> /etc/default/docker"
     fi
     sudo service docker start
 

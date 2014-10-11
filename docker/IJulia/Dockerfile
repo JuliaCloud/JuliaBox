@@ -1,7 +1,7 @@
 # Docker file for JuliaBox
-# Version:14
+# Version:15
 
-FROM tanmaykm/juliaboxjulia:julia_v0.3_6
+FROM tanmaykm/jboxjulia:v0.3.2_7
 
 MAINTAINER Tanmay Mohapatra
 
@@ -56,7 +56,14 @@ RUN mkdir cbc; cd cbc; wget http://www.coin-or.org/download/source/Cbc/Cbc-2.8.1
     cd ../..; \
     rm -rf cbc
 
+# MPI
+RUN apt-get install -y \
+    openmpi-bin \
+    libopenmpi-dev \
+    && apt-get clean
+
 # add juser
+# create group and user with specific ids if required on systems where the user running juliabox is not the first user
 RUN groupadd juser \
     && useradd -m -d /home/juser -s /bin/bash -g juser -G staff juser \
     && echo "export HOME=/home/juser" >> /home/juser/.bashrc
