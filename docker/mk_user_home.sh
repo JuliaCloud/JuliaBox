@@ -2,7 +2,8 @@
 
 JUSER_HOME=/tmp/juser
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-SUDO_JUSER="sudo -u 1000 -g 1000"
+#SUDO_JUSER="sudo -u 1000 -g 1000"
+SUDO_JUSER=""
 
 function error_exit {
 	echo "$1" 1>&2
