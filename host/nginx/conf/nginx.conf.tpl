@@ -14,7 +14,7 @@ http {
         listen 80;
         
         # To enable SSL on nginx uncomment and configure the following lines
-        # We also enable SSLv3/TLSv1, but not SSLv2 which is weak and should no longer be used and disable all weak ciphers
+        # We enable TLS, but not SSLv2/SSLv3 which is weak and should no longer be used and disable all weak ciphers.
         # Provide full path to certificate bundle (ssl-bundle.crt) and private key (juliabox.key). Rename as appropriate.
         # All HTTP traffic is redirected to HTTPS
         
@@ -23,7 +23,7 @@ http {
         #ssl_certificate        ssl-bundle.crt;
         #ssl_certificate_key    juliabox.key;
         
-        #ssl_protocols SSLv3 TLSv1;
+        #ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
         #ssl_ciphers ALL:!aNULL:!ADH:!eNULL:!LOW:!EXP:RC4+RSA:+HIGH:+MEDIUM;
 
         #if ($http_x_forwarded_proto = 'http') {
