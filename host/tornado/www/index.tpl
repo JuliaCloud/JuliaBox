@@ -160,6 +160,15 @@
 
     <div class="footer">
         <div class="container u-center">
+        Classes in these universities are using JuliaBox.
+<br>
+        <a href="http://web.mit.edu"><img height="60" style="padding:.8em" src="/assets/img/mit.jpg"></a>
+        <a href="http://stanford.edu"><img height="60" style="padding:.8em" src="/assets/img/stanford.png"></a>
+        <a href="http://cuny.edu"><img height="60" style="padding:.8em" src="/assets/img/cuny.jpg"></a>
+<br>
+<br>
+        </div>
+        <div class="container u-center">
         Thank you <a href="http://aws.amazon.com"><img alt="Amazon AWS" class="aws-logo" src="/assets/img/aws-logo.png" ></a> for generously hosting JuliaBox!
         </div>
     </div>
