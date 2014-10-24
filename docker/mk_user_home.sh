@@ -17,6 +17,16 @@ sudo chown -R 1000:1000 ${JUSER_HOME}
 sudo docker run -i -v ${JUSER_HOME}:/home/juser --entrypoint="/home/juser/setup_julia.sh" juliabox/juliabox:latest || error_exit "Could not run juliabox image"
 ${SUDO_JUSER} rm ${JUSER_HOME}/setup_julia.sh
 
+${SUDO_JUSER} mkdir -p ${JUSER_HOME}/.ipython/kernels/julia
+${SUDO_JUSER} cat > ${JUSER_HOME}/.ipython/kernels/julia/kernel.json <<DELIM
+{
+        "argv": ["/usr/bin/julia", "-F", "/home/juser/.julia/v0.3/IJulia/src/kernel.jl", "{connection_file}"],
+        "codemirror_mode": {   "version": 0.3,   "name": "julia"  },
+        "display_name": "IJulia (Julia 0.3.2)",
+        "language": "julia"
+}
+DELIM
+
 echo "c.NotebookApp.open_browser = False" | ${SUDO_JUSER} tee --append ${JUSER_HOME}/.ipython/profile_julia/ipython_notebook_config.py
 echo "c.NotebookApp.ip = \"*\"" | ${SUDO_JUSER} tee --append ${JUSER_HOME}/.ipython/profile_julia/ipython_notebook_config.py
 echo "c.NotebookApp.allow_origin = \"*\"" | ${SUDO_JUSER} tee --append ${JUSER_HOME}/.ipython/profile_julia/ipython_notebook_config.py
