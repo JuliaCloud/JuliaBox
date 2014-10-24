@@ -2,7 +2,7 @@
 
 JUSER_HOME=/tmp/juser
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-#SUDO_JUSER="sudo -u 1000 -g 1000"
+#SUDO_JUSER="sudo -u#1000 -g#1000"
 SUDO_JUSER=""
 
 function error_exit {
@@ -17,9 +17,9 @@ sudo chown -R 1000:1000 ${JUSER_HOME}
 sudo docker run -i -v ${JUSER_HOME}:/home/juser --entrypoint="/home/juser/setup_julia.sh" juliabox/juliabox:latest || error_exit "Could not run juliabox image"
 ${SUDO_JUSER} rm ${JUSER_HOME}/setup_julia.sh
 
-${SUDO_JUSER} echo "c.NotebookApp.open_browser = False" >> ${JUSER_HOME}/.ipython/profile_julia/ipython_notebook_config.py
-${SUDO_JUSER} echo "c.NotebookApp.ip = \"*\"" >> ${JUSER_HOME}/.ipython/profile_julia/ipython_notebook_config.py
-${SUDO_JUSER} echo "c.NotebookApp.allow_origin = \"*\"" >> ${JUSER_HOME}/.ipython/profile_julia/ipython_notebook_config.py
+echo "c.NotebookApp.open_browser = False" | ${SUDO_JUSER} tee --append ${JUSER_HOME}/.ipython/profile_julia/ipython_notebook_config.py
+echo "c.NotebookApp.ip = \"*\"" | ${SUDO_JUSER} tee --append ${JUSER_HOME}/.ipython/profile_julia/ipython_notebook_config.py
+echo "c.NotebookApp.allow_origin = \"*\"" | ${SUDO_JUSER} tee --append ${JUSER_HOME}/.ipython/profile_julia/ipython_notebook_config.py
 ${SUDO_JUSER} cp ${DIR}/IJulia/custom.css ${JUSER_HOME}/.ipython/profile_julia/static/custom/custom.css
 
 ${SUDO_JUSER} mkdir -p ${JUSER_HOME}/.juliabox

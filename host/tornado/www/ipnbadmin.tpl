@@ -74,10 +74,12 @@
 	    		parent.JuliaBox.show_ssh_key();
 	    	});
 	    	
+{% if d["invites_perm"] %}
 	    	$('#invites-report').click(function(event){
 	    		event.preventDefault();
 	    		parent.JuliaBox.show_invites_report();
             });
+{% end %}
 
 	    	$('#upgrade').click(function(event){
 	    		event.preventDefault();
@@ -124,15 +126,42 @@ You are on the latest JuliaBox version: {{d["juliaboxver"]}} <br/>
 {% end %}
 <br/>
 
+{% if d["show_report"] %}
+    <h3 id="stats">System statistics</h3>
+{% if d["invites_perm"] %}
+    <p><b><a id="invites-report" href="#">Invite code usage &rarr;</a></b></p>
+{% end %}
+    <p> Stats for the: 
+       {% if d["report_span"] == "day" %}
+        <b>Day</b> | <a href="/hostadmin/?range=week#stats">Week</a>
+       {% else %}
+        <a href="/hostadmin/?range=day#stats">Day</a> | <b>Week</b>
+       {% end %}
+    </p>
+    <table class="table table-striped">
+        <tr><td>Number of sessions</td><td>{{d["report"]["session_count"]}}</td></tr>
+        <tr><td>Average time spent</td><td>{{d["report"]["avg_time"]}}</td></tr>
+    </table>
+    <h3>Most used containers</h3>
+    <table class="table table-striped">
+      {% for x in d["report"]["images_used"] %}
+        <tr><td>{{x["image_id"]}}</td><td>{{x["count"]}}</td></tr>
+      {% end %}
+    </table>
+
+{% end %}
+
 {% if d["manage_containers"] %}
     <hr/>
     <h3>Administer this installation</h3>
     <hr/>
     <a href="/hostadmin/" class="btn btn-primary btn-lg active" role="button">Refresh</a>
+    <a href="#" class="btn btn-primary btn-lg active" role="button" onclick="$('#config').toggle(); return false;">Show/Hide Config</a>
     <a href="/hostadmin/?stop_all=1" class="btn btn-primary btn-lg active" role="button">Stop all containers</a>
     
     <br/><br/>
 
+    <div id="config" style="display:none">
     <h3> Config </h3>
     <table class="table table-striped">
         <tr><th>Parameter</th><th>Value</th></tr>
@@ -143,6 +172,19 @@ You are on the latest JuliaBox version: {{d["juliaboxver"]}} <br/>
         {% end %}
     </table>
 
+    <br/><br/>
+    </div>
+    
+    <h3>Load</h3>
+    <table class="table table-striped">
+        <tr><th>Instance</th><th>Load Percent</th></tr>
+        {% for o in d["loads"] %}
+        	<tr>
+        		<td>{{o['instance']}}</td>
+        		<td>{{o['load']}}</td>
+        	</tr>
+        {% end %}
+    </table>
     <br/><br/>
     
     {% for section in d["sections"] %}
@@ -162,43 +204,6 @@ You are on the latest JuliaBox version: {{d["juliaboxver"]}} <br/>
         <br/><br/>
     {% end %}
     
-    <h3>Load</h3>
-    <table class="table table-striped">
-        <tr><th>Instance</th><th>Load Percent</th></tr>
-        {% for o in d["loads"] %}
-        	<tr>
-        		<td>{{o['instance']}}</td>
-        		<td>{{o['load']}}</td>
-        	</tr>
-        {% end %}
-    </table>
-    <br/><br/>
-    
-{% end %}
-
-{% if d["show_report"] %}
-    <h3 id="stats">System statistics</h3>
-    <p> Stats for the: 
-       {% if d["report_span"] == "day" %}
-        <b>Day</b> | <a href="/hostadmin/?range=week#stats">Week</a>
-       {% else %}
-        <a href="/hostadmin/?range=day#stats">Day</a> | <b>Week</b>
-       {% end %}
-    </p>
-    <table class="table table-striped">
-        <tr><td>Number of sessions</td><td>{{d["report"]["session_count"]}}</td></tr>
-        <tr><td>Average time spent</td><td>{{d["report"]["avg_time"]}}</td></tr>
-    </table>
-    <h3>Most used containers</h3>
-    <table class="table table-striped">
-      {% for x in d["report"]["images_used"] %}
-        <tr><td>{{x["image_id"]}}</td><td>{{x["count"]}}</td></tr>
-      {% end %}
-    </table>
-{% if d["invites_perm"] %}
-    <p><b><a id="invites-report" href="#">Manage invite codes &rarr;</a></b></p>
-{% end %}
-
 {% end %}
 </body>
 </html>
