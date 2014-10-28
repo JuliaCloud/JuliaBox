@@ -1,15 +1,24 @@
-# keeps folders synchronized with a git repository
-# not perfect yet. complex merging problematic. git commands can be brittle across versions.
-import git, os, datetime, pytz, shutil, string, hashlib
+import git
+import os
+import datetime
+import pytz
+import shutil
+import string
+import hashlib
+
 
 class GitSync:
+    """
+    Keeps folders synchronized with a git repository.
+    Not perfect yet. complex merging problematic. git commands can be brittle across versions.
+    """
     def __init__(self, loc):
         self.loc = loc
         self.repo = git.Repo(loc)
 
     def repo_hash(self):
         return hashlib.sha1('_'.join([self.loc, self.remote_url(), self.branch_name()])).hexdigest()
-        
+
     def repo_name(self):
         return os.path.basename(self.loc) + ' (' + self.remote_url() + ' - ' + self.branch_name() + ')'
 
@@ -35,8 +44,8 @@ class GitSync:
         gitresult = self.repo.git.log(self.remote_branch_name() + '..', '--oneline').strip()
         if None != output:
             output.append(gitresult)
-        return (len(gitresult) > 0)
-        
+        return len(gitresult) > 0
+
     def get_commits_to_sync(self):
         output = []
         if not self.has_commits_to_sync(output):
@@ -50,13 +59,13 @@ class GitSync:
         status = self.repo.git.status()
         if None != output:
             output.append(status)
-        return ('Untracked files:' in status)
+        return 'Untracked files:' in status
 
     def get_untracked_files(self):
         output = []
         if not self.has_untracked_files(output):
             return []
-        
+
         untf = output.pop().split('Untracked files:')[1][1:].split("\n")
         return [x[1:] for x in untf if string.strip(x) != "" and x.startswith("\t")]
 
@@ -106,12 +115,12 @@ class GitSync:
             else:
                 g.branch('--delete', branch)
         if remote:
-            g.push(self.remote_name(), ':'+branch)
+            g.push(self.remote_name(), ':' + branch)
 
     def checkout(self, branch, from_remote=False):
         if self.branch_name() == branch:
             return
-        
+
         if from_remote:
             if branch in self.local_branches():
                 self.delete_branch(branch, local=True, remote=False)
@@ -128,7 +137,7 @@ class GitSync:
         if overwrite and os.path.exists(loc):
             shutil.rmtree(loc)
         repo = git.Repo.clone_from(src, loc)
-        if repo != None:
+        if repo is not None:
             return GitSync(loc)
         return None
 
@@ -145,4 +154,3 @@ class GitSync:
                     if os.path.isdir(git_pth):
                         repos.append(fpth)
         return repos
-
