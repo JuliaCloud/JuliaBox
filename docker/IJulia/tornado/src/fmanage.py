@@ -1,26 +1,38 @@
 #!/usr/bin/python
- 
+
+import os
+import time
+import sys
+import shutil
+import traceback
+import re
+
 import tornado.ioloop
 import tornado.web
-import os, time, sys, shutil, traceback, re
+
 from gitsync import GitSync
 from gdrivesync import GDriveSync
 
+
 rel_dir = '/'
+
 
 def read_config():
     with open("conf/tornado.conf") as f:
-        cfg = eval(f.read())
-    cfg['home_folder'] = os.path.expanduser(cfg['home_folder'])
-    return cfg
+        cfg_read = eval(f.read())
+    cfg_read['home_folder'] = os.path.expanduser(cfg_read['home_folder'])
+    return cfg_read
+
 
 def rendertpl(rqst, tpl, **kwargs):
     rqst.render("../www/" + tpl, **kwargs)
+
 
 def log_info(s):
     ts = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
     print (ts + "  " + s)
     sys.stdout.flush()
+
 
 class PingHandler(tornado.web.RequestHandler):
     def get(self):
@@ -42,7 +54,7 @@ class BrowseHandler(tornado.web.RequestHandler):
             self.set_header('Content-Disposition', 'attachment; filename=' + fetch_file)
             with open(file_name, 'r') as f:
                 while True:
-                    data = f.read(1024*12)
+                    data = f.read(1024 * 12)
                     if not data:
                         break
                     self.write(data)
@@ -73,7 +85,8 @@ class BrowseHandler(tornado.web.RequestHandler):
                     folders.append(fname)
                 else:
                     files.append(fname)
-            rendertpl(self, "upload.tpl", prevdir=prev_dir, currdir=rel_dir, files=files, folders=folders, nfolders=len(folders), nfiles=len(files))
+            rendertpl(self, "upload.tpl", prevdir=prev_dir, currdir=rel_dir, files=files, folders=folders,
+                      nfolders=len(folders), nfiles=len(files))
 
 
 class UploadHandler(tornado.web.RequestHandler):
@@ -86,24 +99,26 @@ class UploadHandler(tornado.web.RequestHandler):
                 fw.write(file_contents)
         self.finish()
 
+
 class SSHKeyHandler(tornado.web.RequestHandler):
     def get(self):
         with open(os.path.expanduser('~/.ssh/id_rsa.pub'), "r") as f:
             response = {
-                            'code': 0,
-                            'data': f.read()
-                        }
+                'code': 0,
+                'data': f.read()
+            }
             self.write(response)
+
 
 class SyncHandler(tornado.web.RequestHandler):
     LOC = '~/'
-    #LOC = '/tmp/x'
+    # LOC = '/tmp/x'
     DEFAULT_BRANCH = 'master'
 
     def get(self):
         log_info('synchandler ' + str(self.request.uri))
-        gitrepos = self.get_git_repos()
-        gdrive_repos = self.get_gdrive_repos()
+        gitrepos = SyncHandler.get_git_repos()
+        gdrive_repos = SyncHandler.get_gdrive_repos()
         rendertpl(self, "sync.tpl", gitrepos=gitrepos, gdrive_repos=gdrive_repos)
 
     def post(self):
@@ -139,24 +154,24 @@ class SyncHandler(tornado.web.RequestHandler):
         loc = os.path.join(os.path.expanduser(SyncHandler.LOC), loc)
         GDriveSync.clone(gfolder, loc, True)
         return retcode
-    
+
     def action_delgdrive(self):
         self.set_gdrive_auth_tok()
         repo_id = self.get_argument('repo', None)
-        repo = self.get_gdrive_repo(repo_id)
+        repo = SyncHandler.get_gdrive_repo(repo_id)
         if (None != repo) and os.path.exists(repo.loc):
             shutil.rmtree(repo.loc)
         return 0
-    
+
     def action_syncgdrive(self):
         self.set_gdrive_auth_tok()
         retcode = 0
         repo_id = self.get_argument('repo', None)
-        repo = self.get_gdrive_repo(repo_id)
+        repo = SyncHandler.get_gdrive_repo(repo_id)
         if None != repo:
             repo.sync()
         return retcode
-    
+
     def action_syncgit(self):
         retcode = 0
         repo_id = self.get_argument('repo', None)
@@ -164,16 +179,16 @@ class SyncHandler(tornado.web.RequestHandler):
         if None != gitrepo:
             if gitrepo.sync():
                 log_info('conflicts during sync of repo ' + gitrepo.repo_name())
-                retcode = 1 # has conflicts
+                retcode = 1  # has conflicts
         return retcode
-    
+
     def action_delgit(self):
         repo_id = self.get_argument('repo', None)
         gitrepo = self.get_git_repo(repo_id)
         if (None != gitrepo) and os.path.exists(gitrepo.loc):
             shutil.rmtree(gitrepo.loc)
         return 0
-                        
+
     def action_addgit(self):
         retcode = 0
         git_url = self.get_argument('repo', '').strip()
@@ -181,13 +196,13 @@ class SyncHandler(tornado.web.RequestHandler):
         loc = SyncHandler.sanitize_loc(self.get_argument('loc', '').strip())
         if len(git_url) == 0:
             retcode = -1
-        if (retcode == 0) and (not git_url.startswith('https://')) and (self.add_to_ssh_knownhosts(git_url) < 0):
+        if (retcode == 0) and (not git_url.startswith('https://')) and (SyncHandler.add_to_ssh_knownhosts(git_url) < 0):
             retcode = -1
         if retcode == 0:
             if len(git_branch) == 0:
                 git_branch = SyncHandler.DEFAULT_BRANCH
             if len(loc) == 0:
-                loc = git_url[(git_url.rindex('/')+1):git_url.rindex('.')]
+                loc = git_url[(git_url.rindex('/') + 1):git_url.rindex('.')]
             loc = os.path.join(os.path.expanduser(SyncHandler.LOC), loc)
             gs = GitSync.clone(git_url, loc, True)
             gs.checkout(git_branch, from_remote=True)
@@ -195,11 +210,11 @@ class SyncHandler(tornado.web.RequestHandler):
             if git_url.startswith('https://'):
                 retcode = 1
         return retcode
-        
-    def add_to_ssh_knownhosts(self, git_url):
+
+    @staticmethod
+    def add_to_ssh_knownhosts(git_url):
         hostname = git_url.split('@')[1].split(':')[0]
         khfile = os.path.expanduser('~/.ssh/known_hosts')
-        lines = []
         fopenmode = 'w'
         if os.path.exists(khfile):
             fopenmode = 'a'
@@ -218,8 +233,9 @@ class SyncHandler(tornado.web.RequestHandler):
         if fopenmode == 'w':
             os.chmod(khfile, 0644)
         return 0
-        
-    def get_git_repos(self):
+
+    @staticmethod
+    def get_git_repos():
         gitrepo_paths = GitSync.scan_repo_paths([os.path.expanduser(SyncHandler.LOC)])
         gitrepos = {}
         for repopath in gitrepo_paths:
@@ -227,14 +243,16 @@ class SyncHandler(tornado.web.RequestHandler):
             gitrepos[gs.repo_hash()] = gs
         return gitrepos
 
-    def get_git_repo(self, repokey, gitrepos=None):
+    @staticmethod
+    def get_git_repo(repokey, gitrepos=None):
         if None == gitrepos:
-            gitrepos = self.get_git_repos()
+            gitrepos = SyncHandler.get_git_repos()
         if repokey in gitrepos:
             return gitrepos[repokey]
         return None
-    
-    def get_gdrive_repos(self):
+
+    @staticmethod
+    def get_gdrive_repos():
         gdriverepo_paths = GDriveSync.scan_repo_paths([os.path.expanduser(SyncHandler.LOC)])
         gdriverepos = {}
         for repopath in gdriverepo_paths:
@@ -242,9 +260,10 @@ class SyncHandler(tornado.web.RequestHandler):
             gdriverepos[gs.repo_hash()] = gs
         return gdriverepos
 
-    def get_gdrive_repo(self, repokey, gdriverepos=None):
+    @staticmethod
+    def get_gdrive_repo(repokey, gdriverepos=None):
         if None == gdriverepos:
-            gdriverepos = self.get_gdrive_repos()
+            gdriverepos = SyncHandler.get_gdrive_repos()
         if repokey in gdriverepos:
             return gdriverepos[repokey]
         return None
@@ -253,13 +272,14 @@ class SyncHandler(tornado.web.RequestHandler):
         gauth = self.get_argument('gauth', '')
         if len(gauth) > 0:
             GDriveSync.init_creds(gauth)
-    
+
     @staticmethod
     def sanitize_loc(loc):
         return re.sub(r'^[\.\\\/]*', '', loc)
- 
+
+
 cfg = read_config()
- 
+
 if __name__ == "__main__":
     application = tornado.web.Application([
         (r"/file-upload", UploadHandler),
@@ -270,4 +290,3 @@ if __name__ == "__main__":
     ])
     application.listen(cfg['port'])
     tornado.ioloop.IOLoop.instance().start()
-
