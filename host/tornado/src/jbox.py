@@ -14,6 +14,7 @@ from db.db_base import JBoxDB
 from db.user_v2 import JBoxUserV2
 from db.invites import JBoxInvite
 from db.accounting_v2 import JBoxAccountingV2
+from vol.loopback import JBoxVol, JBoxLoopbackVol
 from jbox_container import JBoxContainer
 from handlers.handler_base import JBoxHandler
 from handlers.admin import AdminHandler
@@ -58,12 +59,11 @@ class JBox(LoggerMixin):
         mnt_location = os.path.expanduser(cfg['mnt_location'])
         backup_bucket = cloud_cfg['backup_bucket']
         make_sure_path_exists(backup_location)
-        JBoxContainer.configure(dckr, cfg['docker_image'],
-                                cfg['mem_limit'], cfg['cpu_limit'], cfg['disk_limit'],
-                                [os.path.join(mnt_location, '${DISK_ID}')],
-                                mnt_location, backup_location, user_home_img,
-                                cfg['numlocalmax'], cfg["numdisksmax"],
-                                backup_bucket=backup_bucket)
+
+        JBoxVol.configure_base(dckr, user_home_img)
+        JBoxLoopbackVol.configure(cfg['disk_limit'], mnt_location, backup_location,
+                                  cfg["numdisksmax"], backup_bucket=backup_bucket)
+        JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], cfg['numlocalmax'])
 
         self.application = tornado.web.Application([
             (r"/", MainHandler),

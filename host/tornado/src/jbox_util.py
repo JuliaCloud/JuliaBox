@@ -31,6 +31,10 @@ def esc_sessname(s):
     return s.replace("@", "_at_").replace(".", "_")
 
 
+def get_user_name(email):
+    return email.split('@')[0]
+
+
 def unique_sessname(s):
     if s is None:
         return None

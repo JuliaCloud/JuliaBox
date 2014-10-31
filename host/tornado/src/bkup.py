@@ -7,6 +7,7 @@ import docker
 
 from jbox_util import LoggerMixin, read_config, make_sure_path_exists, CloudHelper
 from jbox_container import JBoxContainer
+from vol.loopback import JBoxVol, JBoxLoopbackVol
 
 
 class JBoxContainerBackup(LoggerMixin):
@@ -32,9 +33,10 @@ class JBoxContainerBackup(LoggerMixin):
                               route53_domain=cloud_cfg['route53_domain'],
                               region=cloud_cfg['region'],
                               install_id=cloud_cfg['install_id'])
-        JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], cfg['disk_limit'],
-                                [os.path.join(mnt_location, '${DISK_ID}')], mnt_location, backup_location,
-                                user_home_img, cfg['numlocalmax'], cfg["numdisksmax"], backup_bucket=backup_bucket)
+        JBoxVol.configure_base(dckr, user_home_img)
+        JBoxLoopbackVol.configure(cfg['disk_limit'], mnt_location, backup_location,
+                                  cfg["numdisksmax"], backup_bucket=backup_bucket)
+        JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], cfg['numlocalmax'])
 
         # backup user files every 1 hour
         # check: configured expiry time must be at least twice greater than this
