@@ -33,19 +33,20 @@ class JBoxUserV2(JBoxDB):
     STATUS_ACTIVE = 0
     STATUS_INACTIVE = 1
     
-    ROLE_USER              = 0
-    ROLE_ACCESS_STATS      = 1 << 0
-    ROLE_MANAGE_INVITES    = 1 << 1
+    ROLE_USER = 0
+    ROLE_ACCESS_STATS = 1 << 0
+    ROLE_MANAGE_INVITES = 1 << 1
     ROLE_MANAGE_CONTAINERS = 1 << 2
 
-    ROLE_SUPER   = (1 << 33) - 1
+    ROLE_SUPER = (1 << 33) - 1
 
     ACTIVATION_NONE = 0
     ACTIVATION_GRANTED = 1
     ACTIVATION_REQUESTED = 2
     
-    RESOURCE_PROFILE_BASIC = 1
-        
+    RESOURCE_PROFILE_BASIC = 0
+    RESOURCE_PROFILE_DISK_EBS_1G = 1 << 0
+
     def __init__(self, user_id, create=False):
         if self.table() is None:
             self.is_new = False
@@ -147,3 +148,9 @@ class JBoxUserV2(JBoxDB):
         if self.item is None:
             return None, None
         return self.item.get('image', None), self.item.get('resource_profile', JBoxUserV2.RESOURCE_PROFILE_BASIC)
+
+    def has_resource_profile(self, mask):
+        _image, resource_profile = self.get_container_type()
+        if mask == 0:
+            return resource_profile == 0
+        return (resource_profile & mask) == mask

@@ -6,9 +6,9 @@ import multiprocessing
 import isodate
 import psutil
 
-from db.accounting_v2 import JBoxAccountingV2
+from db import JBoxAccountingV2
 from jbox_util import LoggerMixin, CloudHelper
-from vol.loopback import JBoxLoopbackVol
+from vol import VolMgr
 
 
 class JBoxContainer(LoggerMixin):
@@ -44,9 +44,6 @@ class JBoxContainer(LoggerMixin):
             self.props = JBoxContainer.DCKR.inspect_container(self.dockid)
         return self.props
 
-    def get_disk_ids_used(self):
-        return JBoxLoopbackVol.get_disk_ids_used(self.dockid)
-
     def get_host_ports(self):
         if self.host_ports is None:
             props = self.get_props()
@@ -71,9 +68,11 @@ class JBoxContainer(LoggerMixin):
             return mem
         return psutil.virtual_memory().total
 
-    @classmethod
-    def get_disk_allocated(cls):
-        return JBoxLoopbackVol.DISK_LIMIT
+    def get_disk_allocated(self):
+        disk = VolMgr.get_disk_from_container(self.dockid)
+        if disk is not None:
+            return disk.get_disk_allocated_size()
+        return 0
 
     def debug_str(self):
         if self.dbgstr is None:
@@ -153,12 +152,11 @@ class JBoxContainer(LoggerMixin):
 
         disk_used_pct = 0
         for x in psutil.disk_partitions():
-            if x.mountpoint.startswith(JBoxLoopbackVol.FS_LOC):
-                continue
-            try:
-                disk_used_pct = max(psutil.disk_usage(x.mountpoint).percent, disk_used_pct)
-            except:
-                pass
+            if not VolMgr.is_mount_path(x.mountpoint):
+                try:
+                    disk_used_pct = max(psutil.disk_usage(x.mountpoint).percent, disk_used_pct)
+                except:
+                    pass
         if JBoxContainer.INITIAL_DISK_USED_PCT is None:
             JBoxContainer.INITIAL_DISK_USED_PCT = disk_used_pct
         disk_used_pct = max(0, (disk_used_pct - JBoxContainer.INITIAL_DISK_USED_PCT))
@@ -167,10 +165,9 @@ class JBoxContainer(LoggerMixin):
         cont_load_pct = min(100, max(0, nactive * 100 / JBoxContainer.MAX_CONTAINERS))
         CloudHelper.publish_stats("ContainersUsed", "Percent", cont_load_pct)
 
-        disk_ids_used_pct = JBoxLoopbackVol.disk_ids_used_pct()
-        CloudHelper.publish_stats("DiskIdsUsed", "Percent", disk_ids_used_pct)
+        CloudHelper.publish_stats("DiskIdsUsed", "Percent", VolMgr.used_pct())
 
-        overall_load_pct = max(cont_load_pct, disk_used_pct, mem_used_pct, cpu_used_pct, disk_ids_used_pct)
+        overall_load_pct = max(cont_load_pct, disk_used_pct, mem_used_pct, cpu_used_pct, VolMgr.used_pct())
         CloudHelper.publish_stats("Load", "Percent", overall_load_pct)
 
     @staticmethod
@@ -276,10 +273,10 @@ class JBoxContainer(LoggerMixin):
         JBoxContainer.log_info("Finished container backup.")
 
     def backup(self):
-        JBoxContainer.log_info("Backing up " + self.debug_str() + " at " + str(JBoxLoopbackVol.BACKUP_LOC))
-        cname = self.get_name()
-        if cname is not None:
-            JBoxLoopbackVol.backup(cname[1:], self.dockid)
+        JBoxContainer.log_info("Backing up " + self.debug_str())
+        disk = VolMgr.get_disk_from_container(self.dockid)
+        if disk is not None:
+            disk.backup()
 
     @staticmethod
     def num_active():
@@ -355,10 +352,9 @@ class JBoxContainer(LoggerMixin):
             JBoxContainer.log_info("Already started " + self.debug_str())
             return
 
-        loopbackdisk = JBoxLoopbackVol.get_disk_for_user(email)
-
+        disk = VolMgr.get_disk_for_user(email)
         vols = {
-            loopbackdisk.disk_path: {
+            disk.disk_path: {
                 'bind': JBoxContainer.VOLUMES[0],
                 'ro': False
             }
@@ -394,6 +390,10 @@ class JBoxContainer(LoggerMixin):
         cname = self.get_name()
         if self.is_running() or self.is_restarting():
             self.kill()
+
+        disk = VolMgr.get_disk_from_container(self.dockid)
+        if disk is not None:
+            disk.release()
 
         JBoxContainer.DCKR.remove_container(self.dockid)
         if cname is not None:

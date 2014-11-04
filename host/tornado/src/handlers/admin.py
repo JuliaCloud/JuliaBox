@@ -27,6 +27,11 @@ class AdminHandler(JBoxHandler):
             self.send_error()
             return
 
+        if self.do_logout(cont):
+            response = {'code': 0, 'data': ''}
+            self.write(response)
+            return
+
         juliaboxver, upgrade_available = self.get_upgrade_available(cont)
         if self.do_upgrade(cont, upgrade_available):
             response = {'code': 0, 'data': ''}
@@ -44,7 +49,6 @@ class AdminHandler(JBoxHandler):
         loads = []
         report = {}
         report_span = 'day'
-        invites_info = []
 
         action = self.get_argument("action", None)
         #invite_code = self.request.get("invite_code", None)
@@ -88,6 +92,15 @@ class AdminHandler(JBoxHandler):
         )
 
         self.rendertpl("ipnbadmin.tpl", d=d, cfg=self.config())
+
+    def do_logout(self, cont):
+        logout = self.get_argument('logout', False)
+        if logout == 'me':
+            cont.stop()
+            cont.backup()
+            cont.delete()
+            return True
+        return False
 
     def do_upgrade(self, cont, upgrade_available):
         upgrade_id = self.get_argument("upgrade_id", '')

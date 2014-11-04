@@ -49,13 +49,15 @@
     "cloud_host": {
     	"install_id": "JuliaBox",
     	"region": "us-east-1",
-    	
+    	"zone": "us-east-1a",
+
     	# Enable/disable features
     	"s3": True,
     	"dynamodb": True,
     	"cloudwatch": True,
     	"autoscale": True,
     	"route53": True,
+    	"ebs": True,
 
     	"autoscale_group": "juliabox",
     	"route53_domain": "juliabox.org",
@@ -68,7 +70,11 @@
 
     	# Configure names for tables and buckets
 	    "backup_bucket": "juliabox-userbackup",
-	    
+
+	    # EBS disk template snapshot id
+	    "ebs_template": None,
+	    "ebs_mnt_location": "/mnt/jbox/ebs",
+
     	"dummy" : "dummy"
     },
     "env_type" : "prod",

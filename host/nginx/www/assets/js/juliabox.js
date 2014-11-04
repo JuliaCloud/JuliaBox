@@ -123,7 +123,7 @@ var JuliaBox = (function($, _, undefined){
 			f = function() { bootbox.alert("Oops. Unexpected error while upgrading.<br/><br/>Please try again later."); };
     		self.comm('/hostadmin/', 'GET', { 'upgrade_id' : 'me' }, s, f);
 		},
-		
+
 		init_gauth_tok: function(tok) {
 			_gauth = tok;
 		},
@@ -326,11 +326,19 @@ var JuliaBox = (function($, _, undefined){
 			top.location.href = '/';
 			top.location.reload(true);    		
     	},
-    	
+
+		do_logout: function () {
+			s = function(res) {};
+			f = function() {};
+    		self.comm('/hostadmin/', 'GET', { 'logout' : 'me' }, s, f);
+		},
+
     	logout: function () {
+			s = function(res) { self.logout_at_browser(); };
+			f = function() { self.logout_at_browser(); };
     		self.popup_confirm('Logout from JuliaBox?', function(res) {
     			if(res) {
-    				self.logout_at_browser();
+    			    self.comm('/hostadmin/', 'GET', { 'logout' : 'me' }, s, f);
     			}
     		});
     	},

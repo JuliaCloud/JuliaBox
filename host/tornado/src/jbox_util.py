@@ -1,4 +1,5 @@
 import os
+import stat
 import sys
 import time
 import errno
@@ -6,17 +7,60 @@ import datetime
 import pytz
 import traceback
 import hashlib
+import math
 
 import psutil
+import sh
 import isodate
 import boto.dynamodb
 import boto.route53
-from boto.route53.record import ResourceRecordSets, Record
+from boto.route53.record import Record
 import boto.utils
 import boto.ec2
 import boto.ec2.cloudwatch
 import boto.ec2.autoscale
 from boto.s3.key import Key
+
+
+def retry(tries, delay=1, backoff=2):
+    """Retries a function or method until it returns True.
+
+    delay sets the initial delay in seconds, and backoff sets the factor by which
+    the delay should lengthen after each failure. backoff must be greater than 1,
+    or else it isn't really a backoff. tries must be at least 0, and delay
+    greater than 0.
+
+    https://wiki.python.org/moin/PythonDecoratorLibrary#Retry"""
+
+    if backoff <= 1:
+        raise ValueError("backoff must be greater than 1")
+
+    tries = math.floor(tries)
+    if tries < 0:
+        raise ValueError("tries must be 0 or greater")
+
+    if delay <= 0:
+        raise ValueError("delay must be greater than 0")
+
+    def deco_retry(f):
+        def f_retry(*args, **kwargs):
+            mtries, mdelay = tries, delay  # make mutable
+
+            rv = f(*args, **kwargs)  # first attempt
+            while mtries > 0:
+                if rv is True:  # Done on success
+                    return True
+
+                mtries -= 1      # consume an attempt
+                time.sleep(mdelay)  # wait...
+                mdelay *= backoff  # make future wait longer
+
+                rv = f(*args, **kwargs)  # Try again
+
+            return False  # Ran out of tries :-(
+
+        return f_retry  # true decorator -> decorated function
+    return deco_retry  # @retry(arg[, ...]) -> true decorator
 
 
 def log_info(s):
@@ -39,8 +83,8 @@ def unique_sessname(s):
     if s is None:
         return None
     name = esc_sessname(s.split('@')[0])
-    hash = hashlib.sha1(s).hexdigest()
-    return '_'.join([name, hash])
+    hashdigest = hashlib.sha1(s).hexdigest()
+    return '_'.join([name, hashdigest])
 
 
 def read_config():
@@ -141,6 +185,7 @@ class LoggerMixin(object):
 
 class CloudHelper(LoggerMixin):
     REGION = 'us-east-1'
+    ZONE = 'us-east-1a'
     INSTALL_ID = 'JuliaBox'
 
     EC2_CONN = None
@@ -215,15 +260,17 @@ class CloudHelper(LoggerMixin):
         return minutes
 
     @staticmethod
-    def configure(has_s3=True, has_dynamodb=True, has_cloudwatch=True, has_autoscale=True, has_route53=True,
+    def configure(has_s3=True, has_dynamodb=True, has_cloudwatch=True, has_autoscale=True,
+                  has_route53=True, has_ebs=True,
                   scale_up_at_load=80, scale_up_policy=None, autoscale_group=None,
                   route53_domain=None,
-                  region='us-east-1', install_id='JuliaBox'):
+                  region='us-east-1', zone='us-east-1a', install_id='JuliaBox'):
         CloudHelper.ENABLED['s3'] = has_s3
         CloudHelper.ENABLED['dynamodb'] = has_dynamodb
         CloudHelper.ENABLED['cloudwatch'] = has_cloudwatch
         CloudHelper.ENABLED['autoscale'] = has_autoscale
         CloudHelper.ENABLED['route53'] = has_route53
+        CloudHelper.ENABLED['ebs'] = has_ebs
 
         CloudHelper.SCALE_UP_AT_LOAD = scale_up_at_load
         CloudHelper.SCALE_UP_POLICY = scale_up_policy
@@ -233,6 +280,7 @@ class CloudHelper(LoggerMixin):
 
         CloudHelper.INSTALL_ID = install_id
         CloudHelper.REGION = region
+        CloudHelper.ZONE = zone
 
     @staticmethod
     def connect_ec2():
@@ -254,8 +302,8 @@ class CloudHelper(LoggerMixin):
         return CloudHelper.ROUTE53_CONN
 
     @staticmethod
-    def make_instance_dns_name():
-        dns_name = CloudHelper.instance_id()
+    def make_instance_dns_name(instance_id=None):
+        dns_name = CloudHelper.instance_id() if instance_id is None else instance_id
         if CloudHelper.AUTOSCALE_GROUP is not None:
             dns_name += ('-' + CloudHelper.AUTOSCALE_GROUP)
         dns_name += ('.' + CloudHelper.ROUTE53_DOMAIN)
@@ -318,7 +366,9 @@ class CloudHelper(LoggerMixin):
         dims = {}
 
         while True:
-            metrics = CloudHelper.connect_cloudwatch().list_metrics(next_token=next_token, metric_name=metric_name, namespace=metric_namespace)
+            metrics = CloudHelper.connect_cloudwatch().list_metrics(next_token=next_token,
+                                                                    metric_name=metric_name,
+                                                                    namespace=metric_namespace)
             for m in metrics:
                 for n_dim, v_dim in m.dimensions.iteritems():
                     dims[n_dim] = dims.get(n_dim, []) + v_dim
@@ -550,3 +600,258 @@ class CloudHelper(LoggerMixin):
         if (k is not None) and (not metadata_only):
             k.get_contents_to_filename(local_file)
         return k
+
+    @staticmethod
+    def _get_block_device_mapping(instance_id):
+        maps = CloudHelper.connect_ec2().get_instance_attribute(instance_id=instance_id,
+                                                                attribute='blockDeviceMapping')['blockDeviceMapping']
+        idmap = {}
+        for dev_path, dev in maps.iteritems():
+            idmap[dev_path] = dev.volume_id
+        return idmap
+
+    @staticmethod
+    def _mount_device(dev_id, mount_dir):
+        device = os.path.join('/dev', dev_id)
+        mount_point = os.path.join(mount_dir, dev_id)
+        actual_mount_point = CloudHelper._get_mount_point(dev_id)
+        if actual_mount_point == mount_point:
+            return
+        elif actual_mount_point is None:
+            CloudHelper.log_debug("Mounting device " + device + " at " + mount_point)
+            res = sh.mount(mount_point)  # the mount point must be mentioned in fstab file
+            if res.exit_code != 0:
+                raise Exception("Failed to mount device " + device + " at " + mount_point)
+        else:
+            raise Exception("Device already mounted at " + actual_mount_point)
+
+    @staticmethod
+    def _get_volume(vol_id):
+        vols = CloudHelper.connect_ec2().get_all_volumes([vol_id])
+        if len(vols) == 0:
+            return None
+        return vols[0]
+
+    @staticmethod
+    def _get_volume_attach_info(vol_id):
+        vol = CloudHelper._get_volume(vol_id)
+        if vol is None:
+            return None, None
+        att = vol.attach_data
+        return att.instance_id, att.device
+
+    @staticmethod
+    def _unmount_device(dev_id, mount_dir):
+        mount_point = os.path.join(mount_dir, dev_id)
+        actual_mount_point = CloudHelper._get_mount_point(dev_id)
+        if actual_mount_point is None:
+            return  # not mounted
+        CloudHelper.log_debug("Unmounting dev_id:" + repr(dev_id) +
+                              " mount_point:" + repr(mount_point) +
+                              " actual_mount_point:" + repr(actual_mount_point))
+        if mount_point != actual_mount_point:
+            CloudHelper.log_info("Mount point expected:" + mount_point + ", got:" + repr(actual_mount_point))
+            mount_point = actual_mount_point
+        res = sh.umount(mount_point)  # the mount point must be mentioned in fstab file
+        if res.exit_code != 0:
+            raise Exception("Device could not be unmounted from " + mount_point)
+
+    @staticmethod
+    def _get_mount_point(dev_id):
+        device = os.path.join('/dev', dev_id)
+        for line in sh.mount():
+            if line.startswith(device):
+                return line.split()[2]
+        return None
+
+    @staticmethod
+    def _state_check(obj, state):
+        obj.update()
+        classname = obj.__class__.__name__
+        if classname in ('Snapshot', 'Volume'):
+            return obj.status == state
+        else:
+            return obj.state == state
+
+    @staticmethod
+    def _device_exists(dev):
+        try:
+            mode = os.stat(dev).st_mode
+        except OSError:
+            return False
+        return stat.S_ISBLK(mode)
+
+    @staticmethod
+    @retry(10, 0.5, backoff=1.5)
+    def _wait_for_status(resource, state):
+        return CloudHelper._state_check(resource, state)
+
+    @staticmethod
+    @retry(10, 0.5, backoff=1.5)
+    def _wait_for_device(dev):
+        return CloudHelper._device_exists(dev)
+
+    @staticmethod
+    def _ensure_volume_available(vol_id, force_detach=False):
+        conn = CloudHelper.connect_ec2()
+        vol = CloudHelper._get_volume(vol_id)
+        if vol is None:
+            raise Exception("Volume not found: " + vol_id)
+
+        if CloudHelper._state_check(vol, 'available'):
+            return True
+
+        # volume may be attached
+        instance_id = CloudHelper.instance_id()
+        att_instance_id, att_device = CloudHelper._get_volume_attach_info(vol_id)
+
+        if (att_instance_id is None) or (att_instance_id == instance_id):
+            return True
+
+        if force_detach:
+            CloudHelper.log_info("Forcing detach of volume " + vol_id)
+            conn.detach_volume(vol_id)
+            CloudHelper._wait_for_status(vol, 'available')
+
+        if not CloudHelper._state_check(vol, 'available'):
+            raise Exception("Volume not available: " + vol_id +
+                            ", attached to: " + att_instance_id +
+                            ", state: " + vol.status)
+
+    @staticmethod
+    def _attach_free_volume(vol_id, dev_id, mount_dir):
+        conn = CloudHelper.connect_ec2()
+        instance_id = CloudHelper.instance_id()
+        device = os.path.join('/dev', dev_id)
+        mount_point = os.path.join(mount_dir, dev_id)
+        vol = CloudHelper._get_volume(vol_id)
+
+        CloudHelper.log_info("Attaching volume " + vol_id + " at " + device)
+        conn.attach_volume(vol_id, instance_id, device)
+
+        if not CloudHelper._wait_for_status(vol, 'in-use'):
+            CloudHelper.log_error("Could not attach volume " + vol_id)
+            raise Exception("Volume could not be attached. Volume id: " + vol_id)
+
+        if not CloudHelper._wait_for_device(device):
+            CloudHelper.log_error("Could not attach volume " + vol_id + " to device " + device)
+            raise Exception("Volume could not be attached. Volume id: " + vol_id + ", device: " + device)
+
+        CloudHelper._mount_device(dev_id, mount_dir)
+        return device, mount_point
+
+    @staticmethod
+    def _get_mapped_volumes(instance_id=None):
+        if instance_id is None:
+            instance_id = CloudHelper.instance_id()
+
+        return CloudHelper.connect_ec2().get_instance_attribute(instance_id=instance_id,
+                                                                attribute='blockDeviceMapping')['blockDeviceMapping']
+
+    @staticmethod
+    def _get_volume_id_from_device(dev_id):
+        device = os.path.join('/dev', dev_id)
+        maps = CloudHelper._get_mapped_volumes()
+        CloudHelper.log_debug("Devices mapped: " + repr(maps))
+        if device not in maps:
+            return None
+        return maps[device].volume_id
+
+    @staticmethod
+    def create_new_volume(snap_id, dev_id, mount_dir, tag=None):
+        CloudHelper.log_info("Creating volume with tag " + tag +
+                             " from snapshot " + snap_id +
+                             " at dev_id " + dev_id +
+                             " mount_dir " + mount_dir)
+        conn = CloudHelper.connect_ec2()
+        vol = conn.create_volume(1, CloudHelper.ZONE, snapshot=snap_id, volume_type='gp2')
+        CloudHelper._wait_for_status(vol, 'available')
+        vol_id = vol.id
+        CloudHelper.log_info("Created volume with id " + vol_id)
+
+        if tag is not None:
+            conn.create_tags([vol_id], {"Name": tag})
+            CloudHelper.log_info("Added tag " + tag + " to volume with id " + vol_id)
+
+        return CloudHelper._attach_free_volume(vol_id, dev_id, mount_dir)
+
+    @staticmethod
+    def detach_mounted_volume(dev_id, mount_dir, delete=False):
+        CloudHelper.log_info("Detaching volume mounted at device " + dev_id)
+        vol_id = CloudHelper._get_volume_id_from_device(dev_id)
+        CloudHelper.log_debug("Device " + dev_id + " maps volume " + vol_id)
+        return CloudHelper.detach_volume(vol_id, mount_dir, delete=delete)
+
+    @staticmethod
+    def detach_volume(vol_id, mount_dir, delete=False):
+        CloudHelper.log_info("Detaching volume " + vol_id + " from " + mount_dir)
+        # find the instance and device to which the volume is mapped
+        instance, device = CloudHelper._get_volume_attach_info(vol_id)
+        if instance is None:  # the volume is not mounted
+            return
+
+        # if mounted to current instance, also unmount the device
+        if instance == CloudHelper.instance_id():
+            dev_id = device.split('/')[-1]
+            CloudHelper._unmount_device(dev_id, mount_dir)
+
+        # detach the volume
+        CloudHelper.log_debug("Detaching volume " + vol_id + " from instance " + instance + " device " + repr(device))
+        conn = CloudHelper.connect_ec2()
+        vol = CloudHelper._get_volume(vol_id)
+        conn.detach_volume(vol_id, instance, device)
+        if not CloudHelper._wait_for_status(vol, 'available'):
+            raise Exception("Volume could not be detached " + vol_id)
+        if delete:
+            conn.delete_volume(vol_id)
+
+    @staticmethod
+    def attach_volume(vol_id, dev_id, mount_dir, force_detach=False):
+        """
+        In order for EBS volumes to be mountable on the host system, JuliaBox relies on the fstab file must have
+        pre-filled mount points with options to allow non-root user to mount/unmount them. This necesseciates that
+        the mount point and device ids association be fixed beforehand. So we follow a convention where /dev/dev_id
+        will be mounted at /mount_dir/dev_id
+
+        Returns the device path and mount path where the volume was attached.
+
+        If the volume is already mounted on the current instance, the existing device and mount paths are returned,
+        which may be different from what was requested.
+
+        :param vol_id: EBS volume id to mount
+        :param dev_id: volume will be attached at /dev/dev_id
+        :param mount_dir: device will be mounted at /mount_dir/dev_id
+        :param force_detach: detach the volume from any other instance that might have attached it
+        :return: device_path, mount_path
+        """
+        CloudHelper.log_info("Attaching volume " + vol_id + " to dev_id " + dev_id + " at " + mount_dir)
+        CloudHelper._ensure_volume_available(vol_id, force_detach=force_detach)
+        att_instance_id, att_device = CloudHelper._get_volume_attach_info(vol_id)
+
+        if att_instance_id is None:
+            return CloudHelper._attach_free_volume(vol_id, dev_id, mount_dir)
+        else:
+            CloudHelper.log_info("Volume " + vol_id + " already attached to " + att_instance_id + " at " + att_device)
+            CloudHelper._mount_device(dev_id, mount_dir)
+            return att_device, mount_dir
+
+    @staticmethod
+    def snapshot_volume(vol_id=None, dev_id=None, tag=None, description=None):
+        if dev_id is not None:
+            vol_id = CloudHelper._get_volume_id_from_device(dev_id)
+        if vol_id is None:
+            CloudHelper.log_info("No volume to snapshot. vol_id: " + repr(vol_id) + ", dev_id: " + repr(dev_id))
+            return
+        vol = CloudHelper._get_volume(vol_id)
+        CloudHelper.log_info("Creating snapshot for volume: " + vol_id)
+        snap = vol.create_snapshot(description)
+        if not CloudHelper._wait_for_status(snap, 'completed'):
+            raise Exception("Could not create snapshot for volume " + vol_id)
+        CloudHelper.log_info("Created snapshot " + snap.id + " for volume " + vol_id)
+        if tag is not None:
+            CloudHelper.connect_ec2().create_tags([snap.id], {'Name': tag})
+        return snap.id
+
+    @staticmethod
+    def delete_snapshot(snapshot_id):
+        CloudHelper.connect_ec2().delete_snapshot(snapshot_id)
