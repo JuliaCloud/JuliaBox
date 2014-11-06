@@ -1,5 +1,6 @@
 {
     "port" : 8888,
+    "async_job_port" : 8889,
     "gauth" : $$GAUTH,
     "invite_only" : $$INVITE,
     
@@ -33,11 +34,7 @@
     "inactivity_timeout" : 300,
     # Upper time limit for a user session before it is auto-deleted. 0 means never expire (protected_sessions are not affected)
     "expire" : $$EXPIRE,
-    # Seconds before a stopped container is backed up and deleted.
-    "delete_stopped_timeout" : 300,
-    # Number of parallel threads to run for backups
-    "backup_threads" : 2,
-    
+
     # The docker image to launch
     "docker_image" : "$$DOCKER_IMAGE",
     
@@ -49,7 +46,6 @@
     "cloud_host": {
     	"install_id": "JuliaBox",
     	"region": "us-east-1",
-    	"zone": "us-east-1a",
 
     	# Enable/disable features
     	"s3": True,

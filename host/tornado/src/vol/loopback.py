@@ -17,7 +17,7 @@ class JBoxLoopbackVol(JBoxVol):
         JBoxLoopbackVol.DISK_LIMIT = disk_limit
         JBoxLoopbackVol.FS_LOC = fs_loc
         JBoxLoopbackVol.MAX_DISKS = max_disks
-        JBoxLoopbackVol._refresh_disk_use_status()
+        JBoxLoopbackVol.refresh_disk_use_status()
 
     @classmethod
     def get_disk_allocated_size(cls):
@@ -38,7 +38,7 @@ class JBoxLoopbackVol(JBoxVol):
         return used
 
     @staticmethod
-    def _refresh_disk_use_status(container_id_list=None):
+    def refresh_disk_use_status(container_id_list=None):
         for idx in range(0, JBoxLoopbackVol.MAX_DISKS):
             JBoxLoopbackVol.DISK_USE_STATUS[idx] = False
 

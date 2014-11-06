@@ -44,11 +44,11 @@ class JBox(LoggerMixin):
                               autoscale_group=cloud_cfg['autoscale_group'],
                               route53_domain=cloud_cfg['route53_domain'],
                               region=cloud_cfg['region'],
-                              zone=cloud_cfg['zone'],
                               install_id=cloud_cfg['install_id'])
 
         VolMgr.configure(dckr, cfg)
-        JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], cfg['numlocalmax'])
+        JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'],
+                                cfg['numlocalmax'], cfg['async_job_port'])
 
         self.application = tornado.web.Application([
             (r"/", MainHandler),

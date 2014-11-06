@@ -7,7 +7,7 @@ import isodate
 import psutil
 
 from db import JBoxAccountingV2
-from jbox_util import LoggerMixin, CloudHelper
+from jbox_util import LoggerMixin, CloudHelper, JBoxAsyncJob
 from vol import VolMgr
 
 
@@ -27,6 +27,8 @@ class JBoxContainer(LoggerMixin):
     VALID_CONTAINERS = {}
     INITIAL_DISK_USED_PCT = None
     LAST_CPU_PCT = None
+
+    ASYNC_JOB = None
 
     def __init__(self, dockid):
         self.dockid = dockid
@@ -92,12 +94,13 @@ class JBoxContainer(LoggerMixin):
         return []
 
     @staticmethod
-    def configure(dckr, image, mem_limit, cpu_limit, max_containers):
+    def configure(dckr, image, mem_limit, cpu_limit, max_containers, async_job_port, async_mode=JBoxAsyncJob.MODE_PUB):
         JBoxContainer.DCKR = dckr
         JBoxContainer.DCKR_IMAGE = image
         JBoxContainer.MEM_LIMIT = mem_limit
         JBoxContainer.CPU_LIMIT = cpu_limit
         JBoxContainer.MAX_CONTAINERS = max_containers
+        JBoxContainer.ASYNC_JOB = JBoxAsyncJob(async_job_port, async_mode)
 
     @staticmethod
     def create_new(name):
@@ -207,13 +210,13 @@ class JBoxContainer(LoggerMixin):
                 #               " delete_before: " + str(delete_before) +
                 #               " cond: " + str(cont.time_started() < delete_before))
                 JBoxContainer.log_info("Running beyond allowed time " + cont.debug_str())
-                cont.stop()
+                cont.async_backup_and_cleanup()
             elif (last_ping is not None) and c_is_active and (last_ping < stop_inacive_before):
                 # if inactive for too long, stop it
                 # JBoxContainer.log_info("last_ping " + str(last_ping) + " stop_before: " + str(stop_before) +
                 #           " cond: " + str(last_ping < stop_before))
                 JBoxContainer.log_info("Inactive beyond allowed time " + cont.debug_str())
-                cont.stop()
+                cont.async_backup_and_cleanup()
 
         # delete ping entries for non exixtent containers
         for cname in JBoxContainer.PINGS.keys():
@@ -222,7 +225,7 @@ class JBoxContainer(LoggerMixin):
 
         JBoxContainer.VALID_CONTAINERS = all_cnames
         JBoxContainer.publish_container_stats()
-        #JBoxContainer.refresh_disk_use_status(container_obj_list=container_obj_list)
+        VolMgr.refresh_disk_use_status(container_id_list=container_obj_list)
         JBoxContainer.log_info("Finished container maintenance.")
 
     @staticmethod
@@ -251,26 +254,9 @@ class JBoxContainer(LoggerMixin):
         except:
             return False
 
-    @staticmethod
-    def backup_and_cleanup(delete_stopped_timeout):
-        JBoxContainer.log_info("Starting container backup...")
-        tnow = datetime.datetime.now(pytz.utc)
-        tmin = datetime.datetime(datetime.MINYEAR, 1, 1, tzinfo=pytz.utc)
-
-        delete_stopped_before = tnow - datetime.timedelta(seconds=delete_stopped_timeout) if \
-            (delete_stopped_timeout > 0) else tmin
-
-        all_containers = JBoxContainer.DCKR.containers(all=True)
-        for cdesc in all_containers:
-            cont = JBoxContainer(cdesc['Id'])
-            c_is_active = cont.is_running() or cont.is_restarting()
-            fin_time = cont.time_finished()
-            # check that finish time is not absurdly small (indicates a continer that's starting up)
-            fin_time_not_zero = (tnow-fin_time).total_seconds() < (365*24*60*60)
-            if (not c_is_active) and fin_time_not_zero and (fin_time < delete_stopped_before):
-                cont.backup()
-                cont.delete()
-        JBoxContainer.log_info("Finished container backup.")
+    def async_backup_and_cleanup(self):
+        JBoxContainer.log_info("scheduling cleanup for " + self.debug_str())
+        JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_BACKUP_CLEANUP, self.dockid)
 
     def backup(self):
         JBoxContainer.log_info("Backing up " + self.debug_str())

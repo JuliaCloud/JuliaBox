@@ -62,3 +62,9 @@ class VolMgr(LoggerMixin):
             return JBoxEBSVol.get_disk_for_user(email)
         else:
             return JBoxLoopbackVol.get_disk_for_user(email)
+
+    @staticmethod
+    def refresh_disk_use_status(container_id_list=None):
+        JBoxLoopbackVol.refresh_disk_use_status(container_id_list=container_id_list)
+        if VolMgr.HAS_EBS:
+            JBoxEBSVol.refresh_disk_use_status(container_id_list=container_id_list)

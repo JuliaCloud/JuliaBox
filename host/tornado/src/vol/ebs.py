@@ -24,7 +24,7 @@ class JBoxEBSVol(JBoxVol):
         JBoxEBSVol.DISK_TEMPLATE_SNAPSHOT = disk_template_snap_id
         if len(JBoxEBSVol.DEVICES) < max_disks:
             raise Exception("Not enough EBS mount points configured")
-        JBoxEBSVol._refresh_disk_use_status()
+        JBoxEBSVol.refresh_disk_use_status()
 
     @classmethod
     def get_disk_allocated_size(cls):
@@ -63,7 +63,7 @@ class JBoxEBSVol(JBoxVol):
         return used
 
     @staticmethod
-    def _refresh_disk_use_status(container_id_list=None):
+    def refresh_disk_use_status(container_id_list=None):
         for idx in range(0, JBoxEBSVol.MAX_DISKS):
             dev = JBoxEBSVol.DEVICES[idx]
             JBoxEBSVol.DISK_USE_STATUS[dev] = False

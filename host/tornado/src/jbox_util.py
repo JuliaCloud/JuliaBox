@@ -12,6 +12,7 @@ import math
 import psutil
 import sh
 import isodate
+import zmq
 import boto.dynamodb
 import boto.route53
 from boto.route53.record import Record
@@ -185,7 +186,7 @@ class LoggerMixin(object):
 
 class CloudHelper(LoggerMixin):
     REGION = 'us-east-1'
-    ZONE = 'us-east-1a'
+    ZONE = None
     INSTALL_ID = 'JuliaBox'
 
     EC2_CONN = None
@@ -218,6 +219,15 @@ class CloudHelper(LoggerMixin):
             else:
                 CloudHelper.INSTANCE_ID = boto.utils.get_instance_metadata()['instance-id']
         return CloudHelper.INSTANCE_ID
+
+    @staticmethod
+    def zone():
+        if CloudHelper.ZONE is None:
+            if not CloudHelper.ENABLED['cloudwatch']:
+                CloudHelper.ZONE = 'localhost'
+            else:
+                CloudHelper.ZONE = boto.utils.get_instance_metadata()['placement']['availability-zone']
+        return CloudHelper.ZONE
 
     @staticmethod
     def notebook_websocket_hostname():
@@ -264,7 +274,7 @@ class CloudHelper(LoggerMixin):
                   has_route53=True, has_ebs=True,
                   scale_up_at_load=80, scale_up_policy=None, autoscale_group=None,
                   route53_domain=None,
-                  region='us-east-1', zone='us-east-1a', install_id='JuliaBox'):
+                  region='us-east-1', install_id='JuliaBox'):
         CloudHelper.ENABLED['s3'] = has_s3
         CloudHelper.ENABLED['dynamodb'] = has_dynamodb
         CloudHelper.ENABLED['cloudwatch'] = has_cloudwatch
@@ -280,7 +290,6 @@ class CloudHelper(LoggerMixin):
 
         CloudHelper.INSTALL_ID = install_id
         CloudHelper.REGION = region
-        CloudHelper.ZONE = zone
 
     @staticmethod
     def connect_ec2():
@@ -764,7 +773,7 @@ class CloudHelper(LoggerMixin):
                              " at dev_id " + dev_id +
                              " mount_dir " + mount_dir)
         conn = CloudHelper.connect_ec2()
-        vol = conn.create_volume(1, CloudHelper.ZONE, snapshot=snap_id, volume_type='gp2')
+        vol = conn.create_volume(1, CloudHelper.zone(), snapshot=snap_id, volume_type='gp2')
         CloudHelper._wait_for_status(vol, 'available')
         vol_id = vol.id
         CloudHelper.log_info("Created volume with id " + vol_id)
@@ -855,3 +864,32 @@ class CloudHelper(LoggerMixin):
     @staticmethod
     def delete_snapshot(snapshot_id):
         CloudHelper.connect_ec2().delete_snapshot(snapshot_id)
+
+
+class JBoxAsyncJob(LoggerMixin):
+    MODE_PUB = zmq.PUSH
+    MODE_SUB = zmq.PULL
+
+    CMD_BACKUP_CLEANUP = 1
+
+    def __init__(self, port, mode):
+        self._mode = mode
+        self._ctx = zmq.Context()
+        self._sock = self._ctx.socket(mode)
+        addr = 'tcp://127.0.0.1:%d' % port
+        if mode == JBoxAsyncJob.MODE_PUB:
+            self._sock.bind(addr)
+        else:
+            self._sock.connect(addr)
+
+    def send(self, cmd, data):
+        assert self._mode == JBoxAsyncJob.MODE_PUB
+        msg = {
+            'cmd': cmd,
+            'data': data
+        }
+        self._sock.send_json(msg)
+
+    def recv(self):
+        msg = self._sock.recv_json()
+        return msg['cmd'], msg['data']
