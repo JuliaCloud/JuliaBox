@@ -702,6 +702,11 @@ class CloudHelper(LoggerMixin):
         return CloudHelper._state_check(resource, state)
 
     @staticmethod
+    @retry(15, 0.5, backoff=1.5)
+    def _wait_for_status_extended(resource, state):
+        return CloudHelper._state_check(resource, state)
+
+    @staticmethod
     @retry(10, 0.5, backoff=1.5)
     def _wait_for_device(dev):
         return CloudHelper._device_exists(dev)
@@ -820,13 +825,14 @@ class CloudHelper(LoggerMixin):
         if instance == CloudHelper.instance_id():
             dev_id = device.split('/')[-1]
             CloudHelper._unmount_device(dev_id, mount_dir)
+            time.sleep(1)
 
         # detach the volume
         CloudHelper.log_debug("Detaching volume " + vol_id + " from instance " + instance + " device " + repr(device))
         conn = CloudHelper.connect_ec2()
         vol = CloudHelper._get_volume(vol_id)
         conn.detach_volume(vol_id, instance, device)
-        if not CloudHelper._wait_for_status(vol, 'available'):
+        if not CloudHelper._wait_for_status_extended(vol, 'available'):
             raise Exception("Volume could not be detached " + vol_id)
         if delete:
             conn.delete_volume(vol_id)
@@ -871,7 +877,7 @@ class CloudHelper(LoggerMixin):
         vol = CloudHelper._get_volume(vol_id)
         CloudHelper.log_info("Creating snapshot for volume: " + vol_id)
         snap = vol.create_snapshot(description)
-        if not CloudHelper._wait_for_status(snap, 'completed'):
+        if not CloudHelper._wait_for_status_extended(snap, 'completed'):
             raise Exception("Could not create snapshot for volume " + vol_id)
         CloudHelper.log_info("Created snapshot " + snap.id + " for volume " + vol_id)
         if tag is not None:
