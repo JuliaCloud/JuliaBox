@@ -81,15 +81,6 @@
             });
 {% end %}
 
-	    	$('#upgrade').click(function(event){
-	    		event.preventDefault();
-	    		parent.JuliaBox.popup_confirm("Newer JuliaBox versions come with more recent versions of Julia and packages.<br/><br/>Files saved in your account would be available after the upgrade. Any unsaved changes would be lost. You will be logged out for the upgrade and will need to log in again.<br/><br/>Please confirm if you wish to upgrade to the latest JuliaBox version.", function(result){
-	    			if(result) {
-	    				parent.JuliaBox.inpage_alert('info', 'Initiating backup and upgrade of your JuliaBox instance. Please wait...');
-	    				parent.JuliaBox.do_upgrade();
-	    			}
-	    		});
-	    	});
 	    	$('#disp_date_init').html((new Date('{{d["created"]}}')).toLocaleString());
 	    	$('#disp_date_start').html((new Date('{{d["started"]}}')).toLocaleString());
 	    	$('#disp_date_allowed_till').html((new Date('{{d["allowed_till"]}}')).toLocaleString());
@@ -118,12 +109,7 @@
 </table>
 
 <h3>JuliaBox version:</h3>
-{% if d["upgrade_available"] != None %}
-Your JuliaBox version: {{d["juliaboxver"]}} <br/>
-Latest JuliaBox version: {{d["upgrade_available"]}}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="#" id="upgrade">upgrade</a><br/>
-{% else %}
-You are on the latest JuliaBox version: {{d["juliaboxver"]}} <br/>
-{% end %}
+JuliaBox version: {{d["juliaboxver"]}} <br/>
 <br/>
 
 {% if d["show_report"] %}

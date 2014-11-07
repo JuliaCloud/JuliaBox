@@ -41,44 +41,39 @@ class MainHandler(JBoxHandler):
             self.rendertpl("index.tpl", cfg=self.config(), state=state)
         else:
             user_id = jbox_cookie['u']
-            sessname = unique_sessname(user_id)
 
-            if self.config("gauth"):
-                try:
-                    jbuser = JBoxUserV2(user_id)
-                except:
-                    # stale cookie. we don't have the user in our database anymore
-                    self.log_info("stale cookie. we don't have the user in our database anymore. user: " + user_id)
-                    self.redirect('/hostlaunchipnb/')
+            if self.is_loading():
+                self.do_monitor_loading(user_id)
+            else:
+                if self.config("gauth") and self.config("invite_only") and (not self.invited(user_id)):
                     return
+                sessname = unique_sessname(user_id)
+                self.chk_and_launch_docker(sessname, user_id)
 
-                if self.config("invite_only"):
-                    code, status = jbuser.get_activation_state()
-                    if status != JBoxUserV2.ACTIVATION_GRANTED:
-                        invite_code = self.get_argument("invite_code", False)
-                        if invite_code is not False:
-                            try:
-                                invite = JBoxInvite(invite_code)
-                            except:
-                                invite = None
+    def is_loading(self):
+        return self.get_cookie('loading') is not None
 
-                            if (invite is not None) and invite.is_invited(user_id):
-                                jbuser.set_activation_state(invite_code, JBoxUserV2.ACTIVATION_GRANTED)
-                                invite.increment_count()
-                                invite.save()
-                                jbuser.save()
-                                self.redirect('/hostlaunchipnb/')
-                                return
-                            else:
-                                error_msg = 'You entered an invalid invitation code. Try again or request a new invitation.'
-                        else:
-                            error_msg = 'Enter an invitation code to proceed.'
+    def do_monitor_loading(self, user_id):
+        sessname = unique_sessname(user_id)
+        self.log_debug("Monitoring loading of session [" + repr(sessname) + "] user[" + repr(user_id) + "]...")
+        cont = JBoxContainer.get_by_name(sessname)
+        if (cont is None) or (not cont.is_running()):
+            loading_step = int(self.get_cookie("loading", 0))
+            if loading_step > 30:
+                self.clear_container_cookies()
+                self.rendertpl("index.tpl", cfg=self.config(),
+                               state=self.state(
+                                   error='Could not start your instance! Please try again.',
+                                   ask_invite_code=False,
+                                   user_id=user_id))
+            else:
+                loading_step += 1
 
-                        self.rendertpl("index.tpl", cfg=self.config(), state=self.state(
-                            error=error_msg,
-                            ask_invite_code=True, user_id=user_id))
-                        return
-
+            self.set_cookie("loading", str(loading_step))
+            self.rendertpl("loading.tpl", user_id=user_id)
+        else:
+            if self.config("gauth"):
+                jbuser = JBoxUserV2(user_id)
                 creds = jbuser.get_gtok()
                 if creds is not None:
                     try:
@@ -95,10 +90,59 @@ class MainHandler(JBoxHandler):
                 creds = None
                 authtok = None
 
-            self.chk_and_launch_docker(sessname, creds, authtok, user_id)
+            (shellport, uplport, ipnbport) = cont.get_host_ports()
+            sign = signstr(sessname + str(shellport) + str(uplport) + str(ipnbport), self.config("sesskey"))
+
+            self.clear_cookie("loading")
+            self.set_container_cookies({
+                "sessname": sessname,
+                "hostshell": shellport,
+                "hostupload": uplport,
+                "hostipnb": ipnbport,
+                "sign": sign
+            })
+            self.set_lb_tracker_cookie()
+            self.rendertpl("ipnbsess.tpl", sessname=sessname, cfg=self.config(), creds=creds, authtok=authtok,
+                           user_id=user_id)
+
+    def invited(self, user_id):
+        try:
+            jbuser = JBoxUserV2(user_id)
+        except:
+            # stale cookie. we don't have the user in our database anymore
+            self.log_info("stale cookie. we don't have the user in our database anymore. user: " + user_id)
+            self.redirect('/hostlaunchipnb/')
+            return False
+
+        code, status = jbuser.get_activation_state()
+        if status != JBoxUserV2.ACTIVATION_GRANTED:
+            invite_code = self.get_argument("invite_code", False)
+            if invite_code is not False:
+                try:
+                    invite = JBoxInvite(invite_code)
+                except:
+                    invite = None
+
+                if (invite is not None) and invite.is_invited(user_id):
+                    jbuser.set_activation_state(invite_code, JBoxUserV2.ACTIVATION_GRANTED)
+                    invite.increment_count()
+                    invite.save()
+                    jbuser.save()
+                    self.redirect('/hostlaunchipnb/')
+                    return False
+                else:
+                    error_msg = 'You entered an invalid invitation code. Try again or request a new invitation.'
+            else:
+                error_msg = 'Enter an invitation code to proceed.'
+
+            self.rendertpl("index.tpl", cfg=self.config(), state=self.state(
+                error=error_msg,
+                ask_invite_code=True, user_id=user_id))
+            return False
+        return True
 
     def clear_container_cookies(self):
-        for name in ["sessname", "hostshell", "hostupload", "hostipnb", "sign"]:
+        for name in ["sessname", "hostshell", "hostupload", "hostipnb", "sign", "loading"]:
             self.clear_cookie(name)
 
     def set_container_cookies(self, cookies):
@@ -113,7 +157,7 @@ class MainHandler(JBoxHandler):
     def set_lb_tracker_cookie(self):
         self.set_cookie('lb', signstr(CloudHelper.instance_id(), self.config('sesskey')), expires_days=30)
 
-    def chk_and_launch_docker(self, sessname, creds, authtok, user_id):
+    def chk_and_launch_docker(self, sessname, user_id):
         cont = JBoxContainer.get_by_name(sessname)
         nhops = int(self.get_argument('h', 0))
         self.log_debug("got hop " + repr(nhops) + " for session " + repr(sessname))
@@ -123,8 +167,7 @@ class MainHandler(JBoxHandler):
 
         if ((None == cont) or (not cont.is_running())) and (not CloudHelper.should_accept_session()):
             if None != cont:
-                cont.backup()
-                cont.delete()
+                cont.async_backup_and_cleanup()
             self.clear_container_cookies()
             self.set_header('Connection', 'close')
             self.request.connection.no_keep_alive = True
@@ -134,20 +177,18 @@ class MainHandler(JBoxHandler):
             else:
                 self.redirect('/?h=' + str(nhops + 1))
         else:
-            cont = JBoxContainer.launch_by_name(sessname, user_id, True)
-            (shellport, uplport, ipnbport) = cont.get_host_ports()
-            sign = signstr(sessname + str(shellport) + str(uplport) + str(ipnbport), self.config("sesskey"))
-
+            JBoxContainer.async_launch_by_name(sessname, user_id, True)
+            sign = signstr(sessname + '000', self.config("sesskey"))
             self.set_container_cookies({
                 "sessname": sessname,
-                "hostshell": shellport,
-                "hostupload": uplport,
-                "hostipnb": ipnbport,
+                "hostshell": 0,
+                "hostupload": 0,
+                "hostipnb": 0,
+                "loading": 1,
                 "sign": sign
             })
             self.set_lb_tracker_cookie()
-            self.rendertpl("ipnbsess.tpl", sessname=sessname, cfg=self.config(), creds=creds, authtok=authtok,
-                           user_id=user_id)
+            self.rendertpl("loading.tpl", stage=1, user_id=user_id)
 
     @staticmethod
     def renew_creds(creds):

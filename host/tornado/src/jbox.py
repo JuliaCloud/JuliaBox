@@ -1,6 +1,5 @@
 #! /usr/bin/env python
 
-import os.path
 import random
 import string
 
@@ -9,18 +8,11 @@ import tornado.web
 import tornado.auth
 import docker
 
-from jbox_util import read_config, make_sure_path_exists, CloudHelper, LoggerMixin
-from db.db_base import JBoxDB
-from db.user_v2 import JBoxUserV2
-from db.invites import JBoxInvite
-from db.accounting_v2 import JBoxAccountingV2
+from jbox_util import read_config, CloudHelper, LoggerMixin
+from db import JBoxDB, JBoxUserV2, JBoxInvite, JBoxAccountingV2
+from vol import VolMgr
 from jbox_container import JBoxContainer
-from handlers.handler_base import JBoxHandler
-from handlers.admin import AdminHandler
-from handlers.main import MainHandler
-from handlers.auth import AuthHandler
-from handlers.ping import PingHandler
-from handlers.cors import CorsHandler
+from handlers import JBoxHandler, AdminHandler, MainHandler, AuthHandler, PingHandler, CorsHandler
 
 
 class JBox(LoggerMixin):
@@ -46,6 +38,7 @@ class JBox(LoggerMixin):
                               has_cloudwatch=cloud_cfg['cloudwatch'],
                               has_autoscale=cloud_cfg['autoscale'],
                               has_route53=cloud_cfg['route53'],
+                              has_ebs=cloud_cfg['ebs'],
                               scale_up_at_load=cloud_cfg['scale_up_at_load'],
                               scale_up_policy=cloud_cfg['scale_up_policy'],
                               autoscale_group=cloud_cfg['autoscale_group'],
@@ -53,17 +46,9 @@ class JBox(LoggerMixin):
                               region=cloud_cfg['region'],
                               install_id=cloud_cfg['install_id'])
 
-        backup_location = os.path.expanduser(cfg['backup_location'])
-        user_home_img = os.path.expanduser(cfg['user_home_image'])
-        mnt_location = os.path.expanduser(cfg['mnt_location'])
-        backup_bucket = cloud_cfg['backup_bucket']
-        make_sure_path_exists(backup_location)
-        JBoxContainer.configure(dckr, cfg['docker_image'],
-                                cfg['mem_limit'], cfg['cpu_limit'], cfg['disk_limit'],
-                                [os.path.join(mnt_location, '${DISK_ID}')],
-                                mnt_location, backup_location, user_home_img,
-                                cfg['numlocalmax'], cfg["numdisksmax"],
-                                backup_bucket=backup_bucket)
+        VolMgr.configure(dckr, cfg)
+        JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'],
+                                cfg['numlocalmax'], cfg['async_job_port'])
 
         self.application = tornado.web.Application([
             (r"/", MainHandler),

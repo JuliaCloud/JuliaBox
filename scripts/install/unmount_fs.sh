@@ -4,10 +4,17 @@
 FS_DIR=/mnt/jbox
 IMG_DIR=${FS_DIR}/img
 MNT_DIR=${FS_DIR}/mnt
+EBS_DIR=${FS_DIR}/ebs
 
 function error_exit {
 	echo "$1" 1>&2
 	exit 1
+}
+
+function rm_ebs_fstab_entries {
+    grep -v "$1" /etc/fstab > /tmp/tmpfstab
+    cp /etc/fstab /tmp/fstab.bak
+    cat /tmp/tmpfstab > /etc/fstab
 }
 
 echo "Unmounting..."
@@ -28,4 +35,6 @@ if [ "$1" == "del" ]
 then
     echo "Deleting files..."
     sudo \rm -rf /mnt/jbox/*
+    echo "Deleting fstab entries..."
+    rm_ebs_fstab_entries ${EBS_DIR}
 fi
