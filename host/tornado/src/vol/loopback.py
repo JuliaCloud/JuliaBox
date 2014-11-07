@@ -44,10 +44,9 @@ class JBoxLoopbackVol(JBoxVol):
 
         nfree = JBoxLoopbackVol.MAX_DISKS
         if container_id_list is None:
-            container_id_list = JBoxLoopbackVol.dckr().containers(all=True)
+            container_id_list = [cdesc['Id'] for cdesc in JBoxLoopbackVol.dckr().containers(all=True)]
 
-        for cdesc in container_id_list:
-            cid = cdesc['Id']
+        for cid in container_id_list:
             disk_ids = JBoxLoopbackVol._get_disk_ids_used(cid)
             for disk_id in disk_ids:
                 JBoxLoopbackVol._mark_disk_used(disk_id)

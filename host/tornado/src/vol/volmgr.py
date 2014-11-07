@@ -26,7 +26,7 @@ class VolMgr(LoggerMixin):
         if cloud_cfg['ebs']:
             VolMgr.HAS_EBS = True
             ebs_mnt_location = os.path.expanduser(cloud_cfg['ebs_mnt_location'])
-            JBoxEBSVol.configure(1024, ebs_mnt_location, num_disks_max, cloud_cfg['ebs_template'])
+            JBoxEBSVol.configure(1000000000, ebs_mnt_location, num_disks_max, cloud_cfg['ebs_template'])
 
     @staticmethod
     def get_disk_from_container(cid):

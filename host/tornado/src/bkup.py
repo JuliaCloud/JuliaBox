@@ -76,13 +76,29 @@ class JBoxContainerBackup(LoggerMixin):
         finally:
             JBoxContainerBackup.finish_thread()
 
+    @staticmethod
+    def launch_session(name, email, reuse=True):
+        try:
+            JBoxContainer.launch_by_name(name, email, reuse=reuse)
+        finally:
+            JBoxContainerBackup.finish_thread()
+
     def run(self):
         while True:
             self.log_debug("Backup daemon waiting for commands...")
             cmd, data = self.queue.recv()
 
             if cmd == JBoxAsyncJob.CMD_BACKUP_CLEANUP:
-                JBoxContainerBackup.schedule_thread(cmd, JBoxContainerBackup.backup_and_cleanup, (data,))
+                args = (data,)
+                fn = JBoxContainerBackup.backup_and_cleanup
+            elif cmd == JBoxAsyncJob.CMD_LAUNCH_SESSION:
+                args = (data[0], data[1], data[2])
+                fn = JBoxContainerBackup.launch_session
+            else:
+                self.log_error("Unknown command " + str(cmd))
+                continue
+
+            JBoxContainerBackup.schedule_thread(cmd, fn, args)
 
 if __name__ == "__main__":
     JBoxContainerBackup().run()

@@ -23,6 +23,12 @@ import boto.ec2.autoscale
 from boto.s3.key import Key
 
 
+def parse_iso_time(tm):
+    if tm is not None:
+        tm = isodate.parse_datetime(tm)
+    return tm
+
+
 def retry(tries, delay=1, backoff=2):
     """Retries a function or method until it returns True.
 
@@ -258,7 +264,7 @@ class CloudHelper(LoggerMixin):
     def uptime_minutes(instance_id=None):
         if CloudHelper.ENABLED['cloudwatch']:
             attrs = CloudHelper.instance_attrs(instance_id)
-            lt = isodate.parse_datetime(attrs.launch_time)
+            lt = parse_iso_time(attrs.launch_time)
             nt = datetime.datetime.now(pytz.utc)
             uptime = nt - lt
         elif instance_id is not None:
@@ -767,6 +773,17 @@ class CloudHelper(LoggerMixin):
         return maps[device].volume_id
 
     @staticmethod
+    def get_snapshot_age(snap_id):
+        snaps = CloudHelper.connect_ec2().get_all_snapshots([snap_id])
+        if len(snaps) == 0:
+            raise Exception("Snapshot not found with id " + str(snap_id))
+        snap = snaps[0]
+
+        st = parse_iso_time(snap.start_time)
+        nt = datetime.datetime.now(pytz.utc)
+        return nt - st
+
+    @staticmethod
     def create_new_volume(snap_id, dev_id, mount_dir, tag=None):
         CloudHelper.log_info("Creating volume with tag " + tag +
                              " from snapshot " + snap_id +
@@ -871,6 +888,7 @@ class JBoxAsyncJob(LoggerMixin):
     MODE_SUB = zmq.PULL
 
     CMD_BACKUP_CLEANUP = 1
+    CMD_LAUNCH_SESSION = 2
 
     def __init__(self, port, mode):
         self._mode = mode

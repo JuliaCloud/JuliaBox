@@ -324,7 +324,7 @@ var JuliaBox = (function($, _, undefined){
 				}
 			}
 			top.location.href = '/';
-			top.location.reload(true);    		
+			top.location.reload(true);
     	},
 
 		do_logout: function () {

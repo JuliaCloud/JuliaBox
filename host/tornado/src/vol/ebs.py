@@ -70,10 +70,9 @@ class JBoxEBSVol(JBoxVol):
 
         nfree = JBoxEBSVol.MAX_DISKS
         if container_id_list is None:
-            container_id_list = JBoxEBSVol.dckr().containers(all=True)
+            container_id_list = [cdesc['Id'] for cdesc in JBoxEBSVol.dckr().containers(all=True)]
 
-        for cdesc in container_id_list:
-            cid = cdesc['Id']
+        for cid in container_id_list:
             disk_ids = JBoxEBSVol._get_disk_ids_used(cid)
             for disk_id in disk_ids:
                 JBoxEBSVol._mark_disk_used(disk_id)
@@ -126,6 +125,11 @@ class JBoxEBSVol(JBoxVol):
             ebsvol.restore_user_home()
             ebsvol.setup_instance_config()
             ebsvol.restore()
+        else:
+            snap_age_days = CloudHelper.get_snapshot_age(snap_id).total_seconds()/(60*60*24)
+            if snap_age_days > 7:
+                ebsvol.restore_user_home()
+                ebsvol.setup_instance_config()
 
         return ebsvol
 

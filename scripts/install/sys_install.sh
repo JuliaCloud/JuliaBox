@@ -22,6 +22,7 @@ function sysinstall_pystuff {
     sudo pip install psutil
     sudo pip install cli53
     sudo pip install sh
+    sudo pip install pyzmq
 
     git clone https://github.com/dotcloud/docker-py
     cd docker-py

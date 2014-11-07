@@ -119,6 +119,11 @@ class JBoxContainer(LoggerMixin):
         return cont
 
     @staticmethod
+    def async_launch_by_name(name, email, reuse=True):
+        JBoxContainer.log_info("Scheduling startup for " + name + ", user: " + email)
+        JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_LAUNCH_SESSION, (name, email, reuse))
+
+    @staticmethod
     def launch_by_name(name, email, reuse=True):
         JBoxContainer.log_info("Launching container: " + name)
 
@@ -133,8 +138,8 @@ class JBoxContainer(LoggerMixin):
 
         if not (cont.is_running() or cont.is_restarting()):
             cont.start(email)
-        else:
-            cont.restart()
+        #else:
+        #    cont.restart()
 
         JBoxContainer.publish_container_stats()
         return cont
@@ -184,11 +189,11 @@ class JBoxContainer(LoggerMixin):
 
         all_containers = JBoxContainer.DCKR.containers(all=True)
         all_cnames = {}
-        container_obj_list = []
+        container_id_list = []
         for cdesc in all_containers:
             cid = cdesc['Id']
             cont = JBoxContainer(cid)
-            container_obj_list.append(cont)
+            container_id_list.append(cid)
             cname = cont.get_name()
             all_cnames[cname] = cid
 
@@ -225,7 +230,7 @@ class JBoxContainer(LoggerMixin):
 
         JBoxContainer.VALID_CONTAINERS = all_cnames
         JBoxContainer.publish_container_stats()
-        VolMgr.refresh_disk_use_status(container_id_list=container_obj_list)
+        VolMgr.refresh_disk_use_status(container_id_list=container_id_list)
         JBoxContainer.log_info("Finished container maintenance.")
 
     @staticmethod
