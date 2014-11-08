@@ -123,13 +123,12 @@ class JBoxEBSVol(JBoxVol):
 
         if snap_id == JBoxEBSVol.DISK_TEMPLATE_SNAPSHOT:
             ebsvol.restore_user_home()
-            ebsvol.setup_instance_config()
             ebsvol.restore()
         else:
             snap_age_days = CloudHelper.get_snapshot_age(snap_id).total_seconds()/(60*60*24)
             if snap_age_days > 7:
                 ebsvol.restore_user_home()
-                ebsvol.setup_instance_config()
+        ebsvol.setup_instance_config()
 
         return ebsvol
 

@@ -50,7 +50,7 @@ function sysinstall_resty {
 function sysinstall_libs {
     # Stuff required for docker, openresty, and tornado
     sudo apt-get -y update
-    sudo apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev netcat git python-setuptools supervisor python-dev python-isodate python-pip python-tz
+    sudo apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev netcat git python-setuptools supervisor python-dev python-isodate python-pip python-tz libzmq-dev
 }
 
 function sysinstall_docker {

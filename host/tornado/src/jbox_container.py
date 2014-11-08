@@ -209,7 +209,10 @@ class JBoxContainer(LoggerMixin):
                 JBoxContainer.log_info("Discovered new container " + cont.debug_str())
                 JBoxContainer.record_ping(cname)
 
-            if cont.time_started() < stop_before:
+            start_time = cont.time_started()
+            # check that start time is not absurdly small (indicates a continer that's starting up)
+            start_time_not_zero = (tnow-start_time).total_seconds() < (365*24*60*60)
+            if (start_time < stop_before) and start_time_not_zero:
                 # don't allow running beyond the limit for long running sessions
                 # JBoxContainer.log_info("time_started " + str(cont.time_started()) +
                 #               " delete_before: " + str(delete_before) +

@@ -213,6 +213,7 @@ class CloudHelper(LoggerMixin):
 
     ENABLED = {}
     INSTANCE_ID = None
+    INSTANCE_IMAGE_VERS = {}
     PUBLIC_HOSTNAME = None
     SELF_STATS = {}
     # STATS_CACHE = {} # TODO: cache stats
@@ -225,6 +226,18 @@ class CloudHelper(LoggerMixin):
             else:
                 CloudHelper.INSTANCE_ID = boto.utils.get_instance_metadata()['instance-id']
         return CloudHelper.INSTANCE_ID
+
+    @staticmethod
+    def image_version(inst_id):
+        if inst_id not in CloudHelper.INSTANCE_IMAGE_VERS:
+            conn = CloudHelper.connect_ec2()
+            inst = conn.get_all_instances([inst_id])[0].instances[0]
+            ami_id = inst.image_id
+            ami = conn.get_image(ami_id)
+            ami_name = ami.name
+            CloudHelper.INSTANCE_IMAGE_VERS[inst_id] = int(ami_name.split()[-1])
+
+        return CloudHelper.INSTANCE_IMAGE_VERS[inst_id]
 
     @staticmethod
     def zone():
@@ -464,6 +477,13 @@ class CloudHelper(LoggerMixin):
         if not CloudHelper.ENABLED['cloudwatch']:
             return False
 
+        # older amis terminate while newer amis never terminate
+        ami_recentness = CloudHelper.get_ami_recentness()
+        if ami_recentness < 0:
+            return True
+        elif ami_recentness > 0:
+            return False
+
         cluster_load = CloudHelper.get_cluster_stats('Load')
 
         # keep at least 1 machine running
@@ -505,6 +525,12 @@ class CloudHelper(LoggerMixin):
         if not CloudHelper.ENABLED['cloudwatch']:
             return True
 
+        # handle ami switchover. newer AMIs always accept, older AMIs always reject
+        if CloudHelper.get_ami_recentness() > 0:
+            return True
+        elif CloudHelper.get_ami_recentness() < 0:
+            return False
+
         # if not least loaded, accept
         if self_load >= avg_load:
             CloudHelper.log_debug("Accepting because this is not the least loaded (self load >= avg)")
@@ -516,6 +542,7 @@ class CloudHelper(LoggerMixin):
         if len(filtered_nodes) == 1:
             CloudHelper.log_debug("Accepting because this is the only instance with load less than average")
             return True
+
         # sort by load and instance_id
         sorted_nodes = sorted(filtered_nodes.iteritems(),
                               key=lambda x: CloudHelper.instance_accept_session_priority(x[0], x[1]))
@@ -563,6 +590,28 @@ class CloudHelper(LoggerMixin):
         reservations = CloudHelper.connect_ec2().get_all_reservations(instances_ids)
         instances = [i.id for r in reservations for i in r.instances]
         return instances
+
+    @staticmethod
+    def get_ami_recentness():
+        if not CloudHelper.ENABLED['autoscale']:
+            return 0
+        instances = CloudHelper.get_autoscaled_instances()
+        if instances is None:
+            return 0
+        max_ami_ver = 0
+        min_ami_ver = 0
+        for instance in instances:
+            ami_ver = CloudHelper.image_version(instance)
+            max_ami_ver = max(max_ami_ver, ami_ver)
+            min_ami_ver = min(min_ami_ver, ami_ver)
+
+        self_ami_ver = CloudHelper.image_version(CloudHelper.instance_id())
+        if max_ami_ver > self_ami_ver:
+            return -1
+        elif min_ami_ver < self_ami_ver:
+            return 1
+        else:
+            return 0
 
     @staticmethod
     def get_cluster_stats(stat_name, namespace=None):
