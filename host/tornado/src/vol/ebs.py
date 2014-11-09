@@ -1,4 +1,6 @@
+
 import os
+import threading
 
 from db import JBoxSessionProps
 from jbox_util import CloudHelper, unique_sessname
@@ -13,6 +15,7 @@ class JBoxEBSVol(JBoxVol):
     DISK_USE_STATUS = {}
     DISK_TEMPLATE_SNAPSHOT = None
     HAS_EBS = False
+    LOCK = None
 
     @staticmethod
     def configure(disk_limit, fs_loc, max_disks, disk_template_snap_id):
@@ -24,6 +27,7 @@ class JBoxEBSVol(JBoxVol):
         JBoxEBSVol.DISK_TEMPLATE_SNAPSHOT = disk_template_snap_id
         if len(JBoxEBSVol.DEVICES) < max_disks:
             raise Exception("Not enough EBS mount points configured")
+        JBoxEBSVol.LOCK = threading.Lock()
         JBoxEBSVol.refresh_disk_use_status()
 
     @classmethod
@@ -64,20 +68,24 @@ class JBoxEBSVol(JBoxVol):
 
     @staticmethod
     def refresh_disk_use_status(container_id_list=None):
-        for idx in range(0, JBoxEBSVol.MAX_DISKS):
-            dev = JBoxEBSVol.DEVICES[idx]
-            JBoxEBSVol.DISK_USE_STATUS[dev] = False
+        JBoxEBSVol.LOCK.acquire()
+        try:
+            for idx in range(0, JBoxEBSVol.MAX_DISKS):
+                dev = JBoxEBSVol.DEVICES[idx]
+                JBoxEBSVol.DISK_USE_STATUS[dev] = False
 
-        nfree = JBoxEBSVol.MAX_DISKS
-        if container_id_list is None:
-            container_id_list = [cdesc['Id'] for cdesc in JBoxEBSVol.dckr().containers(all=True)]
+            nfree = JBoxEBSVol.MAX_DISKS
+            if container_id_list is None:
+                container_id_list = [cdesc['Id'] for cdesc in JBoxEBSVol.dckr().containers(all=True)]
 
-        for cid in container_id_list:
-            disk_ids = JBoxEBSVol._get_disk_ids_used(cid)
-            for disk_id in disk_ids:
-                JBoxEBSVol._mark_disk_used(disk_id)
-                nfree -= 1
-        JBoxEBSVol.log_info("Disk free: " + str(nfree) + "/" + str(JBoxEBSVol.MAX_DISKS))
+            for cid in container_id_list:
+                disk_ids = JBoxEBSVol._get_disk_ids_used(cid)
+                for disk_id in disk_ids:
+                    JBoxEBSVol._mark_disk_used(disk_id)
+                    nfree -= 1
+            JBoxEBSVol.log_info("Disk free: " + str(nfree) + "/" + str(JBoxEBSVol.MAX_DISKS))
+        finally:
+            JBoxEBSVol.LOCK.release()
 
     @staticmethod
     def _get_unused_disk_id():
@@ -90,6 +98,16 @@ class JBoxEBSVol(JBoxVol):
     @staticmethod
     def _mark_disk_used(idx, used=True):
         JBoxEBSVol.DISK_USE_STATUS[idx] = used
+
+    @staticmethod
+    def _reserve_disk_id():
+        JBoxEBSVol.LOCK.acquire()
+        try:
+            disk_id = JBoxEBSVol._get_unused_disk_id()
+            JBoxEBSVol._mark_disk_used(disk_id)
+            return disk_id
+        finally:
+            JBoxEBSVol.LOCK.release()
 
     @staticmethod
     def disk_ids_used_pct():
@@ -107,7 +125,7 @@ class JBoxEBSVol(JBoxVol):
         if not JBoxEBSVol.HAS_EBS:
             raise Exception("EBS disks not enabled")
 
-        disk_id = JBoxEBSVol._get_unused_disk_id()
+        disk_id = JBoxEBSVol._reserve_disk_id()
         if disk_id is None:
             raise Exception("No free disk available")
 

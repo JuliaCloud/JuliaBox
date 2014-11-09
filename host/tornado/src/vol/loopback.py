@@ -1,4 +1,5 @@
 import os
+import threading
 
 from jbox_util import ensure_delete
 from jbox_volume import JBoxVol
@@ -11,12 +12,14 @@ class JBoxLoopbackVol(JBoxVol):
     MAX_DISKS = 0
     VALID_CONTAINERS = {}
     DISK_USE_STATUS = {}
+    LOCK = None
 
     @staticmethod
     def configure(disk_limit, fs_loc, max_disks):
         JBoxLoopbackVol.DISK_LIMIT = disk_limit
         JBoxLoopbackVol.FS_LOC = fs_loc
         JBoxLoopbackVol.MAX_DISKS = max_disks
+        JBoxLoopbackVol.LOCK = threading.Lock()
         JBoxLoopbackVol.refresh_disk_use_status()
 
     @classmethod
@@ -39,19 +42,23 @@ class JBoxLoopbackVol(JBoxVol):
 
     @staticmethod
     def refresh_disk_use_status(container_id_list=None):
-        for idx in range(0, JBoxLoopbackVol.MAX_DISKS):
-            JBoxLoopbackVol.DISK_USE_STATUS[idx] = False
+        JBoxLoopbackVol.LOCK.acquire()
+        try:
+            for idx in range(0, JBoxLoopbackVol.MAX_DISKS):
+                JBoxLoopbackVol.DISK_USE_STATUS[idx] = False
 
-        nfree = JBoxLoopbackVol.MAX_DISKS
-        if container_id_list is None:
-            container_id_list = [cdesc['Id'] for cdesc in JBoxLoopbackVol.dckr().containers(all=True)]
+            nfree = JBoxLoopbackVol.MAX_DISKS
+            if container_id_list is None:
+                container_id_list = [cdesc['Id'] for cdesc in JBoxLoopbackVol.dckr().containers(all=True)]
 
-        for cid in container_id_list:
-            disk_ids = JBoxLoopbackVol._get_disk_ids_used(cid)
-            for disk_id in disk_ids:
-                JBoxLoopbackVol._mark_disk_used(disk_id)
-                nfree -= 1
-        JBoxLoopbackVol.log_info("Disk free: " + str(nfree) + "/" + str(JBoxLoopbackVol.MAX_DISKS))
+            for cid in container_id_list:
+                disk_ids = JBoxLoopbackVol._get_disk_ids_used(cid)
+                for disk_id in disk_ids:
+                    JBoxLoopbackVol._mark_disk_used(disk_id)
+                    nfree -= 1
+            JBoxLoopbackVol.log_info("Disk free: " + str(nfree) + "/" + str(JBoxLoopbackVol.MAX_DISKS))
+        finally:
+            JBoxLoopbackVol.LOCK.release()
 
     @staticmethod
     def disk_ids_used_pct():
@@ -70,8 +77,18 @@ class JBoxLoopbackVol(JBoxVol):
         JBoxLoopbackVol.DISK_USE_STATUS[idx] = used
 
     @staticmethod
+    def _reserve_disk_id():
+        JBoxLoopbackVol.LOCK.acquire()
+        try:
+            disk_id = JBoxLoopbackVol._get_unused_disk_id()
+            JBoxLoopbackVol._mark_disk_used(disk_id)
+            return disk_id
+        finally:
+            JBoxLoopbackVol.LOCK.release()
+
+    @staticmethod
     def get_disk_for_user(user_email):
-        disk_id = JBoxLoopbackVol._get_unused_disk_id()
+        disk_id = JBoxLoopbackVol._reserve_disk_id()
         if disk_id < 0:
             raise Exception("No free disk available")
         disk_path = os.path.join(JBoxLoopbackVol.FS_LOC, str(disk_id))

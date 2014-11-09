@@ -81,6 +81,7 @@ class JBoxContainerBackup(LoggerMixin):
     @staticmethod
     def launch_session(name, email, reuse=True):
         try:
+            VolMgr.refresh_disk_use_status()
             JBoxContainer.launch_by_name(name, email, reuse=reuse)
         finally:
             JBoxContainerBackup.finish_thread()
