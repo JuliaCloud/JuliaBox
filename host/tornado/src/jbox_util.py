@@ -229,15 +229,19 @@ class CloudHelper(LoggerMixin):
 
     @staticmethod
     def image_version(inst_id):
-        if inst_id not in CloudHelper.INSTANCE_IMAGE_VERS:
-            conn = CloudHelper.connect_ec2()
-            inst = conn.get_all_instances([inst_id])[0].instances[0]
-            ami_id = inst.image_id
-            ami = conn.get_image(ami_id)
-            ami_name = ami.name
-            CloudHelper.INSTANCE_IMAGE_VERS[inst_id] = int(ami_name.split()[-1])
+        try:
+            if inst_id not in CloudHelper.INSTANCE_IMAGE_VERS:
+                conn = CloudHelper.connect_ec2()
+                inst = conn.get_all_instances([inst_id])[0].instances[0]
+                ami_id = inst.image_id
+                ami = conn.get_image(ami_id)
+                ami_name = ami.name
+                ver = int(ami_name.split()[-1])
+                CloudHelper.INSTANCE_IMAGE_VERS[inst_id] = ver
 
-        return CloudHelper.INSTANCE_IMAGE_VERS[inst_id]
+            return CloudHelper.INSTANCE_IMAGE_VERS[inst_id]
+        except:
+            return 0
 
     @staticmethod
     def zone():
@@ -526,9 +530,10 @@ class CloudHelper(LoggerMixin):
             return True
 
         # handle ami switchover. newer AMIs always accept, older AMIs always reject
-        if CloudHelper.get_ami_recentness() > 0:
+        ami_recentness = CloudHelper.get_ami_recentness()
+        if ami_recentness > 0:
             return True
-        elif CloudHelper.get_ami_recentness() < 0:
+        elif ami_recentness < 0:
             return False
 
         # if not least loaded, accept
