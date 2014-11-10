@@ -103,7 +103,7 @@ class JBoxContainer(LoggerMixin):
         JBoxContainer.ASYNC_JOB = JBoxAsyncJob(async_job_port, async_mode)
 
     @staticmethod
-    def create_new(name):
+    def _create_new(name):
         jsonobj = JBoxContainer.DCKR.create_container(JBoxContainer.DCKR_IMAGE,
                                                       detach=True,
                                                       mem_limit=JBoxContainer.MEM_LIMIT,
@@ -115,7 +115,6 @@ class JBoxContainer(LoggerMixin):
         dockid = jsonobj["Id"]
         cont = JBoxContainer(dockid)
         JBoxContainer.log_info("Created " + cont.debug_str())
-        # cont.create_restore_file()
         return cont
 
     @staticmethod
@@ -134,7 +133,7 @@ class JBoxContainer(LoggerMixin):
             cont = None
 
         if cont is None:
-            cont = JBoxContainer.create_new(name)
+            cont = JBoxContainer._create_new(name)
 
         if not (cont.is_running() or cont.is_restarting()):
             cont.start(email)
@@ -202,14 +201,17 @@ class JBoxContainer(LoggerMixin):
                 continue
 
             c_is_active = cont.is_running() or cont.is_restarting()
-            last_ping = JBoxContainer.get_last_ping(cname)
+            last_ping = JBoxContainer._get_last_ping(cname)
 
             # if we don't have a ping record, create one (we must have restarted) 
             if (last_ping is None) and c_is_active:
                 JBoxContainer.log_info("Discovered new container " + cont.debug_str())
                 JBoxContainer.record_ping(cname)
 
-            if cont.time_started() < stop_before:
+            start_time = cont.time_started()
+            # check that start time is not absurdly small (indicates a continer that's starting up)
+            start_time_not_zero = (tnow-start_time).total_seconds() < (365*24*60*60)
+            if (start_time < stop_before) and start_time_not_zero:
                 # don't allow running beyond the limit for long running sessions
                 # JBoxContainer.log_info("time_started " + str(cont.time_started()) +
                 #               " delete_before: " + str(delete_before) +
@@ -261,13 +263,19 @@ class JBoxContainer(LoggerMixin):
 
     def async_backup_and_cleanup(self):
         JBoxContainer.log_info("scheduling cleanup for " + self.debug_str())
+        if self.get_name() in JBoxContainer.VALID_CONTAINERS:
+            del JBoxContainer.VALID_CONTAINERS[self.get_name()]
         JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_BACKUP_CLEANUP, self.dockid)
 
-    def backup(self):
-        JBoxContainer.log_info("Backing up " + self.debug_str())
-        disk = VolMgr.get_disk_from_container(self.dockid)
-        if disk is not None:
-            disk.backup()
+    def backup_and_cleanup(self):
+        self.stop()
+        self.delete(backup=True)
+
+    # def backup(self):
+    #     JBoxContainer.log_info("Backing up " + self.debug_str())
+    #     disk = VolMgr.get_disk_from_container(self.dockid)
+    #     if disk is not None:
+    #         disk.backup()
 
     @staticmethod
     def num_active():
@@ -294,7 +302,7 @@ class JBoxContainer(LoggerMixin):
         # log_info("Recorded ping for " + name)
 
     @staticmethod
-    def get_last_ping(name):
+    def _get_last_ping(name):
         return JBoxContainer.PINGS[name] if (name in JBoxContainer.PINGS) else None
 
     @staticmethod
@@ -375,7 +383,7 @@ class JBoxContainer(LoggerMixin):
         JBoxContainer.log_info("Killed " + self.debug_str())
         self.record_usage()
 
-    def delete(self):
+    def delete(self, backup=False):
         JBoxContainer.log_info("Deleting " + self.debug_str())
         self.refresh()
         cname = self.get_name()
@@ -384,11 +392,11 @@ class JBoxContainer(LoggerMixin):
 
         disk = VolMgr.get_disk_from_container(self.dockid)
         if disk is not None:
-            disk.release()
+            disk.release(backup=backup)
 
-        JBoxContainer.DCKR.remove_container(self.dockid)
         if cname is not None:
             JBoxContainer.PINGS.pop(cname, None)
+        JBoxContainer.DCKR.remove_container(self.dockid)
         JBoxContainer.log_info("Deleted " + self.debug_str())
 
     def record_usage(self):

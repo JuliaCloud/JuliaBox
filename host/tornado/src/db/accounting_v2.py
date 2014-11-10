@@ -1,5 +1,6 @@
 import datetime
 import pytz
+import json
 
 from boto.dynamodb.condition import GE
 
@@ -60,7 +61,10 @@ class JBoxAccountingV2(JBoxDB):
                 item_count += 1
                 if 'start_time' in x:
                     sum_time += x['stop_time'] - int(x['start_time'])
-                image_count[x['image_id']] = image_count.get(x['image_id'], 0) + 1
+                image_ids = json.loads(x['image_id'])
+                for image_id in image_ids:
+                    if image_id.startswith("juliabox/") and (not image_id.endswith(":latest")):
+                        image_count[image_id] = image_count.get(image_id, 0) + 1
 
         def fmt(seconds):
             hrs = int(seconds / 3600)

@@ -57,6 +57,8 @@ class AuthHandler(JBoxHandler, GoogleOAuth2Mixin):
                     jbuser.save()
                     #self.log_info(str(user))
                     #self.log_info(creds.to_json())
+                    self.redirect('/')
+                    return
                 else:
                     if self.get_cookie("is_invite", "no") == "yes":
                         code, status = jbuser.get_activation_state()

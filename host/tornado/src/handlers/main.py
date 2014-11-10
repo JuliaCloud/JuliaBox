@@ -145,6 +145,10 @@ class MainHandler(JBoxHandler):
         for name in ["sessname", "hostshell", "hostupload", "hostipnb", "sign", "loading"]:
             self.clear_cookie(name)
 
+    def clear_lb_tracker_cookie(self):
+        for name in ["AWSELB", "lb"]:
+            self.clear_cookie(name)
+
     def set_container_cookies(self, cookies):
         max_session_time = self.config('expire')
         if max_session_time == 0:
@@ -169,6 +173,7 @@ class MainHandler(JBoxHandler):
             if None != cont:
                 cont.async_backup_and_cleanup()
             self.clear_container_cookies()
+            self.clear_lb_tracker_cookie()
             self.set_header('Connection', 'close')
             self.request.connection.no_keep_alive = True
             if nhops > self.config('numhopmax', 0):

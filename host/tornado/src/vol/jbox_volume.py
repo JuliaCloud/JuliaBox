@@ -2,7 +2,6 @@ import os
 import tarfile
 import time
 import datetime
-from tempfile import NamedTemporaryFile
 
 import pytz
 
@@ -104,10 +103,16 @@ class JBoxVol(LoggerMixin):
 
     def setup_instance_config(self):
         nbconfig = os.path.join(self.disk_path, '.ipython/profile_julia/ipython_notebook_config.py')
+        nbconfig_temp = os.path.join(self.disk_path, '.ipython/profile_julia/ipython_notebook_config.py.temp')
+
+        if os.path.exists(nbconfig_temp):
+            os.remove(nbconfig_temp)
+        os.rename(nbconfig, nbconfig_temp)
+
         wsock_cfg = "c.NotebookApp.websocket_url = 'wss://" + CloudHelper.notebook_websocket_hostname() + "'\n"
 
         replaced = False
-        with open(nbconfig) as fin, NamedTemporaryFile(dir=os.path.dirname(nbconfig), delete=False) as fout:
+        with open(nbconfig_temp) as fin, open(nbconfig, 'w') as fout:
             for line in fin:
                 if line.startswith("c.NotebookApp.websocket_url"):
                     line = wsock_cfg
@@ -115,7 +120,6 @@ class JBoxVol(LoggerMixin):
                 fout.write(line)
             if not replaced:
                 fout.write(wsock_cfg)
-            os.rename(fout.name, nbconfig)
 
     @staticmethod
     def local_time_offset():
@@ -131,7 +135,7 @@ class JBoxVol(LoggerMixin):
             return None
         return CloudHelper.pull_file_from_s3(JBoxVol.BACKUP_BUCKET, local_file, metadata_only=metadata_only)
 
-    def backup(self, clear_volume=False):
+    def _backup(self, clear_volume=False):
         JBoxVol.log_info("Backing up " + self.sessname + " at " + str(JBoxVol.BACKUP_LOC))
 
         bkup_file = os.path.join(JBoxVol.BACKUP_LOC, self.sessname + ".tar.gz")
