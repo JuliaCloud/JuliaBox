@@ -710,7 +710,7 @@ class CloudHelper(LoggerMixin):
         return att.instance_id, att.device
 
     @staticmethod
-    def _unmount_device(dev_id, mount_dir):
+    def unmount_device(dev_id, mount_dir):
         mount_point = os.path.join(mount_dir, dev_id)
         actual_mount_point = CloudHelper._get_mount_point(dev_id)
         if actual_mount_point is None:
@@ -823,7 +823,7 @@ class CloudHelper(LoggerMixin):
                                                                 attribute='blockDeviceMapping')['blockDeviceMapping']
 
     @staticmethod
-    def _get_volume_id_from_device(dev_id):
+    def get_volume_id_from_device(dev_id):
         device = os.path.join('/dev', dev_id)
         maps = CloudHelper._get_mapped_volumes()
         CloudHelper.log_debug("Devices mapped: " + repr(maps))
@@ -849,7 +849,12 @@ class CloudHelper(LoggerMixin):
                              " at dev_id " + dev_id +
                              " mount_dir " + mount_dir)
         conn = CloudHelper.connect_ec2()
-        vol = conn.create_volume(1, CloudHelper.zone(), snapshot=snap_id, volume_type='gp2')
+        disk_sz_gb = 1
+        vol = conn.create_volume(disk_sz_gb, CloudHelper.zone(),
+                                 snapshot=snap_id,
+                                 volume_type='gp2')
+                                 # volume_type='io1',
+                                 # iops=30*disk_sz_gb)
         CloudHelper._wait_for_status(vol, 'available')
         vol_id = vol.id
         CloudHelper.log_info("Created volume with id " + vol_id)
@@ -860,35 +865,38 @@ class CloudHelper(LoggerMixin):
 
         return CloudHelper._attach_free_volume(vol_id, dev_id, mount_dir)
 
-    @staticmethod
-    def detach_mounted_volume(dev_id, mount_dir, delete=False):
-        CloudHelper.log_info("Detaching volume mounted at device " + dev_id)
-        vol_id = CloudHelper._get_volume_id_from_device(dev_id)
-        CloudHelper.log_debug("Device " + dev_id + " maps volume " + vol_id)
-        return CloudHelper.detach_volume(vol_id, mount_dir, delete=delete)
+    # @staticmethod
+    # def detach_mounted_volume(dev_id, mount_dir, delete=False):
+    #     CloudHelper.log_info("Detaching volume mounted at device " + dev_id)
+    #     vol_id = CloudHelper.get_volume_id_from_device(dev_id)
+    #     CloudHelper.log_debug("Device " + dev_id + " maps volume " + vol_id)
+    #
+    #     # find the instance and device to which the volume is mapped
+    #     instance, device = CloudHelper._get_volume_attach_info(vol_id)
+    #     if instance is None:  # the volume is not mounted
+    #         return
+    #
+    #     # if mounted to current instance, also unmount the device
+    #     if instance == CloudHelper.instance_id():
+    #         dev_id = device.split('/')[-1]
+    #         CloudHelper.unmount_device(dev_id, mount_dir)
+    #         time.sleep(1)
+    #
+    #     return CloudHelper.detach_volume(vol_id, delete=delete)
 
     @staticmethod
-    def detach_volume(vol_id, mount_dir, delete=False):
-        CloudHelper.log_info("Detaching volume " + vol_id + " from " + mount_dir)
+    def detach_volume(vol_id, delete=False):
         # find the instance and device to which the volume is mapped
         instance, device = CloudHelper._get_volume_attach_info(vol_id)
-        if instance is None:  # the volume is not mounted
-            return
-
-        # if mounted to current instance, also unmount the device
-        if instance == CloudHelper.instance_id():
-            dev_id = device.split('/')[-1]
-            CloudHelper._unmount_device(dev_id, mount_dir)
-            time.sleep(1)
-
-        # detach the volume
-        CloudHelper.log_debug("Detaching volume " + vol_id + " from instance " + instance + " device " + repr(device))
         conn = CloudHelper.connect_ec2()
-        vol = CloudHelper._get_volume(vol_id)
-        conn.detach_volume(vol_id, instance, device)
-        if not CloudHelper._wait_for_status_extended(vol, 'available'):
-            raise Exception("Volume could not be detached " + vol_id)
+        if instance is not None:  # the volume is attached
+            CloudHelper.log_debug("Detaching " + vol_id + " from instance " + instance + " device " + repr(device))
+            vol = CloudHelper._get_volume(vol_id)
+            conn.detach_volume(vol_id, instance, device)
+            if not CloudHelper._wait_for_status_extended(vol, 'available'):
+                raise Exception("Volume could not be detached " + vol_id)
         if delete:
+            CloudHelper.log_debug("Deleting " + vol_id)
             conn.delete_volume(vol_id)
 
     @staticmethod
@@ -924,7 +932,7 @@ class CloudHelper(LoggerMixin):
     @staticmethod
     def snapshot_volume(vol_id=None, dev_id=None, tag=None, description=None):
         if dev_id is not None:
-            vol_id = CloudHelper._get_volume_id_from_device(dev_id)
+            vol_id = CloudHelper.get_volume_id_from_device(dev_id)
         if vol_id is None:
             CloudHelper.log_info("No volume to snapshot. vol_id: " + repr(vol_id) + ", dev_id: " + repr(dev_id))
             return

@@ -161,25 +161,23 @@ class JBoxEBSVol(JBoxVol):
         sessname = container_name[1:]
         return JBoxEBSVol(disk_path, sessname=sessname)
 
-    def backup(self, clear_volume=False, s3backup=False):
-        if not JBoxEBSVol.HAS_EBS:
-            raise Exception("EBS disks not enabled")
+    def _backup(self, clear_volume=False):
+        sess_props = JBoxSessionProps(self.sessname)
+        desc = sess_props.get_user_id() + " JuliaBox Backup"
+        disk_id = self.disk_path.split('/')[-1]
+        snap_id = CloudHelper.snapshot_volume(dev_id=disk_id, tag=self.sessname, description=desc)
+        old_snap_id = sess_props.get_snapshot_id()
+        sess_props.set_snapshot_id(snap_id)
+        sess_props.save()
+        if old_snap_id is not None:
+            CloudHelper.delete_snapshot(old_snap_id)
 
-        if s3backup:
-            super(JBoxEBSVol, self).backup(clear_volume=clear_volume)
-        else:
-            disk_id = self.disk_path.split('/')[-1]
-            sess_props = JBoxSessionProps(self.sessname)
-            desc = sess_props.get_user_id() + " JuliaBox Backup"
-            snap_id = CloudHelper.snapshot_volume(dev_id=disk_id, tag=self.sessname, description=desc)
-            old_snap_id = sess_props.get_snapshot_id()
-            sess_props.set_snapshot_id(snap_id)
-            sess_props.save()
-            if old_snap_id is not None:
-                CloudHelper.delete_snapshot(old_snap_id)
-
-    def release(self):
+    def release(self, backup=False):
         if not JBoxEBSVol.HAS_EBS:
             raise Exception("EBS disks not enabled")
         disk_id = self.disk_path.split('/')[-1]
-        CloudHelper.detach_mounted_volume(disk_id, JBoxEBSVol.FS_LOC, delete=True)
+        CloudHelper.unmount_device(disk_id, JBoxEBSVol.FS_LOC)
+        if backup:
+            self._backup()
+        vol_id = CloudHelper.get_volume_id_from_device(disk_id)
+        CloudHelper.detach_volume(vol_id, delete=True)

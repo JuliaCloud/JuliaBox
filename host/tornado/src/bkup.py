@@ -70,11 +70,8 @@ class JBoxContainerBackup(LoggerMixin):
     def backup_and_cleanup(dockid):
         try:
             cont = JBoxContainer(dockid)
-            cont.kill()
-            try:
-                cont.backup()
-            finally:
-                cont.delete()
+            cont.stop()
+            cont.delete(backup=True)
         finally:
             JBoxContainerBackup.finish_thread()
 

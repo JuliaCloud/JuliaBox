@@ -266,11 +266,16 @@ class JBoxContainer(LoggerMixin):
         JBoxContainer.log_info("scheduling cleanup for " + self.debug_str())
         JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_BACKUP_CLEANUP, self.dockid)
 
-    def backup(self):
-        JBoxContainer.log_info("Backing up " + self.debug_str())
-        disk = VolMgr.get_disk_from_container(self.dockid)
-        if disk is not None:
-            disk.backup()
+    def backup_and_cleanup(self):
+        # stop the container
+        self.stop()
+        self.delete(backup=True)
+
+    # def backup(self):
+    #     JBoxContainer.log_info("Backing up " + self.debug_str())
+    #     disk = VolMgr.get_disk_from_container(self.dockid)
+    #     if disk is not None:
+    #         disk.backup()
 
     @staticmethod
     def num_active():
@@ -378,7 +383,7 @@ class JBoxContainer(LoggerMixin):
         JBoxContainer.log_info("Killed " + self.debug_str())
         self.record_usage()
 
-    def delete(self):
+    def delete(self, backup=False):
         JBoxContainer.log_info("Deleting " + self.debug_str())
         self.refresh()
         cname = self.get_name()
@@ -386,12 +391,13 @@ class JBoxContainer(LoggerMixin):
             self.kill()
 
         disk = VolMgr.get_disk_from_container(self.dockid)
-        if disk is not None:
-            disk.release()
 
         JBoxContainer.DCKR.remove_container(self.dockid)
         if cname is not None:
             JBoxContainer.PINGS.pop(cname, None)
+
+        if disk is not None:
+            disk.release(backup=backup)
         JBoxContainer.log_info("Deleted " + self.debug_str())
 
     def record_usage(self):

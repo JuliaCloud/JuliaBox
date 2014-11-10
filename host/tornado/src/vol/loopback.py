@@ -109,8 +109,9 @@ class JBoxLoopbackVol(JBoxVol):
         sessname = container_name[1:]
         return JBoxLoopbackVol(disk_path, sessname=sessname)
 
-    def backup(self, clear_volume=True):
-        super(JBoxLoopbackVol, self).backup(clear_volume=clear_volume)
+    def _backup(self, clear_volume=True):
+        super(JBoxLoopbackVol, self)._backup(clear_volume=clear_volume)
 
-    def release(self):
-        pass
+    def release(self, backup=False):
+        if backup:
+            self._backup()
