@@ -103,7 +103,7 @@ class JBoxContainer(LoggerMixin):
         JBoxContainer.ASYNC_JOB = JBoxAsyncJob(async_job_port, async_mode)
 
     @staticmethod
-    def create_new(name):
+    def _create_new(name):
         jsonobj = JBoxContainer.DCKR.create_container(JBoxContainer.DCKR_IMAGE,
                                                       detach=True,
                                                       mem_limit=JBoxContainer.MEM_LIMIT,
@@ -115,7 +115,6 @@ class JBoxContainer(LoggerMixin):
         dockid = jsonobj["Id"]
         cont = JBoxContainer(dockid)
         JBoxContainer.log_info("Created " + cont.debug_str())
-        # cont.create_restore_file()
         return cont
 
     @staticmethod
@@ -134,7 +133,7 @@ class JBoxContainer(LoggerMixin):
             cont = None
 
         if cont is None:
-            cont = JBoxContainer.create_new(name)
+            cont = JBoxContainer._create_new(name)
 
         if not (cont.is_running() or cont.is_restarting()):
             cont.start(email)
@@ -202,7 +201,7 @@ class JBoxContainer(LoggerMixin):
                 continue
 
             c_is_active = cont.is_running() or cont.is_restarting()
-            last_ping = JBoxContainer.get_last_ping(cname)
+            last_ping = JBoxContainer._get_last_ping(cname)
 
             # if we don't have a ping record, create one (we must have restarted) 
             if (last_ping is None) and c_is_active:
@@ -264,10 +263,11 @@ class JBoxContainer(LoggerMixin):
 
     def async_backup_and_cleanup(self):
         JBoxContainer.log_info("scheduling cleanup for " + self.debug_str())
+        if self.get_name() in JBoxContainer.VALID_CONTAINERS:
+            del JBoxContainer.VALID_CONTAINERS[self.get_name()]
         JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_BACKUP_CLEANUP, self.dockid)
 
     def backup_and_cleanup(self):
-        # stop the container
         self.stop()
         self.delete(backup=True)
 
@@ -302,7 +302,7 @@ class JBoxContainer(LoggerMixin):
         # log_info("Recorded ping for " + name)
 
     @staticmethod
-    def get_last_ping(name):
+    def _get_last_ping(name):
         return JBoxContainer.PINGS[name] if (name in JBoxContainer.PINGS) else None
 
     @staticmethod
@@ -391,13 +391,12 @@ class JBoxContainer(LoggerMixin):
             self.kill()
 
         disk = VolMgr.get_disk_from_container(self.dockid)
-
-        JBoxContainer.DCKR.remove_container(self.dockid)
-        if cname is not None:
-            JBoxContainer.PINGS.pop(cname, None)
-
         if disk is not None:
             disk.release(backup=backup)
+
+        if cname is not None:
+            JBoxContainer.PINGS.pop(cname, None)
+        JBoxContainer.DCKR.remove_container(self.dockid)
         JBoxContainer.log_info("Deleted " + self.debug_str())
 
     def record_usage(self):

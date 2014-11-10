@@ -5,12 +5,12 @@ import json
 
 import docker
 
-from jbox_util import LoggerMixin, read_config, CloudHelper, JBoxAsyncJob
+from jbox_util import LoggerMixin, read_config, CloudHelper, JBoxAsyncJob, retry
 from jbox_container import JBoxContainer
 from vol import VolMgr
 
 
-class JBoxContainerBackup(LoggerMixin):
+class JBoxd(LoggerMixin):
     ACTIVE = {}
     LOCK = threading.Lock()
 
@@ -39,32 +39,32 @@ class JBoxContainerBackup(LoggerMixin):
 
     @staticmethod
     def is_duplicate(sign):
-        return sign in JBoxContainerBackup.ACTIVE
+        return sign in JBoxd.ACTIVE
 
     @staticmethod
     def schedule_thread(cmd, target, args):
         sign = json.dumps({'cmd': cmd, 'args': args})
-        JBoxContainerBackup.log_debug("received command " + sign)
+        JBoxd.log_debug("received command " + sign)
 
-        JBoxContainerBackup.LOCK.acquire()
-        if JBoxContainerBackup.is_duplicate(sign):
-            JBoxContainerBackup.log_debug("already processing command " + sign)
-            JBoxContainerBackup.LOCK.release()
+        JBoxd.LOCK.acquire()
+        if JBoxd.is_duplicate(sign):
+            JBoxd.log_debug("already processing command " + sign)
+            JBoxd.LOCK.release()
             return
 
         t = threading.Thread(target=target, args=args, name=sign)
-        JBoxContainerBackup.ACTIVE[sign] = t
-        JBoxContainerBackup.LOCK.release()
-        JBoxContainerBackup.log_debug("scheduled " + sign)
+        JBoxd.ACTIVE[sign] = t
+        JBoxd.LOCK.release()
+        JBoxd.log_debug("scheduled " + sign)
         t.start()
 
     @staticmethod
     def finish_thread():
-        JBoxContainerBackup.LOCK.acquire()
+        JBoxd.LOCK.acquire()
         sign = threading.current_thread().name
-        del JBoxContainerBackup.ACTIVE[sign]
-        JBoxContainerBackup.LOCK.release()
-        JBoxContainerBackup.log_debug("finished " + sign)
+        del JBoxd.ACTIVE[sign]
+        JBoxd.LOCK.release()
+        JBoxd.log_debug("finished " + sign)
 
     @staticmethod
     def backup_and_cleanup(dockid):
@@ -73,15 +73,32 @@ class JBoxContainerBackup(LoggerMixin):
             cont.stop()
             cont.delete(backup=True)
         finally:
-            JBoxContainerBackup.finish_thread()
+            JBoxd.finish_thread()
+
+    @staticmethod
+    def _is_scheduled(cmd, args):
+        sign = json.dumps({'cmd': cmd, 'args': args})
+        JBoxd.LOCK.acquire()
+        ret = JBoxd.is_duplicate(sign)
+        JBoxd.LOCK.release()
+        return ret
+
+    @staticmethod
+    @retry(15, 0.5, backoff=1.5)
+    def _wait_for_session_backup(sessname):
+        cont = JBoxContainer.get_by_name(sessname)
+        if (cont is not None) and JBoxd._is_scheduled(JBoxAsyncJob.CMD_BACKUP_CLEANUP, (cont.dockid,)):
+            return False
+        return True
 
     @staticmethod
     def launch_session(name, email, reuse=True):
         try:
+            JBoxd._wait_for_session_backup(name)
             VolMgr.refresh_disk_use_status()
             JBoxContainer.launch_by_name(name, email, reuse=reuse)
         finally:
-            JBoxContainerBackup.finish_thread()
+            JBoxd.finish_thread()
 
     def run(self):
         while True:
@@ -90,15 +107,15 @@ class JBoxContainerBackup(LoggerMixin):
 
             if cmd == JBoxAsyncJob.CMD_BACKUP_CLEANUP:
                 args = (data,)
-                fn = JBoxContainerBackup.backup_and_cleanup
+                fn = JBoxd.backup_and_cleanup
             elif cmd == JBoxAsyncJob.CMD_LAUNCH_SESSION:
                 args = (data[0], data[1], data[2])
-                fn = JBoxContainerBackup.launch_session
+                fn = JBoxd.launch_session
             else:
                 self.log_error("Unknown command " + str(cmd))
                 continue
 
-            JBoxContainerBackup.schedule_thread(cmd, fn, args)
+            JBoxd.schedule_thread(cmd, fn, args)
 
 if __name__ == "__main__":
-    JBoxContainerBackup().run()
+    JBoxd().run()
