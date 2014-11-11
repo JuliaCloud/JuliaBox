@@ -4,8 +4,9 @@ import threading
 import json
 
 import docker
+from cloud.aws import CloudHost
 
-from jbox_util import LoggerMixin, read_config, CloudHelper, JBoxAsyncJob, retry
+from jbox_util import LoggerMixin, read_config, JBoxAsyncJob, retry
 from jbox_container import JBoxContainer
 from vol import VolMgr
 
@@ -19,7 +20,7 @@ class JBoxd(LoggerMixin):
         cfg = read_config()
         cloud_cfg = cfg['cloud_host']
 
-        CloudHelper.configure(has_s3=cloud_cfg['s3'],
+        CloudHost.configure(has_s3=cloud_cfg['s3'],
                               has_dynamodb=cloud_cfg['dynamodb'],
                               has_cloudwatch=cloud_cfg['cloudwatch'],
                               has_autoscale=cloud_cfg['autoscale'],

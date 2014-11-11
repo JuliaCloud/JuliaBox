@@ -5,9 +5,10 @@ import multiprocessing
 
 import isodate
 import psutil
+from cloud.aws import CloudHost
 
 from db import JBoxAccountingV2
-from jbox_util import LoggerMixin, CloudHelper, JBoxAsyncJob
+from jbox_util import LoggerMixin, JBoxAsyncJob
 from vol import VolMgr
 
 
@@ -150,7 +151,7 @@ class JBoxContainer(LoggerMixin):
     def publish_container_stats():
         """ Publish custom cloudwatch statistics. Used for status monitoring and auto scaling. """
         nactive = JBoxContainer.num_active()
-        CloudHelper.publish_stats("NumActiveContainers", "Count", nactive)
+        CloudHost.publish_stats("NumActiveContainers", "Count", nactive)
 
         curr_cpu_used_pct = psutil.cpu_percent()
         last_cpu_used_pct = curr_cpu_used_pct if JBoxContainer.LAST_CPU_PCT is None else JBoxContainer.LAST_CPU_PCT
@@ -158,7 +159,7 @@ class JBoxContainer(LoggerMixin):
         cpu_used_pct = int((curr_cpu_used_pct + last_cpu_used_pct)/2)
 
         mem_used_pct = psutil.virtual_memory().percent
-        CloudHelper.publish_stats("MemUsed", "Percent", mem_used_pct)
+        CloudHost.publish_stats("MemUsed", "Percent", mem_used_pct)
 
         disk_used_pct = 0
         for x in psutil.disk_partitions():
@@ -170,15 +171,15 @@ class JBoxContainer(LoggerMixin):
         if JBoxContainer.INITIAL_DISK_USED_PCT is None:
             JBoxContainer.INITIAL_DISK_USED_PCT = disk_used_pct
         disk_used_pct = max(0, (disk_used_pct - JBoxContainer.INITIAL_DISK_USED_PCT))
-        CloudHelper.publish_stats("DiskUsed", "Percent", disk_used_pct)
+        CloudHost.publish_stats("DiskUsed", "Percent", disk_used_pct)
 
         cont_load_pct = min(100, max(0, nactive * 100 / JBoxContainer.MAX_CONTAINERS))
-        CloudHelper.publish_stats("ContainersUsed", "Percent", cont_load_pct)
+        CloudHost.publish_stats("ContainersUsed", "Percent", cont_load_pct)
 
-        CloudHelper.publish_stats("DiskIdsUsed", "Percent", VolMgr.used_pct())
+        CloudHost.publish_stats("DiskIdsUsed", "Percent", VolMgr.used_pct())
 
         overall_load_pct = max(cont_load_pct, disk_used_pct, mem_used_pct, cpu_used_pct, VolMgr.used_pct())
-        CloudHelper.publish_stats("Load", "Percent", overall_load_pct)
+        CloudHost.publish_stats("Load", "Percent", overall_load_pct)
 
     @staticmethod
     def maintain(max_timeout=0, inactive_timeout=0, protected_names=()):
