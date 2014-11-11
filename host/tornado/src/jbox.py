@@ -20,9 +20,12 @@ class JBox(LoggerMixin):
     cfg = None
 
     def __init__(self):
-        cfg = JBox.cfg = read_config()
         dckr = docker.Client()
+        cfg = JBox.cfg = read_config()
         cloud_cfg = cfg['cloud_host']
+
+        LoggerMixin.setup_logger(level=cfg['root_log_level'])
+        LoggerMixin.DEFAULT_LEVEL = cfg['jbox_log_level']
 
         JBoxHandler.configure(cfg)
 
@@ -35,17 +38,17 @@ class JBox(LoggerMixin):
             JBoxAccountingV2.NAME = cloud_cfg['jbox_accounting_v2']
 
         CloudHost.configure(has_s3=cloud_cfg['s3'],
-                              has_dynamodb=cloud_cfg['dynamodb'],
-                              has_cloudwatch=cloud_cfg['cloudwatch'],
-                              has_autoscale=cloud_cfg['autoscale'],
-                              has_route53=cloud_cfg['route53'],
-                              has_ebs=cloud_cfg['ebs'],
-                              scale_up_at_load=cloud_cfg['scale_up_at_load'],
-                              scale_up_policy=cloud_cfg['scale_up_policy'],
-                              autoscale_group=cloud_cfg['autoscale_group'],
-                              route53_domain=cloud_cfg['route53_domain'],
-                              region=cloud_cfg['region'],
-                              install_id=cloud_cfg['install_id'])
+                            has_dynamodb=cloud_cfg['dynamodb'],
+                            has_cloudwatch=cloud_cfg['cloudwatch'],
+                            has_autoscale=cloud_cfg['autoscale'],
+                            has_route53=cloud_cfg['route53'],
+                            has_ebs=cloud_cfg['ebs'],
+                            scale_up_at_load=cloud_cfg['scale_up_at_load'],
+                            scale_up_policy=cloud_cfg['scale_up_policy'],
+                            autoscale_group=cloud_cfg['autoscale_group'],
+                            route53_domain=cloud_cfg['route53_domain'],
+                            region=cloud_cfg['region'],
+                            install_id=cloud_cfg['install_id'])
 
         VolMgr.configure(dckr, cfg)
         JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'],

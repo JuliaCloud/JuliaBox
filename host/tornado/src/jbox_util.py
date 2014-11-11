@@ -5,6 +5,7 @@ import errno
 import hashlib
 import math
 import zmq
+import logging
 
 import isodate
 
@@ -56,10 +57,10 @@ def retry(tries, delay=1, backoff=2):
     return deco_retry  # @retry(arg[, ...]) -> true decorator
 
 
-def log_info(s):
-    ts = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
-    print (ts + "  " + s)
-    sys.stdout.flush()
+# def log_info(s):
+#     ts = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+#     print (ts + "  " + s)
+#     sys.stdout.flush()
 
 
 def esc_sessname(s):
@@ -159,21 +160,47 @@ def unquote(s):
 
 
 class LoggerMixin(object):
-    @classmethod
-    def log(cls, lvl, msg):
-        log_info(lvl + ": " + cls.__name__ + ": " + msg)
+    _logger = None
+    DEFAULT_LEVEL = logging.INFO
+
+    @staticmethod
+    def setup_logger(name=None, level=logging.INFO):
+        logger = logging.getLogger(name)
+        logger.setLevel(level)
+
+        ch = logging.StreamHandler()
+        ch.setLevel(level)
+
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(name)s - %(message)s')
+        ch.setFormatter(formatter)
+
+        logger.addHandler(ch)
+        return logger
 
     @classmethod
-    def log_info(cls, msg):
-        cls.log('INFO', msg)
+    def _get_logger(cls):
+        if cls._logger is None:
+            name = cls.__name__
+            if (len(cls.__module__) > 0) and (cls.__module__ != '__main__'):
+                name = cls.__module__ + '.' + cls.__name__
+            cls._logger = LoggerMixin.setup_logger(name, LoggerMixin.DEFAULT_LEVEL)
+        return cls._logger
 
     @classmethod
-    def log_error(cls, msg):
-        cls.log('INFO', msg)
+    def log_info(cls, msg, *args, **kwargs):
+        cls._get_logger().info(msg, *args, **kwargs)
 
     @classmethod
-    def log_debug(cls, msg):
-        cls.log('DEBUG', msg)
+    def log_error(cls, msg, *args, **kwargs):
+        cls._get_logger().error(msg, *args, **kwargs)
+
+    @classmethod
+    def log_exception(cls, msg, *args, **kwargs):
+        cls._get_logger().exception(msg, *args, **kwargs)
+
+    @classmethod
+    def log_debug(cls, msg, *args, **kwargs):
+        cls._get_logger().debug(msg, *args, **kwargs)
 
 
 class JBoxAsyncJob(LoggerMixin):
