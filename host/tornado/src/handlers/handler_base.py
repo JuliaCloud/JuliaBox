@@ -41,16 +41,16 @@ class JBoxHandler(RequestHandler, LoggerMixin):
         if None == sessname:
             return False
         sessname = sessname.replace('"', '')
-        hostshell = req.get_cookie("hostshell").replace('"', '')
+        hostedit = req.get_cookie("hosteditor").replace('"', '')
         hostupl = req.get_cookie("hostupload").replace('"', '')
         hostipnb = req.get_cookie("hostipnb").replace('"', '')
         signval = req.get_cookie("sign").replace('"', '')
 
-        sign = signstr(sessname + hostshell + hostupl + hostipnb, cls._config["sesskey"])
+        sign = signstr(sessname + hostedit + hostupl + hostipnb, cls._config["sesskey"])
         if sign != signval:
             cls.log_info('not valid req. signature not matching')
             return False
-        if not JBoxContainer.is_valid_container("/" + sessname, (hostshell, hostupl, hostipnb)):
+        if not JBoxContainer.is_valid_container("/" + sessname, (hostedit, hostupl, hostipnb)):
             cls.log_info('not valid req. container deleted or ports not matching')
             return False
         return True
@@ -82,7 +82,7 @@ class JBoxHandler(RequestHandler, LoggerMixin):
         sign = signstr(sessname + '000', self.config("sesskey"))
         self.set_container_cookies({
             "sessname": sessname,
-            "hostshell": 0,
+            "hosteditor": 0,
             "hostupload": 0,
             "hostipnb": 0,
             "loading": 1,
@@ -91,7 +91,7 @@ class JBoxHandler(RequestHandler, LoggerMixin):
         self.set_lb_tracker_cookie()
 
     def clear_container_cookies(self):
-        for name in ["sessname", "hostshell", "hostupload", "hostipnb", "sign", "loading"]:
+        for name in ["sessname", "hosteditor", "hostupload", "hostipnb", "sign", "loading"]:
             self.clear_cookie(name)
 
     def clear_lb_tracker_cookie(self):

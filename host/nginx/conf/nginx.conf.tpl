@@ -108,19 +108,19 @@ http {
             proxy_read_timeout  600;
         }
 
-# shell....
-        location /hostshell/ {
+# editor....
+        location /hosteditor/ {
             access_by_lua '
                 dofile(ngx.config.prefix() .. "lua/validate.lua")
                 
                 local http  = require "resty.http.simple"
                 local n = 20
-                local hostshellport = ngx.var.cookie_hostshell
+                local hosteditorport = ngx.var.cookie_hosteditor
                 local opts = {}
                 opts.path = "/"
 
                 while (n > 0) do
-                    local res, err = http.request("127.0.0.1", hostshellport, opts)
+                    local res, err = http.request("127.0.0.1", hosteditorport, opts)
                     if not res then
                         ngx.sleep(1.0)
                     else
@@ -131,9 +131,9 @@ http {
                 return
             ';
         
-            rewrite /hostshell/(.+) /$1 break;
+            rewrite /hosteditor/(.+) /$1 break;
             
-            proxy_pass http://127.0.0.1:$cookie_hostshell/$1$is_args$query_string;
+            proxy_pass http://127.0.0.1:$cookie_hosteditor/$1$is_args$query_string;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header Host $host;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

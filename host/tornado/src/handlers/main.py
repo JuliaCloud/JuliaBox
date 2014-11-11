@@ -98,13 +98,13 @@ class MainHandler(JBoxHandler):
                 creds = None
                 authtok = None
 
-            (shellport, uplport, ipnbport) = cont.get_host_ports()
-            sign = signstr(sessname + str(shellport) + str(uplport) + str(ipnbport), self.config("sesskey"))
+            (editorport, uplport, ipnbport) = cont.get_host_ports()
+            sign = signstr(sessname + str(editorport) + str(uplport) + str(ipnbport), self.config("sesskey"))
 
             self.clear_cookie("loading")
             self.set_container_cookies({
                 "sessname": sessname,
-                "hostshell": shellport,
+                "hosteditor": editorport,
                 "hostupload": uplport,
                 "hostipnb": ipnbport,
                 "sign": sign

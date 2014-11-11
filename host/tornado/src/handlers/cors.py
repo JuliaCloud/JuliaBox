@@ -16,13 +16,13 @@ class CorsHandler(JBoxHandler):
 
         if args is not None:
             self.log_debug("setting cookies")
-            for cname in ['sessname', 'hostshell', 'hostupload', 'hostipnb', 'sign', 'juliabox']:
+            for cname in ['sessname', 'hosteditor', 'hostupload', 'hostipnb', 'sign', 'juliabox']:
                 self.set_cookie(cname, args[cname])
             self.set_status(status_code=204)
             self.finish()
         else:
             args = dict()
-            for cname in ['sessname', 'hostshell', 'hostupload', 'hostipnb', 'sign', 'juliabox']:
+            for cname in ['sessname', 'hosteditor', 'hostupload', 'hostipnb', 'sign', 'juliabox']:
                 args[cname] = self.get_cookie(cname)
             args = tornado.escape.url_escape(base64.b64encode(encrypt(json.dumps(args), self.config(key='sesskey'))))
             url = "//" + CloudHost.notebook_websocket_hostname() + "/cors/?m=" + args

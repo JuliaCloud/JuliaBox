@@ -26,7 +26,7 @@
     <script type="text/javascript">
 		var tab_init = {
 			'#ijulia': {'status': true},
-			'#console': {'status': false, 'content': '<iframe src="/hostshell/" id="console-frame" frameborder="0" height="100%" width="100%"></iframe>'},
+			'#editor': {'status': false, 'content': '<iframe src="/hosteditor/?email=juser@juliabox.org&token=dummy" id="editor-frame" frameborder="0" height="100%" width="100%"></iframe>'},
 			'#docs': {'status': false, 'content': '<iframe id="docs-frame" src="//julia.readthedocs.org/en/latest/" frameborder="0" height="100%" width="100%"></iframe>'},
 			'#admin': {'status': false, 'content': '<iframe src="/hostadmin/" id="admin-frame" frameborder="0" height="100%" width="100%"></iframe>'},
 			'#filesync': {'status': false, 'content': '<iframe src="/hostupload/sync" id="filesync-frame" frameborder="0" height="100%" style="float: left" width="100%"></iframe>'},
@@ -89,7 +89,7 @@
                 <div class="navicons">
                     <ul class="jb-nav nav nav-tabs" role="tablist">
                     <li class="active"><a href="#ijulia" data-toggle="tab"><em class="icon-uniE600"></em><span>IJulia</span></a></li>
-                    <li><a href="#console" data-toggle="tab" title="Console"><em class="icon-uniE603"></em><span>Console</span></a></li>
+                    <li><a href="#editor" data-toggle="tab" title="Editor with Console"><em class="icon-uniE603"></em><span>Editor</span></a></li>
                     <li><a href="#fileman" data-toggle="tab" title="File Manager"><em class="icon-uniE601"></em><span>Files</span></a></li>
                     <li><a href="#filesync" data-toggle="tab" title="Sync &amp; Share"><em class="icon-uniE602"></em><span>Sync</span></a></li>
                     <li class="pull-right"><a href="#" id="logout_btn" title="Logout" class="pull-right"><em class="icon-uniE604"></em></a></li>
@@ -107,7 +107,7 @@
             <iframe src="/hostipnbsession/" id="ijulia-frame" frameborder="0" height="100%" width="100%"></iframe>
             <iframe src="/cors/" id="ijulia-cors" frameborder="0" height="0" width="0" style="display: none"></iframe>
         </div>
-        <div id="console" class="tab-pane content-pad"></div>
+        <div id="editor" class="tab-pane"></div>
         <div id="docs" class="tab-pane"></div>
         <div id="filesync" class="tab-pane container"></div>
         <div id="fileman" class="tab-pane container" style="padding-top: 1em;"></div>

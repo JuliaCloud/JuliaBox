@@ -13,7 +13,7 @@ from vol import VolMgr
 
 
 class JBoxContainer(LoggerMixin):
-    CONTAINER_PORT_BINDINGS = {4200: ('127.0.0.1',), 8000: ('127.0.0.1',), 8998: ('127.0.0.1',)}
+    CONTAINER_PORT_BINDINGS = {3000: ('127.0.0.1',), 4200: ('127.0.0.1',), 8000: ('127.0.0.1',), 8998: ('127.0.0.1',)}
     DCKR = None
     PINGS = {}
     DCKR_IMAGE = None
@@ -22,7 +22,7 @@ class JBoxContainer(LoggerMixin):
     # By default all groups have 1024 shares.
     # A group with 100 shares will get a ~10% portion of the CPU time (https://wiki.archlinux.org/index.php/Cgroups)
     CPU_LIMIT = 1024
-    PORTS = [4200, 8000, 8998]
+    PORTS = [3000, 4200, 8000, 8998]
     VOLUMES = ['/home/juser']
     MAX_CONTAINERS = 0
     VALID_CONTAINERS = {}
