@@ -62,8 +62,6 @@ RUN pip install --upgrade PyDrive google-api-python-client jsonpointer jsonschem
 
 RUN git clone --recursive https://github.com/tanmaykm/ipython.git; cd ipython; python setup.py install; cd ..; rm -rf ipython
 
-RUN git clone https://github.com/tanmaykm/shellinabox_fork.git; cd shellinabox_fork; ./configure; make install; cd ..; rm -rf shellinabox_fork
-
 # CodeBox
 RUN apt-get install -y \
     nodejs npm

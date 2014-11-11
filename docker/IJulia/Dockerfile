@@ -74,9 +74,8 @@ ENV PATH /usr/local/texlive/2014/bin/x86_64-linux:/usr/local/bin:/usr/bin:/bin:/
 WORKDIR /home/juser
 
 # 3000: http port for codebox
-# 4200: http port for console
 # 8000: http port for tornado
 # 8998: ipython port for julia
-EXPOSE  3000 4200 8000 8998
+EXPOSE  3000 8000 8998
 
 ENTRYPOINT /usr/bin/supervisord -n -c /home/juser/.juliabox/supervisord.conf -l /home/juser/.juliabox/supervisord.log -j /home/juser/.juliabox/supervisord.pid -q /home/juser/.juliabox

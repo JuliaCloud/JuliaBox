@@ -8,7 +8,7 @@ end
 
 
 local key = ngx.var.SESSKEY
-local src = unquote(ngx.var.cookie_sessname) .. unquote(ngx.var.cookie_hosteditor) .. unquote(ngx.var.cookie_hostshell) .. unquote(ngx.var.cookie_hostupload) .. unquote(ngx.var.cookie_hostipnb) 
+local src = unquote(ngx.var.cookie_sessname) .. unquote(ngx.var.cookie_hosteditor) .. unquote(ngx.var.cookie_hostupload) .. unquote(ngx.var.cookie_hostipnb) 
 local digest = ngx.hmac_sha1(key, src)
 local b64 = ngx.encode_base64(digest)
 

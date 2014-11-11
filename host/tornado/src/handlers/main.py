@@ -143,4 +143,3 @@ class MainHandler(JBoxHandler):
         s = dict(error="", success="", info="", pending_activation=False, user_id="")
         s.update(**kwargs)
         return s
-

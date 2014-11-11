@@ -28,7 +28,7 @@ class Sightseer(TaskSet):
 
     @task(1)    
     def console(self):
-        resp = self.client.get('/hostshell/')
+        resp = self.client.get('/hosteditor/')
         self.stop_on_error(resp)
 
     @task(3)    
