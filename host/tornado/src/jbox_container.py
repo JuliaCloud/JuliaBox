@@ -120,6 +120,9 @@ class JBoxContainer(LoggerMixin):
     @staticmethod
     def async_launch_by_name(name, email, reuse=True):
         JBoxContainer.log_info("Scheduling startup for " + name + ", user: " + email)
+        cname = "/" + name
+        if JBoxContainer.VALID_CONTAINERS.has_key(cname):
+            del JBoxContainer.VALID_CONTAINERS[cname]
         JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_LAUNCH_SESSION, (name, email, reuse))
 
     @staticmethod
