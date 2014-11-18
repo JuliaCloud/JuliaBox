@@ -66,6 +66,7 @@ class MainHandler(JBoxHandler):
                                    error='Could not start your instance! Please try again.',
                                    ask_invite_code=False,
                                    user_id=user_id))
+                return
             else:
                 loading_step += 1
 
