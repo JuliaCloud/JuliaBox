@@ -4,10 +4,11 @@ import base64
 import httplib2
 
 from oauth2client.client import OAuth2Credentials
+from cloud.aws import CloudHost
 
 from handlers.handler_base import JBoxHandler
 
-from jbox_util import unique_sessname, CloudHelper
+from jbox_util import unique_sessname
 from jbox_crypto import signstr
 from handlers.auth import AuthHandler
 from db.user_v2 import JBoxUserV2
@@ -160,7 +161,7 @@ class MainHandler(JBoxHandler):
             self.set_cookie(n, str(v), expires=expires)
 
     def set_lb_tracker_cookie(self):
-        self.set_cookie('lb', signstr(CloudHelper.instance_id(), self.config('sesskey')), expires_days=30)
+        self.set_cookie('lb', signstr(CloudHost.instance_id(), self.config('sesskey')), expires_days=30)
 
     def chk_and_launch_docker(self, sessname, user_id):
         cont = JBoxContainer.get_by_name(sessname)
@@ -170,7 +171,7 @@ class MainHandler(JBoxHandler):
         if cont is not None:
             self.log_debug("container running: " + str(cont.is_running()))
 
-        if ((None == cont) or (not cont.is_running())) and (not CloudHelper.should_accept_session()):
+        if ((None == cont) or (not cont.is_running())) and (not CloudHost.should_accept_session()):
             if None != cont:
                 cont.async_backup_and_cleanup()
             self.clear_container_cookies()

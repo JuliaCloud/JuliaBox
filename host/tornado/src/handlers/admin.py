@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
 
 import isodate
+from cloud.aws import CloudHost
 
-from jbox_util import unquote, CloudHelper
+from jbox_util import unquote
 from handlers.handler_base import JBoxHandler
 from jbox_container import JBoxContainer
 from handlers.auth import AuthHandler
@@ -155,11 +156,11 @@ class AdminHandler(JBoxHandler):
                 ac.append(o)
 
         # get cluster loads
-        average_load = CloudHelper.get_cluster_average_stats('Load')
+        average_load = CloudHost.get_cluster_average_stats('Load')
         if None != average_load:
             loads.append({'instance': 'Average', 'load': average_load})
 
-        machine_loads = CloudHelper.get_cluster_stats('Load')
+        machine_loads = CloudHost.get_cluster_stats('Load')
         if None != machine_loads:
             for n, v in machine_loads.iteritems():
                 loads.append({'instance': n, 'load': v})

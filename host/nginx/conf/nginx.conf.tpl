@@ -1,7 +1,7 @@
 worker_processes  2;
 daemon off;
 error_log logs/error.log warn;
-user $$NGINX_USER $$NGINX_USER; 
+user $$NGINX_USER $$NGINX_USER;
 
 events {
     worker_connections 1024;
@@ -9,6 +9,7 @@ events {
 
 
 http {
+    access_log off;
     resolver 8.8.8.8 8.8.4.4;
     server {
         listen 80;

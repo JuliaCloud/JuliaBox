@@ -1,7 +1,7 @@
 import datetime, pytz
+from cloud.aws import CloudHost
 
 from jbox_util import LoggerMixin
-from jbox_util import CloudHelper
 
 
 class JBoxDB(LoggerMixin):
@@ -11,7 +11,7 @@ class JBoxDB(LoggerMixin):
     @classmethod
     def conn(cls):
         if JBoxDB.CONN is None:
-            JBoxDB.CONN = CloudHelper.connect_dynamodb()
+            JBoxDB.CONN = CloudHost.connect_dynamodb()
             cls.log_info("DB connected: " + str(JBoxDB.CONN is not None))
         return JBoxDB.CONN
 

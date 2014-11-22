@@ -1,9 +1,10 @@
 
 import os
 import threading
+from cloud.aws import CloudHost
 
 from db import JBoxSessionProps
-from jbox_util import CloudHelper, unique_sessname
+from jbox_util import unique_sessname
 from jbox_volume import JBoxVol
 
 
@@ -136,14 +137,14 @@ class JBoxEBSVol(JBoxVol):
         if snap_id is None:
             snap_id = JBoxEBSVol.DISK_TEMPLATE_SNAPSHOT
 
-        _dev_path, mnt_path = CloudHelper.create_new_volume(snap_id, disk_id, JBoxEBSVol.FS_LOC, tag=user_email)
+        _dev_path, mnt_path = CloudHost.create_new_volume(snap_id, disk_id, JBoxEBSVol.FS_LOC, tag=user_email)
         ebsvol = JBoxEBSVol(mnt_path, user_email=user_email)
 
         if snap_id == JBoxEBSVol.DISK_TEMPLATE_SNAPSHOT:
             ebsvol.restore_user_home()
             ebsvol.restore()
         else:
-            snap_age_days = CloudHelper.get_snapshot_age(snap_id).total_seconds()/(60*60*24)
+            snap_age_days = CloudHost.get_snapshot_age(snap_id).total_seconds()/(60*60*24)
             if snap_age_days > 7:
                 ebsvol.restore_user_home()
         ebsvol.setup_instance_config()
@@ -165,19 +166,19 @@ class JBoxEBSVol(JBoxVol):
         sess_props = JBoxSessionProps(self.sessname)
         desc = sess_props.get_user_id() + " JuliaBox Backup"
         disk_id = self.disk_path.split('/')[-1]
-        snap_id = CloudHelper.snapshot_volume(dev_id=disk_id, tag=self.sessname, description=desc)
+        snap_id = CloudHost.snapshot_volume(dev_id=disk_id, tag=self.sessname, description=desc)
         old_snap_id = sess_props.get_snapshot_id()
         sess_props.set_snapshot_id(snap_id)
         sess_props.save()
         if old_snap_id is not None:
-            CloudHelper.delete_snapshot(old_snap_id)
+            CloudHost.delete_snapshot(old_snap_id)
 
     def release(self, backup=False):
         if not JBoxEBSVol.HAS_EBS:
             raise Exception("EBS disks not enabled")
         disk_id = self.disk_path.split('/')[-1]
-        CloudHelper.unmount_device(disk_id, JBoxEBSVol.FS_LOC)
+        CloudHost.unmount_device(disk_id, JBoxEBSVol.FS_LOC)
         if backup:
             self._backup()
-        vol_id = CloudHelper.get_volume_id_from_device(disk_id)
-        CloudHelper.detach_volume(vol_id, delete=True)
+        vol_id = CloudHost.get_volume_id_from_device(disk_id)
+        CloudHost.detach_volume(vol_id, delete=True)

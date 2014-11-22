@@ -4,8 +4,9 @@ import time
 import datetime
 
 import pytz
+from cloud.aws import CloudHost
 
-from jbox_util import LoggerMixin, CloudHelper, unique_sessname, ensure_delete, esc_sessname, get_user_name
+from jbox_util import LoggerMixin, unique_sessname, ensure_delete, esc_sessname, get_user_name
 from jbox_crypto import ssh_keygen
 
 
@@ -109,7 +110,7 @@ class JBoxVol(LoggerMixin):
             os.remove(nbconfig_temp)
         os.rename(nbconfig, nbconfig_temp)
 
-        wsock_cfg = "c.NotebookApp.websocket_url = 'wss://" + CloudHelper.notebook_websocket_hostname() + "'\n"
+        wsock_cfg = "c.NotebookApp.websocket_url = 'wss://" + CloudHost.notebook_websocket_hostname() + "'\n"
 
         replaced = False
         with open(nbconfig_temp) as fin, open(nbconfig, 'w') as fout:
@@ -133,7 +134,7 @@ class JBoxVol(LoggerMixin):
     def pull_from_s3(local_file, metadata_only=False):
         if JBoxVol.BACKUP_BUCKET is None:
             return None
-        return CloudHelper.pull_file_from_s3(JBoxVol.BACKUP_BUCKET, local_file, metadata_only=metadata_only)
+        return CloudHost.pull_file_from_s3(JBoxVol.BACKUP_BUCKET, local_file, metadata_only=metadata_only)
 
     def _backup(self, clear_volume=False):
         JBoxVol.log_info("Backing up " + self.sessname + " at " + str(JBoxVol.BACKUP_LOC))
@@ -156,7 +157,7 @@ class JBoxVol(LoggerMixin):
         bkup_file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(bkup_file), pytz.utc) + \
             datetime.timedelta(seconds=JBoxVol.LOCAL_TZ_OFFSET)
         if JBoxVol.BACKUP_BUCKET is not None:
-            if CloudHelper.push_file_to_s3(JBoxVol.BACKUP_BUCKET, bkup_file,
+            if CloudHost.push_file_to_s3(JBoxVol.BACKUP_BUCKET, bkup_file,
                                            metadata={'backup_time': bkup_file_mtime.isoformat()}) is not None:
                 os.remove(bkup_file)
                 JBoxVol.log_info("Moved backup to S3 " + self.sessname)
