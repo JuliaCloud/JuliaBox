@@ -1,5 +1,5 @@
 import db
-from db import JBoxDynConfig, JBoxAccountingV2, JBoxSessionProps, JBoxUserV2
+from db import JBoxDynConfig, JBoxAccountingV2, JBoxSessionProps, JBoxUserV2, JBoxInvite
 from jbox_util import read_config, LoggerMixin, unique_sessname
 import docker
 import datetime
@@ -68,6 +68,10 @@ class TestDBTables(LoggerMixin):
 
         num_pending_activations = JBoxUserV2.count_pending_activations()
         TestDBTables.log_debug("pending activations: %d", num_pending_activations)
+
+        resultset = JBoxInvite.table().scan()
+        result_arr = [obj for obj in resultset]
+        TestDBTables.log_debug("got array: %r", result_arr)
 
 if __name__ == "__main__":
     TestDBTables.test()

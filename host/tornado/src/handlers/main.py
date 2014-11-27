@@ -33,12 +33,32 @@ class MainHandler(JBoxHandler):
             user_id = jbox_cookie['u']
 
             if self.is_loading():
-                self.do_monitor_loading(user_id)
+                is_ajax = self.get_argument('monitor_loading', None) is not None
+                if is_ajax:
+                    self.do_monitor_loading_ajax(user_id)
+                else:
+                    self.do_monitor_loading(user_id)
             else:
                 self.chk_and_launch_docker(user_id)
 
     def is_loading(self):
         return self.get_cookie('loading') is not None
+
+    def do_monitor_loading_ajax(self, user_id):
+        sessname = unique_sessname(user_id)
+        self.log_debug("AJAX monitoring loading of session [%s] user[%s]...", sessname, user_id)
+        cont = JBoxContainer.get_by_name(sessname)
+        if (cont is None) or (not cont.is_running()):
+            loading_step = int(self.get_cookie("loading", 0))
+            if loading_step > 30:
+                self.write({'code': -1})
+                return
+
+            loading_step += 1
+            self.set_cookie("loading", str(loading_step))
+            self.write({'code': 0})
+        else:
+            self.write({'code': 1})
 
     def do_monitor_loading(self, user_id):
         sessname = unique_sessname(user_id)
