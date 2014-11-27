@@ -6,7 +6,6 @@ from cloud.aws import CloudHost
 from jbox_util import unquote
 from handlers.handler_base import JBoxHandler
 from jbox_container import JBoxContainer
-from handlers.auth import AuthHandler
 from db.user_v2 import JBoxUserV2
 from db.invites import JBoxInvite
 from db.accounting_v2 import JBoxAccountingV2
@@ -15,7 +14,7 @@ from db.accounting_v2 import JBoxAccountingV2
 class AdminHandler(JBoxHandler):
     def get(self):
         sessname = unquote(self.get_cookie("sessname"))
-        jbox_cookie = AuthHandler.get_session_cookie(self)
+        jbox_cookie = self.get_session_cookie()
 
         if (None == sessname) or (len(sessname) == 0) or (None == jbox_cookie):
             self.send_error()

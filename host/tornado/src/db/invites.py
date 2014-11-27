@@ -1,4 +1,4 @@
-import boto.dynamodb.exceptions
+import boto.dynamodb2.exceptions
 import datetime
 import isodate
 import pytz
@@ -16,24 +16,27 @@ class JBoxInvite(JBoxDB):
 
         self.item = None
         try:
-            self.item = self.table().get_item(invite_code)
+            self.item = self.table().get_item(invite_code=invite_code)
             self.is_new = False
-        except boto.dynamodb.exceptions.DynamoDBKeyNotFoundError:
+        except boto.dynamodb2.exceptions.ItemNotFound:
             if create:
                 if len(invite_code) < 6:
                     raise(Exception("Invite code is too short. Must be at least 6 chars."))
-                self.item = JBoxInvite.TABLE.new_item(hash_key=invite_code)
                 now = datetime.datetime.now(pytz.utc)
-                self.item['time_created'] = now.isoformat()
-                self.item['expires_on'] = (now + datetime.datetime.timedelta(1)).isoformat()  # 1 day
-                self.item['invited'] = invited
+                data = {
+                    'invite_code': invite_code,
+                    'time_created': now.isoformat(),
+                    'expires_on': (now + datetime.datetime.timedelta(1)).isoformat(),  # 1 day
+                    'invited': invited
+                }
+                self.create(data)
+                self.item = self.table().get_item(invite_code=invite_code)
                 self.is_new = True
             else:
                 raise
 
     def save(self):
-        if self.item is not None:
-            self.item['time_updated'] = datetime.datetime.now(pytz.utc).isoformat()
+        self.set_attrib('time_updated', datetime.datetime.now(pytz.utc).isoformat())
         super(JBoxInvite, self).save()
 
     def is_invited(self, user_id):

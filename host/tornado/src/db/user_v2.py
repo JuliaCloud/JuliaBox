@@ -1,7 +1,8 @@
-import boto.dynamodb.exceptions
+import boto.dynamodb2.exceptions
 import datetime
 import pytz
 from jbox_crypto import encrypt, decrypt
+from boto.dynamodb.condition import BETWEEN
 
 from db.db_base import JBoxDB
 
@@ -43,6 +44,8 @@ class JBoxUserV2(JBoxDB):
     ACTIVATION_NONE = 0
     ACTIVATION_GRANTED = 1
     ACTIVATION_REQUESTED = 2
+
+    ACTIVATION_CODE_AUTO = 'AUTO'
     
     RESOURCE_PROFILE_BASIC = 0
     RESOURCE_PROFILE_DISK_EBS_1G = 1 << 0
@@ -54,22 +57,23 @@ class JBoxUserV2(JBoxDB):
             return
         
         try:
-            self.item = self.table().get_item(hash_key=user_id)
+            self.item = self.table().get_item(user_id=user_id)
             self.is_new = False
-        except boto.dynamodb.exceptions.DynamoDBKeyNotFoundError:
+        except boto.dynamodb2.exceptions.ItemNotFound:
             if create:
-                self.item = self.table().new_item(hash_key=user_id)
-                self.set_time("create")
-                self.set_activation_state('-', JBoxUserV2.ACTIVATION_NONE)
+                data = {
+                    'user_id': user_id
+                }
+                JBoxUserV2._set_time(data, "create")
+                JBoxUserV2._set_activation_state(data, '-', JBoxUserV2.ACTIVATION_NONE)
+                self.create(data)
+                self.item = self.table().get_item(user_id=user_id)
                 self.is_new = True
             else:
                 raise
 
     def get_user_id(self):
-        if self.item is not None:
-            return self.item['user_id']
-        else:
-            return None
+        return self.get_attrib('user_id', None)
 
     def get_status(self):
         if self.item is not None:
@@ -78,10 +82,7 @@ class JBoxUserV2(JBoxDB):
             return None
 
     def get_role(self):
-        if self.item is not None:
-            return self.item.get('role', JBoxUserV2.ROLE_USER)
-        else:
-            return JBoxUserV2.ROLE_USER
+        return self.get_attrib('role', JBoxUserV2.ROLE_USER)
 
     def set_role(self, role):
         if self.item is not None:
@@ -92,21 +93,24 @@ class JBoxUserV2(JBoxDB):
         return self.get_role() & role == role
 
     def set_status(self, status):
-        if self.item is not None:
-            self.item['status'] = status
+        self.set_attrib('status', status)
 
     def set_time(self, prefix, dt=None):
         if self.item is None:
             return
+        JBoxUserV2._set_time(self.item, prefix, dt)
+
+    @staticmethod
+    def _set_time(item, prefix, dt=None):
         if None == dt:
             dt = datetime.datetime.now(pytz.utc)
-    
+
         if prefix not in ["create", "update"]:
             raise(Exception("invalid prefix for setting time"))
-        
-        self.item[prefix + "_month"] = JBoxUserV2.datetime_to_yyyymm(dt)
-        self.item[prefix + "_time"] = JBoxUserV2.datetime_to_epoch_secs(dt)
-    
+
+        item[prefix + "_month"] = JBoxUserV2.datetime_to_yyyymm(dt)
+        item[prefix + "_time"] = JBoxUserV2.datetime_to_epoch_secs(dt)
+
     def get_time(self, prefix):
         if self.item is None:
             return None
@@ -121,9 +125,13 @@ class JBoxUserV2(JBoxDB):
 
     def set_activation_state(self, activation_code, activation_status):
         if self.item is not None:
-            self.item['activation_code'] = activation_code
-            self.item['activation_status'] = activation_status
-    
+            JBoxUserV2._set_activation_state(self.item, activation_code, activation_status)
+
+    @staticmethod
+    def _set_activation_state(item, activation_code, activation_status):
+        item['activation_code'] = activation_code
+        item['activation_status'] = activation_status
+
     def get_activation_state(self):
         if self.item is None:
             return None, None
@@ -154,3 +162,49 @@ class JBoxUserV2(JBoxDB):
         if mask == 0:
             return resource_profile == 0
         return (resource_profile & mask) == mask
+
+    @staticmethod
+    def get_pending_activations(max_count):
+        records = JBoxUserV2.table().query_2(activation_code__eq=JBoxUserV2.ACTIVATION_CODE_AUTO,
+                                             activation_status__eq=JBoxUserV2.ACTIVATION_REQUESTED,
+                                             index='activation_code-activation_status-index',
+                                             limit=max_count)
+        user_ids = []
+        for rec in records:
+            user_ids.append(rec['user_id'])
+        return user_ids
+
+    @staticmethod
+    def count_pending_activations():
+        count = JBoxUserV2.table().query_count(activation_code__eq='AUTO',
+                                               activation_status__eq=JBoxUserV2.ACTIVATION_REQUESTED,
+                                               index='activation_code-activation_status-index')
+        return count
+
+    @staticmethod
+    def count_created(hours_before, tilldate=None):
+        if None == tilldate:
+            tilldate = datetime.datetime.now(pytz.utc)
+
+        fromdate = tilldate - datetime.timedelta(hours=hours_before)
+
+        till_month = JBoxUserV2.datetime_to_yyyymm(tilldate)
+        till_time = JBoxUserV2.datetime_to_epoch_secs(tilldate)
+
+        from_month = JBoxUserV2.datetime_to_yyyymm(fromdate)
+        from_time = JBoxUserV2.datetime_to_epoch_secs(fromdate)
+
+        count = 0
+        mon = from_month
+        while mon <= till_month:
+            count += JBoxUserV2.table().query_count(create_month__eq=mon,
+                                                    create_time__gt=from_time,
+                                                    create_time__lt=till_time,
+                                                    index='create_month-create_time-index')
+
+            if (mon % 100) == 12:
+                mon = (mon/100 + 1)*100 + 1
+            else:
+                mon += 1
+
+        return count

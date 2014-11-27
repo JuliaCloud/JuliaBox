@@ -88,13 +88,16 @@ class JBoxLoopbackVol(JBoxVol):
 
     @staticmethod
     def get_disk_for_user(user_email):
+        JBoxLoopbackVol.log_debug("creating loopback mounted disk for %s", user_email)
         disk_id = JBoxLoopbackVol._reserve_disk_id()
         if disk_id < 0:
             raise Exception("No free disk available")
         disk_path = os.path.join(JBoxLoopbackVol.FS_LOC, str(disk_id))
+        JBoxLoopbackVol.log_debug("blanking out disk for %s", user_email)
         ensure_delete(disk_path)
         loopvol = JBoxLoopbackVol(disk_path, user_email=user_email)
 
+        JBoxLoopbackVol.log_debug("restoring data for %s", user_email)
         loopvol.restore_user_home()
         loopvol.setup_instance_config()
         loopvol.restore()

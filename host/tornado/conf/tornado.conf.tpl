@@ -57,6 +57,7 @@
     	"autoscale": True,
     	"route53": True,
     	"ebs": True,
+        "ses": True,
 
     	"autoscale_group": "juliabox",
     	"route53_domain": "juliabox.org",
@@ -76,6 +77,27 @@
 
     	"dummy" : "dummy"
     },
+
+    "user_activation": {
+        # maintenance runs are once in 5 minutes
+        # max per hour activations = 60/5 * 10 = 120
+        "max_activations_per_run": 10,
+        "max_activations_per_sec": 10,
+        "sender": "admin@juliabox.org",
+        "mail_subject": "Your JuliaBox account is now active",
+        "mail_body": """Congratulations!
+
+We have now activated your JuliaBox account at http://www.juliabox.org/
+
+For discussions and feedback, please use the mailing list: https://groups.google.com/forum/#!forum/julia-box
+
+Please post any issues or feature requests on GitHub: https://github.com/JuliaLang/JuliaBox
+
+Welcome to JuliaBox. We hope you will like it and also share with your friends.
+
+- JuliaBox Team"""
+    },
+
     "env_type" : "prod",
     "backup_location" : "~/juliabox_backup",
     "mnt_location" : "/mnt/jbox/mnt",

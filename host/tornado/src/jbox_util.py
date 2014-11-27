@@ -1,5 +1,4 @@
 import os
-import sys
 import time
 import errno
 import hashlib
@@ -209,6 +208,7 @@ class JBoxAsyncJob(LoggerMixin):
 
     CMD_BACKUP_CLEANUP = 1
     CMD_LAUNCH_SESSION = 2
+    CMD_AUTO_ACTIVATE = 3
 
     def __init__(self, port, mode):
         self._mode = mode
