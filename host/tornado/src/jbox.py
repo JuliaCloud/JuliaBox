@@ -9,8 +9,9 @@ import tornado.auth
 import docker
 from cloud.aws import CloudHost
 
+import db
+from db import JBoxDynConfig, JBoxUserV2, is_cluster_leader
 from jbox_util import read_config, LoggerMixin
-from db import JBoxDB, JBoxUserV2, JBoxInvite, JBoxAccountingV2
 from vol import VolMgr
 from jbox_container import JBoxContainer
 from handlers import JBoxHandler, AdminHandler, MainHandler, AuthHandler, PingHandler, CorsHandler
@@ -28,14 +29,7 @@ class JBox(LoggerMixin):
         LoggerMixin.DEFAULT_LEVEL = cfg['jbox_log_level']
 
         JBoxHandler.configure(cfg)
-
-        JBoxDB.configure(cfg)
-        if 'jbox_users_v2' in cloud_cfg:
-            JBoxUserV2.NAME = cloud_cfg['jbox_users_v2']
-        if 'jbox_invites' in cloud_cfg:
-            JBoxInvite.NAME = cloud_cfg['jbox_invites']
-        if 'jbox_accounting_v2' in cloud_cfg:
-            JBoxAccountingV2.NAME = cloud_cfg['jbox_accounting_v2']
+        db.configure_db(cfg)
 
         CloudHost.configure(has_s3=cloud_cfg['s3'],
                             has_dynamodb=cloud_cfg['dynamodb'],
@@ -43,6 +37,7 @@ class JBox(LoggerMixin):
                             has_autoscale=cloud_cfg['autoscale'],
                             has_route53=cloud_cfg['route53'],
                             has_ebs=cloud_cfg['ebs'],
+                            has_ses=cloud_cfg['ses'],
                             scale_up_at_load=cloud_cfg['scale_up_at_load'],
                             scale_up_policy=cloud_cfg['scale_up_policy'],
                             autoscale_group=cloud_cfg['autoscale_group'],
@@ -96,6 +91,23 @@ class JBox(LoggerMixin):
             except:
                 CloudHost.log_error("Error deregistering instance dns")
             CloudHost.terminate_instance()
+        elif is_cluster_leader():
+            CloudHost.log_error("I am the cluster leader")
+            max_rate = JBoxDynConfig.get_registration_hourly_rate(CloudHost.AUTOSCALE_GROUP)
+            rate = JBoxUserV2.count_created(1)
+            reg_allowed = JBoxDynConfig.get_allow_registration(CloudHost.AUTOSCALE_GROUP)
+            CloudHost.log_debug("registration allowed: %r, rate: %d, max allowed: %d", reg_allowed, rate, max_rate)
+
+            if (reg_allowed and (rate > max_rate*1.1)) or ((not reg_allowed) and (rate < max_rate*0.9)):
+                reg_allowed = not reg_allowed
+                CloudHost.log_info("Changing registration allowed to %r", reg_allowed)
+                JBoxDynConfig.set_allow_registration(CloudHost.AUTOSCALE_GROUP, reg_allowed)
+
+            if reg_allowed:
+                num_pending_activations = JBoxUserV2.count_pending_activations()
+                if num_pending_activations > 0:
+                    CloudHost.log_info("scheduling activations for %d pending activations", num_pending_activations)
+                    JBoxContainer.async_schedule_activations()
 
 
 if __name__ == "__main__":

@@ -123,6 +123,7 @@ class JBoxEBSVol(JBoxVol):
 
     @staticmethod
     def get_disk_for_user(user_email):
+        JBoxEBSVol.log_debug("creating EBS volume for %s", user_email)
         if not JBoxEBSVol.HAS_EBS:
             raise Exception("EBS disks not enabled")
 
@@ -132,21 +133,26 @@ class JBoxEBSVol(JBoxVol):
 
         sess_id = unique_sessname(user_email)
         sess_props = JBoxSessionProps(sess_id, create=True, user_id=user_email)
-        sess_props.save()
+        if sess_props.is_new:
+            sess_props.save()
         snap_id = sess_props.get_snapshot_id()
         if snap_id is None:
             snap_id = JBoxEBSVol.DISK_TEMPLATE_SNAPSHOT
+
+        JBoxEBSVol.log_debug("will use snapshot id %s for %s", snap_id, user_email)
 
         _dev_path, mnt_path = CloudHost.create_new_volume(snap_id, disk_id, JBoxEBSVol.FS_LOC, tag=user_email)
         ebsvol = JBoxEBSVol(mnt_path, user_email=user_email)
 
         if snap_id == JBoxEBSVol.DISK_TEMPLATE_SNAPSHOT:
+            JBoxEBSVol.log_debug("creating home folder on blank volume for %s", user_email)
             ebsvol.restore_user_home()
             ebsvol.restore()
-        else:
-            snap_age_days = CloudHost.get_snapshot_age(snap_id).total_seconds()/(60*60*24)
-            if snap_age_days > 7:
-                ebsvol.restore_user_home()
+        #else:
+        #    snap_age_days = CloudHost.get_snapshot_age(snap_id).total_seconds()/(60*60*24)
+        #    if snap_age_days > 7:
+        #        ebsvol.restore_user_home()
+        JBoxEBSVol.log_debug("setting up instance configuration on disk for %s", user_email)
         ebsvol.setup_instance_config()
 
         return ebsvol

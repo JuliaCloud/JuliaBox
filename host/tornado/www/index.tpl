@@ -103,30 +103,27 @@
             </div>
             {% end %}
             {% if len(state["success"]) == 0 and len(state["info"]) == 0 and len(state["error"]) == 0 %}<br><br>{% end %}
-            {% if state["ask_invite_code"] %}
-		<div>Logging in as {{ state["user_id"] }}. <a href="javascript:resetState();">Change</a>.</div>
-            <form action="/">
-		<div class="row">
-			<input type="text" style="padding: .4em; color: black" class="col-md-9" name="invite_code">
-			<input class="btn col-md-3 btn-primary" type="submit" value="Go!">
-		</div>
-            </form>
+            {% if state["pending_activation"] %}
+		        <div>Logging in as {{ state["user_id"] }}. <a href="javascript:resetState();">Change</a>.</div>
             {% else %}
-<br>
-            <a class="btn btn-primary btn-block gauth-btn" title="JuliaBox is currently invite-only" href="/hostlaunchipnb/">Sign in via Google</a>
+                <br>
+                <a class="btn btn-primary btn-block gauth-btn" title="Sign in via Google" href="/hostlaunchipnb/">Sign in via Google</a>
             {% end %}
-                <!-- <p style="padding-top: 1em; text-align: center; font-family: raleway"><em>or</em></p>
-	      <a class="btn btn-primary btn-block gauth-btn" href="/?invite=true">Sign up for an invite</a> -->
           </div>
       {% else %}
+          <form action="/">
 	      <input type="text" placeholder="Choose a session name. Hit Return &#x23ce;" class="form-control sessname-box" name="sessname" required autofocus>
 	      <input style="display:none" type="submit"  value="Launch">
+	      </form>
       {% end %}
         <br>
 	  </div>
 	</div><!-- 6 col -->
       </div>
     </div>
+
+    <div class="container notice" style="border-box: rounded; border-radius: 6px; text-align: center; padding: 1em 4em; margin: 2em auto; background: #da7a3e; display: none;"></div>
+
     <div class="container features-container">
       <div class="col-md-3 col-sm-6">
 	<img class="icon" src="/assets/img/ipynblogo.png">

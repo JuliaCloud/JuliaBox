@@ -114,10 +114,7 @@ JuliaBox version: {{d["juliaboxver"]}} <br/>
 
 {% if d["show_report"] %}
     <h3 id="stats">System statistics</h3>
-{% if d["invites_perm"] %}
-    <p><b><a id="invites-report" href="#">Invite code usage &rarr;</a></b></p>
-{% end %}
-    <p> Stats for the: 
+    <p> Stats for the:
        {% if d["report_span"] == "day" %}
         <b>Day</b> | <a href="/hostadmin/?range=week#stats">Week</a>
        {% else %}

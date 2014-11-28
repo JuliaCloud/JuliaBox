@@ -8,7 +8,7 @@ import psutil
 from cloud.aws import CloudHost
 
 from db import JBoxAccountingV2
-from jbox_util import LoggerMixin, JBoxAsyncJob
+from jbox_util import LoggerMixin, JBoxAsyncJob, parse_iso_time
 from vol import VolMgr
 
 
@@ -117,6 +117,11 @@ class JBoxContainer(LoggerMixin):
         cont = JBoxContainer(dockid)
         JBoxContainer.log_info("Created %s", cont.debug_str())
         return cont
+
+    @staticmethod
+    def async_schedule_activations():
+        JBoxContainer.log_info("scheduling activations")
+        JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_AUTO_ACTIVATE, '')
 
     @staticmethod
     def async_launch_by_name(name, email, reuse=True):
@@ -309,12 +314,6 @@ class JBoxContainer(LoggerMixin):
     def _get_last_ping(name):
         return JBoxContainer.PINGS[name] if (name in JBoxContainer.PINGS) else None
 
-    @staticmethod
-    def parse_iso_time(tm):
-        if tm is not None:
-            tm = isodate.parse_datetime(tm)
-        return tm
-
     def is_running(self):
         props = self.get_props()
         state = props['State']
@@ -327,15 +326,15 @@ class JBoxContainer(LoggerMixin):
 
     def time_started(self):
         props = self.get_props()
-        return JBoxContainer.parse_iso_time(props['State']['StartedAt'])
+        return parse_iso_time(props['State']['StartedAt'])
 
     def time_finished(self):
         props = self.get_props()
-        return JBoxContainer.parse_iso_time(props['State']['FinishedAt'])
+        return parse_iso_time(props['State']['FinishedAt'])
 
     def time_created(self):
         props = self.get_props()
-        return JBoxContainer.parse_iso_time(props['Created'])
+        return parse_iso_time(props['Created'])
 
     def stop(self):
         JBoxContainer.log_info("Stopping %s", self.debug_str())

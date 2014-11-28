@@ -2,8 +2,6 @@ import datetime
 import pytz
 import json
 
-from boto.dynamodb.condition import GE
-
 from db.db_base import JBoxDB
 
 
@@ -23,11 +21,16 @@ class JBoxAccountingV2(JBoxDB):
 
         stop_time = JBoxAccountingV2.datetime_to_epoch_secs(stop_datetime)
         stop_date = JBoxAccountingV2.datetime_to_yyyymmdd(stop_datetime)
-        self.item = self.table().new_item(hash_key=stop_date, range_key=stop_time)
-        self.item['image_id'] = image_id
-        self.item['container_id'] = container_id
-        self.item['start_time'] = JBoxAccountingV2.datetime_to_epoch_secs(start_time)
-        self.item['start_date'] = JBoxAccountingV2.datetime_to_yyyymmdd(start_time)
+        data = {
+            'stop_date': stop_date,
+            'stop_time': stop_time,
+            'image_id': image_id,
+            'container_id': container_id,
+            'start_time': JBoxAccountingV2.datetime_to_epoch_secs(start_time),
+            'start_date': JBoxAccountingV2.datetime_to_yyyymmdd(start_time)
+        }
+        self.create(data)
+        self.item = self.table().get_item(stop_date=stop_date, stop_time=stop_time)
         self.is_new = True
 
     @staticmethod
@@ -43,12 +46,16 @@ class JBoxAccountingV2(JBoxDB):
         if date_day in JBoxAccountingV2._stats_cache:
             return JBoxAccountingV2._stats_cache[date_day]
 
-        res = JBoxAccountingV2.table().query(date_day, GE(0))
+        res = JBoxAccountingV2.table().query_2(stop_date__eq=date_day, stop_time__gte=0)
+
+        items = []
+        for item in res:
+            items.append(item)
 
         if not istoday:
-            JBoxAccountingV2._stats_cache[date_day] = res
+            JBoxAccountingV2._stats_cache[date_day] = items
 
-        return res
+        return items
 
     @staticmethod
     def get_stats(dates=(datetime.datetime.now(),)):

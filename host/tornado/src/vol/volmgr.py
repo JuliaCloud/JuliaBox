@@ -52,6 +52,7 @@ class VolMgr(LoggerMixin):
 
     @staticmethod
     def get_disk_for_user(email):
+        VolMgr.log_debug("restoring disk for %s", email)
         ebs = False
 
         if VolMgr.HAS_EBS:
