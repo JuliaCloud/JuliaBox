@@ -1,12 +1,12 @@
 # Base Dockerfile with Julia 0.3 release
 # Version:9
 
-FROM tanmaykm/jboxcore:6
+FROM tanmaykm/jboxcore:7
 
 MAINTAINER Tanmay Mohapatra
 
 # Add the Julia PPA
-RUN apt-get install -y -o DPkg::Options::=--force-confold apt-utils python-software-properties software-properties-common \
+RUN apt-get install -y -o Dpkg::Options::="--force-confdef" -o DPkg::Options::="--force-confold" apt-utils python-software-properties software-properties-common \
     && apt-add-repository -y ppa:staticfloat/juliareleases \
     && add-apt-repository -y ppa:staticfloat/julia-deps \
     && apt-get update \
