@@ -6,7 +6,7 @@ import datetime
 import pytz
 from cloud.aws import CloudHost
 
-from jbox_util import LoggerMixin, unique_sessname, ensure_delete, esc_sessname, get_user_name
+from jbox_util import LoggerMixin, unique_sessname, ensure_delete, esc_sessname, get_user_name, parse_iso_time
 from jbox_crypto import ssh_keygen
 
 
@@ -96,6 +96,35 @@ class JBoxVol(LoggerMixin):
             f.write(public_key)
         os.chmod(ssh_key_path, 0600)
         os.chmod(ssh_pub_key_path, 0644)
+
+    @staticmethod
+    def _get_user_home_timestamp():
+        user_home_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(JBoxVol.USER_HOME_IMG), pytz.utc) + \
+            datetime.timedelta(seconds=JBoxVol.LOCAL_TZ_OFFSET)
+        return user_home_mtime
+
+    def mark_refreshed(self):
+        marker = os.path.join(self.disk_path, '.juliabox/.refreshed')
+        with open(marker, 'w') as mfile:
+            mfile.write(self._get_user_home_timestamp().isoformat())
+
+    def is_refreshed(self):
+        marker = os.path.join(self.disk_path, '.juliabox/.refreshed')
+        if not os.path.exists(marker):
+            return False
+        try:
+            with open(marker, 'r') as mfile:
+                dt = parse_iso_time(mfile.read())
+            self.log_info("disk refreshed date: %r. user home timestamp: %r", dt, self._get_user_home_timestamp())
+            return dt >= self._get_user_home_timestamp()
+        except:
+            self.log_error("Error reading refreshed marker from disk %s", self.disk_path)
+            return False
+
+    def unmark_refreshed(self):
+        marker = os.path.join(self.disk_path, '.juliabox/.refreshed')
+        if os.path.exists(marker):
+            os.remove(marker)
 
     def restore_user_home(self):
         user_home = tarfile.open(JBoxVol.USER_HOME_IMG, 'r:gz')

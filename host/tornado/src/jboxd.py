@@ -155,7 +155,7 @@ class JBoxd(LoggerMixin):
 
     def run(self):
         while True:
-            self.log_debug("Backup daemon waiting for commands...")
+            self.log_debug("JBox daemon waiting for commands...")
             cmd, data = self.queue.recv()
 
             if cmd == JBoxAsyncJob.CMD_BACKUP_CLEANUP:
