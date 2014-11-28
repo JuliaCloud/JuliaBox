@@ -77,6 +77,9 @@ class TestDBTables(LoggerMixin):
         result_arr = [obj for obj in resultset]
         TestDBTables.log_debug("got array: %r", result_arr)
 
+        count_created = JBoxUserV2.count_created(48)
+        TestDBTables.log_debug("accounts created in last 1 hour: %d", count_created)
+
 
 class TestSES(LoggerMixin):
     @staticmethod

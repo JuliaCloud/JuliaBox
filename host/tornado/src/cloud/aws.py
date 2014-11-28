@@ -310,9 +310,12 @@ class CloudHost(LoggerMixin):
 
         # older amis terminate while newer amis never terminate
         ami_recentness = CloudHost.get_ami_recentness()
+        CloudHost.log_debug("AMI recentness = %d", ami_recentness)
         if ami_recentness < 0:
+            CloudHost.log_debug("Terminating because running an older AMI")
             return True
         elif ami_recentness > 0:
+            CloudHost.log_debug("Not terminating because running a more recent AMI")
             return False
 
         cluster_load = CloudHost.get_cluster_stats('Load')
@@ -358,9 +361,12 @@ class CloudHost(LoggerMixin):
 
         # handle ami switchover. newer AMIs always accept, older AMIs always reject
         ami_recentness = CloudHost.get_ami_recentness()
+        CloudHost.log_debug("AMI recentness = %d", ami_recentness)
         if ami_recentness > 0:
+            CloudHost.log_debug("Accepting because running a more recent AMI")
             return True
         elif ami_recentness < 0:
+            CloudHost.log_debug("Not accepting because running an older AMI")
             return False
 
         # if not least loaded, accept
@@ -438,7 +444,10 @@ class CloudHost(LoggerMixin):
             min_ami_ver = min(min_ami_ver, ami_ver)
 
         self_ami_ver = CloudHost.image_version(CloudHost.instance_id())
-        if max_ami_ver > self_ami_ver:
+        CloudHost.log_debug("ami versions: max: %d, min: %d, self:%d", max_ami_ver, min_ami_ver, self_ami_ver)
+        if self_ami_ver == 0:
+            return 0
+        elif max_ami_ver > self_ami_ver:
             return -1
         elif min_ami_ver < self_ami_ver:
             return 1

@@ -102,15 +102,15 @@ class JBox(LoggerMixin):
             CloudHost.terminate_instance()
         elif is_cluster_leader():
             CloudHost.log_error("I am the cluster leader")
-            max_rate = JBoxDynConfig.get_registration_hourly_rate(CloudHost.AUTOSCALE_GROUP)
+            max_rate = JBoxDynConfig.get_registration_hourly_rate(CloudHost.INSTALL_ID)
             rate = JBoxUserV2.count_created(1)
-            reg_allowed = JBoxDynConfig.get_allow_registration(CloudHost.AUTOSCALE_GROUP)
+            reg_allowed = JBoxDynConfig.get_allow_registration(CloudHost.INSTALL_ID)
             CloudHost.log_debug("registration allowed: %r, rate: %d, max allowed: %d", reg_allowed, rate, max_rate)
 
             if (reg_allowed and (rate > max_rate*1.1)) or ((not reg_allowed) and (rate < max_rate*0.9)):
                 reg_allowed = not reg_allowed
                 CloudHost.log_info("Changing registration allowed to %r", reg_allowed)
-                JBoxDynConfig.set_allow_registration(CloudHost.AUTOSCALE_GROUP, reg_allowed)
+                JBoxDynConfig.set_allow_registration(CloudHost.INSTALL_ID, reg_allowed)
 
             if reg_allowed:
                 num_pending_activations = JBoxUserV2.count_pending_activations()

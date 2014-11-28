@@ -27,7 +27,7 @@ def is_cluster_leader():
     if not CloudHost.ENABLED['cloudwatch']:
         return False
 
-    cluster = CloudHost.AUTOSCALE_GROUP
+    cluster = CloudHost.INSTALL_ID
     instances = CloudHost.get_autoscaled_instances()
     leader = JBoxDynConfig.get_cluster_leader(cluster)
     JBoxDB.log_debug("cluster: %s. instances: %s. leader: %s", cluster, repr(instances), repr(leader))
