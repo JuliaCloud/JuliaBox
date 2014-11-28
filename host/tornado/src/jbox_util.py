@@ -209,6 +209,7 @@ class JBoxAsyncJob(LoggerMixin):
     CMD_BACKUP_CLEANUP = 1
     CMD_LAUNCH_SESSION = 2
     CMD_AUTO_ACTIVATE = 3
+    CMD_UPDATE_USER_HOME_IMAGE = 4
 
     def __init__(self, port, mode):
         self._mode = mode

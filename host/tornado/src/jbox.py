@@ -75,11 +75,20 @@ class JBox(LoggerMixin):
             CloudHost.log_info("No prior dns registration found for the instance")
         CloudHost.register_instance_dns()
         JBoxContainer.publish_container_stats()
+        JBox.do_update_user_home_image()
         self.ct.start()
         self.ioloop.start()
 
     @staticmethod
+    def do_update_user_home_image():
+        if VolMgr.has_update_for_user_home_image():
+            if not VolMgr.update_user_home_image(fetch=False):
+                JBoxContainer.async_update_user_home_image()
+
+    @staticmethod
     def do_housekeeping():
+        JBox.do_update_user_home_image()
+
         server_delete_timeout = JBox.cfg['expire']
         JBoxContainer.maintain(max_timeout=server_delete_timeout, inactive_timeout=JBox.cfg['inactivity_timeout'],
                                protected_names=JBox.cfg['protected_docknames'])

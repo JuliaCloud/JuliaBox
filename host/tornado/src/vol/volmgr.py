@@ -1,10 +1,11 @@
 import os
 
 from jbox_util import make_sure_path_exists, LoggerMixin
-from db import JBoxUserV2
+from db import JBoxUserV2, JBoxDynConfig
 from jbox_volume import JBoxVol
 from loopback import JBoxLoopbackVol
 from ebs import JBoxEBSVol
+from cloud.aws import CloudHost
 
 
 class VolMgr(LoggerMixin):
@@ -27,6 +28,38 @@ class VolMgr(LoggerMixin):
             VolMgr.HAS_EBS = True
             ebs_mnt_location = os.path.expanduser(cloud_cfg['ebs_mnt_location'])
             JBoxEBSVol.configure(1000000000, ebs_mnt_location, num_disks_max, cloud_cfg['ebs_template'])
+
+    @staticmethod
+    def has_update_for_user_home_image():
+        img_dir, curr_img = os.path.split(JBoxVol.USER_HOME_IMG)
+        VolMgr.log_debug("checking for updates to user home image %s/%s", img_dir, curr_img)
+        bucket, new_img = JBoxDynConfig.get_user_home_image(CloudHost.INSTALL_ID)
+        if bucket is None:
+            VolMgr.log_debug("no images configured")
+            return False
+        VolMgr.log_debug("latest user home image %s/%s", bucket, new_img)
+        if new_img == curr_img:
+            VolMgr.log_debug("already on latest image")
+            return False
+        return True
+
+    @staticmethod
+    def update_user_home_image(fetch=True):
+        img_dir, curr_img = os.path.split(JBoxVol.USER_HOME_IMG)
+        bucket, new_img = JBoxDynConfig.get_user_home_image(CloudHost.INSTALL_ID)
+        new_img_path = os.path.join(img_dir, new_img)
+
+        if fetch and (not os.path.exists(new_img_path)):
+            VolMgr.log_debug("fetching new image to %s", new_img_path)
+            k = CloudHost.pull_file_from_s3(bucket, new_img_path)
+            if k is not None:
+                VolMgr.log_debug("fetched new user home image")
+
+        if os.path.exists(new_img_path):
+            VolMgr.log_debug("set new image to %s", new_img_path)
+            JBoxVol.USER_HOME_IMG = new_img_path
+            return True
+        return False
 
     @staticmethod
     def get_disk_from_container(cid):
