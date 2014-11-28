@@ -1,5 +1,5 @@
 # Base Dockerfile with Julia 0.3 release
-# Version:8
+# Version:9
 
 FROM tanmaykm/jboxcore:6
 
@@ -10,6 +10,6 @@ RUN apt-get install -y -o DPkg::Options::=--force-confold apt-utils python-softw
     && apt-add-repository -y ppa:staticfloat/juliareleases \
     && add-apt-repository -y ppa:staticfloat/julia-deps \
     && apt-get update \
-    && apt-get install -y julia=0.3.2~trusty2 \
+    && apt-get install -y julia=0.3.3~trusty1 \
     && apt-get clean
 
