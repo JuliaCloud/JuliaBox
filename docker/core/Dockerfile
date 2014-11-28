@@ -1,5 +1,5 @@
 # Base Ubuntu Docker file for JuliaBox
-# Version:6
+# Version:7
 
 FROM stackbrew/ubuntu:trusty
 
@@ -7,7 +7,7 @@ MAINTAINER Tanmay Mohapatra
 
 # Enable the necessary sources and upgrade to latest
 RUN apt-get update \
-    && apt-get upgrade -y -o DPkg::Options::=--force-confold \
+    && apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o DPkg::Options::="--force-confold" \
 # Install core packages
     && apt-get install -y \
     man-db \
