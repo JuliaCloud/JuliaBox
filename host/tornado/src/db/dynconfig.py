@@ -127,3 +127,24 @@ class JBoxDynConfig(JBoxDB):
             JBoxDynConfig.table().delete_item(name='.'.join([cluster, 'message']))
 
         return None
+
+    @staticmethod
+    def get_user_home_image(cluster):
+        try:
+            record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'user_home_image'))
+        except boto.dynamodb2.exceptions.ItemNotFound:
+            return None, None
+        img = json.loads(record.get_value())
+        return img['bucket'], img['filename']
+
+    @staticmethod
+    def set_user_home_image(cluster, bucket, filename):
+        img = {
+            'bucket': bucket,
+            'filename': filename
+        }
+        img = json.dumps(img)
+        record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'user_home_image'), create=True, value=img)
+        if not record.is_new:
+            record.set_value(img)
+            record.save()

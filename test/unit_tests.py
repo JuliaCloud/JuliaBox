@@ -66,6 +66,10 @@ class TestDBTables(LoggerMixin):
         JBoxDynConfig.set_message(TESTCLSTR, "hello world", datetime.timedelta(minutes=1))
         assert JBoxDynConfig.get_message(TESTCLSTR) == "hello world"
 
+        JBoxDynConfig.set_user_home_image(TESTCLSTR, "juliabox-user-home-templates", "user_home_28Nov2014.tar.gz")
+        assert JBoxDynConfig.get_user_home_image(TESTCLSTR) == ("juliabox-user-home-templates",
+                                                                "user_home_28Nov2014.tar.gz")
+
         num_pending_activations = JBoxUserV2.count_pending_activations()
         TestDBTables.log_debug("pending activations: %d", num_pending_activations)
 
@@ -73,5 +77,19 @@ class TestDBTables(LoggerMixin):
         result_arr = [obj for obj in resultset]
         TestDBTables.log_debug("got array: %r", result_arr)
 
+
+class TestSES(LoggerMixin):
+    @staticmethod
+    def test():
+        CloudHost.send_email('tanmaykm@gmail.com', 'admin@juliabox.org', "test SES",
+                             """hello world
+                             Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
+                             ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation
+                             ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
+                             reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+                             Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit
+                             anim id est laborum.""")
+
 if __name__ == "__main__":
     TestDBTables.test()
+    TestSES.test()

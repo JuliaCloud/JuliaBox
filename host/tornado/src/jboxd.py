@@ -153,6 +153,13 @@ class JBoxd(LoggerMixin):
         finally:
             JBoxd.finish_thread()
 
+    @staticmethod
+    def update_user_home_image():
+        try:
+            VolMgr.update_user_home_image(fetch=True)
+        finally:
+            JBoxd.finish_thread()
+
     def run(self):
         while True:
             self.log_debug("JBox daemon waiting for commands...")
@@ -167,6 +174,9 @@ class JBoxd(LoggerMixin):
             elif cmd == JBoxAsyncJob.CMD_AUTO_ACTIVATE:
                 args = ()
                 fn = JBoxd.auto_activate
+            elif cmd == JBoxAsyncJob.CMD_UPDATE_USER_HOME_IMAGE:
+                args = ()
+                fn = JBoxd.update_user_home_image
             else:
                 self.log_error("Unknown command " + str(cmd))
                 continue
