@@ -95,7 +95,7 @@ class AuthHandler(JBoxHandler, GoogleOAuth2Mixin):
     @staticmethod
     def is_user_activated(jbuser):
         if jbuser.is_new:
-            reg_allowed = JBoxDynConfig.get_allow_registration(CloudHost.AUTOSCALE_GROUP)
+            reg_allowed = JBoxDynConfig.get_allow_registration(CloudHost.INSTALL_ID)
             if not reg_allowed:
                 activation_state = JBoxUserV2.ACTIVATION_REQUESTED
             else:

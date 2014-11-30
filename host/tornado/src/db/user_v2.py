@@ -125,6 +125,8 @@ class JBoxUserV2(JBoxDB):
 
     def set_activation_state(self, activation_code, activation_status):
         if self.item is not None:
+            JBoxUserV2.log_debug("setting activation state of %s to %s, %d",
+                                 self.get_user_id(), activation_code, activation_status)
             JBoxUserV2._set_activation_state(self.item, activation_code, activation_status)
 
     @staticmethod
@@ -155,7 +157,7 @@ class JBoxUserV2(JBoxDB):
     def get_container_type(self):
         if self.item is None:
             return None, None
-        return self.item.get('image', None), self.item.get('resource_profile', JBoxUserV2.RESOURCE_PROFILE_BASIC)
+        return self.item.get('image', None), int(self.item.get('resource_profile', JBoxUserV2.RESOURCE_PROFILE_BASIC))
 
     def has_resource_profile(self, mask):
         _image, resource_profile = self.get_container_type()
@@ -198,9 +200,11 @@ class JBoxUserV2(JBoxDB):
         mon = from_month
         while mon <= till_month:
             count += JBoxUserV2.table().query_count(create_month__eq=mon,
-                                                    create_time__gt=from_time,
-                                                    create_time__lt=till_time,
+                                                    create_time__between=(from_time, till_time),
                                                     index='create_month-create_time-index')
+
+            JBoxUserV2.log_debug("adding accounts created in mon %d, from %d till %d. count %d",
+                                 mon, from_time, till_time, count)
 
             if (mon % 100) == 12:
                 mon = (mon/100 + 1)*100 + 1
