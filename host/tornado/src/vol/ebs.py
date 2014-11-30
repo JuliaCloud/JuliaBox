@@ -1,6 +1,7 @@
 
 import os
 import threading
+import time
 from cloud.aws import CloudHost
 
 from db import JBoxSessionProps
@@ -14,6 +15,7 @@ class JBoxEBSVol(JBoxVol):
     FS_LOC = None
     DISK_LIMIT = None
     DISK_USE_STATUS = {}
+    DISK_RESERVE_TIME = {}
     DISK_TEMPLATE_SNAPSHOT = None
     HAS_EBS = False
     LOCK = None
@@ -71,11 +73,15 @@ class JBoxEBSVol(JBoxVol):
     def refresh_disk_use_status(container_id_list=None):
         JBoxEBSVol.LOCK.acquire()
         try:
+            nfree = 0
             for idx in range(0, JBoxEBSVol.MAX_DISKS):
                 dev = JBoxEBSVol.DEVICES[idx]
-                JBoxEBSVol.DISK_USE_STATUS[dev] = False
+                if JBoxEBSVol._is_reserved(dev):
+                    JBoxEBSVol.DISK_USE_STATUS[dev] = True
+                else:
+                    JBoxEBSVol.DISK_USE_STATUS[dev] = False
+                    nfree += 1
 
-            nfree = JBoxEBSVol.MAX_DISKS
             if container_id_list is None:
                 container_id_list = [cdesc['Id'] for cdesc in JBoxEBSVol.dckr().containers(all=True)]
 
@@ -97,15 +103,26 @@ class JBoxEBSVol(JBoxVol):
         return None
 
     @staticmethod
-    def _mark_disk_used(idx, used=True):
+    def _is_reserved(idx):
+        if (idx in JBoxEBSVol.DISK_RESERVE_TIME) and (JBoxEBSVol.DISK_RESERVE_TIME[idx] < time.time()):
+            del JBoxEBSVol.DISK_RESERVE_TIME[idx]
+        return idx in JBoxEBSVol.DISK_RESERVE_TIME
+
+    @staticmethod
+    def _mark_disk_used(idx, used=True, for_secs=0):
         JBoxEBSVol.DISK_USE_STATUS[idx] = used
+        if used and (for_secs > 0):
+            JBoxEBSVol.DISK_RESERVE_TIME[idx] = time.time() + for_secs
+        else:
+            if idx in JBoxEBSVol.DISK_RESERVE_TIME:
+                del JBoxEBSVol.DISK_RESERVE_TIME[idx]
 
     @staticmethod
     def _reserve_disk_id():
         JBoxEBSVol.LOCK.acquire()
         try:
             disk_id = JBoxEBSVol._get_unused_disk_id()
-            JBoxEBSVol._mark_disk_used(disk_id)
+            JBoxEBSVol._mark_disk_used(disk_id, for_secs=120)
             return disk_id
         finally:
             JBoxEBSVol.LOCK.release()

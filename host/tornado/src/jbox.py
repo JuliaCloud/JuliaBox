@@ -76,6 +76,7 @@ class JBox(LoggerMixin):
         CloudHost.register_instance_dns()
         JBoxContainer.publish_container_stats()
         JBox.do_update_user_home_image()
+        JBoxContainer.async_refresh_disks()
         self.ct.start()
         self.ioloop.start()
 
