@@ -71,7 +71,7 @@
             <tr width="100%" height="100%" align="center" valign="middle">
                 <td width="100%" height="100%" align="center" valign="middle">
                     <img src="/assets/img/loading.gif" width="64" height="64"/><br/><br/>
-                    <div id="loading_state">Starting up a JuliaBox instance just for you.</div>
+                    <div id="loading_state">Creating a JuliaBox instance just for you!</div>
                 </td>
             </tr>
         </table>
