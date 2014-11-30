@@ -94,8 +94,8 @@ class AuthHandler(JBoxHandler, GoogleOAuth2Mixin):
 
     @staticmethod
     def is_user_activated(jbuser):
+        reg_allowed = JBoxDynConfig.get_allow_registration(CloudHost.INSTALL_ID)
         if jbuser.is_new:
-            reg_allowed = JBoxDynConfig.get_allow_registration(CloudHost.INSTALL_ID)
             if not reg_allowed:
                 activation_state = JBoxUserV2.ACTIVATION_REQUESTED
             else:
@@ -103,7 +103,13 @@ class AuthHandler(JBoxHandler, GoogleOAuth2Mixin):
             jbuser.set_activation_state(JBoxUserV2.ACTIVATION_CODE_AUTO, activation_state)
             jbuser.save()
         else:
-            _activation_code, activation_state = jbuser.get_activation_state()
+            activation_code, activation_state = jbuser.get_activation_state()
+            if reg_allowed and (activation_state == JBoxUserV2.ACTIVATION_REQUESTED) and \
+                    (activation_code == JBoxUserV2.ACTIVATION_CODE_AUTO):
+                activation_state = JBoxUserV2.ACTIVATION_GRANTED
+                jbuser.set_activation_state(JBoxUserV2.ACTIVATION_CODE_AUTO, activation_state)
+                jbuser.save()
+
         return activation_state == JBoxUserV2.ACTIVATION_GRANTED
 
     def make_credentials(self, user):
