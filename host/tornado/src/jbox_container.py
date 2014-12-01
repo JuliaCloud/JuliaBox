@@ -119,6 +119,11 @@ class JBoxContainer(LoggerMixin):
         return cont
 
     @staticmethod
+    def async_refresh_disks():
+        JBoxContainer.log_info("scheduling refresh of loopback disks")
+        JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_REFRESH_DISKS, '')
+
+    @staticmethod
     def async_update_user_home_image():
         JBoxContainer.log_info("scheduling update of user home image")
         JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_UPDATE_USER_HOME_IMAGE, '')

@@ -210,6 +210,7 @@ class JBoxAsyncJob(LoggerMixin):
     CMD_LAUNCH_SESSION = 2
     CMD_AUTO_ACTIVATE = 3
     CMD_UPDATE_USER_HOME_IMAGE = 4
+    CMD_REFRESH_DISKS = 5
 
     def __init__(self, port, mode):
         self._mode = mode

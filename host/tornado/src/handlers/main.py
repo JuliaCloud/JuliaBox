@@ -13,9 +13,9 @@ from jbox_container import JBoxContainer
 
 
 class MainHandler(JBoxHandler):
-    MSG_PENDING_ACTIVATION = "Thank you for your interest! " + \
-                             "New account activations are delayed due to heavy load. " + \
-                             "We shall inform you once your account is activated."
+    MSG_PENDING_ACTIVATION = "We are experiencing heavy traffic right now, and have put new registrations on hold. " + \
+                             "Please try again in a few hours. " + \
+                             "We will also send you an email as things quieten down and your account is enabled."
 
     def get(self):
         jbox_cookie = self.get_session_cookie()

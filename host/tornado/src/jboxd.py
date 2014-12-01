@@ -11,7 +11,7 @@ import db
 from db import JBoxUserV2
 from jbox_util import LoggerMixin, read_config, JBoxAsyncJob, retry
 from jbox_container import JBoxContainer
-from vol import VolMgr
+from vol import VolMgr, JBoxLoopbackVol
 
 
 class JBoxd(LoggerMixin):
@@ -157,10 +157,23 @@ class JBoxd(LoggerMixin):
     def update_user_home_image():
         try:
             VolMgr.update_user_home_image(fetch=True)
+            JBoxLoopbackVol.refresh_all_disks()
+        finally:
+            JBoxd.finish_thread()
+
+    @staticmethod
+    def refresh_disks():
+        try:
+            if JBoxd._is_scheduled(JBoxAsyncJob.CMD_UPDATE_USER_HOME_IMAGE, ()):
+                return
+            JBoxLoopbackVol.refresh_all_disks()
         finally:
             JBoxd.finish_thread()
 
     def run(self):
+        if VolMgr.has_update_for_user_home_image():
+            VolMgr.update_user_home_image(fetch=False)
+
         while True:
             self.log_debug("JBox daemon waiting for commands...")
             cmd, data = self.queue.recv()
@@ -177,6 +190,9 @@ class JBoxd(LoggerMixin):
             elif cmd == JBoxAsyncJob.CMD_UPDATE_USER_HOME_IMAGE:
                 args = ()
                 fn = JBoxd.update_user_home_image
+            elif cmd == JBoxAsyncJob.CMD_REFRESH_DISKS:
+                args = ()
+                fn = JBoxd.refresh_disks
             else:
                 self.log_error("Unknown command " + str(cmd))
                 continue
