@@ -82,7 +82,7 @@ class JBoxUserV2(JBoxDB):
             return None
 
     def get_role(self):
-        return self.get_attrib('role', JBoxUserV2.ROLE_USER)
+        return int(self.get_attrib('role', JBoxUserV2.ROLE_USER))
 
     def set_role(self, role):
         if self.item is not None:

@@ -102,7 +102,7 @@ class JBox(LoggerMixin):
                 CloudHost.log_error("Error deregistering instance dns")
             CloudHost.terminate_instance()
         elif is_cluster_leader():
-            CloudHost.log_error("I am the cluster leader")
+            CloudHost.log_info("I am the cluster leader")
             max_rate = JBoxDynConfig.get_registration_hourly_rate(CloudHost.INSTALL_ID)
             rate = JBoxUserV2.count_created(1)
             reg_allowed = JBoxDynConfig.get_allow_registration(CloudHost.INSTALL_ID)
