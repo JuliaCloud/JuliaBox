@@ -104,11 +104,16 @@ class AuthHandler(JBoxHandler, GoogleOAuth2Mixin):
             jbuser.save()
         else:
             activation_code, activation_state = jbuser.get_activation_state()
-            if reg_allowed and (activation_state == JBoxUserV2.ACTIVATION_REQUESTED) and \
-                    (activation_code == JBoxUserV2.ACTIVATION_CODE_AUTO):
+            if reg_allowed and (activation_state != JBoxUserV2.ACTIVATION_GRANTED):
                 activation_state = JBoxUserV2.ACTIVATION_GRANTED
                 jbuser.set_activation_state(JBoxUserV2.ACTIVATION_CODE_AUTO, activation_state)
                 jbuser.save()
+            elif activation_state != JBoxUserV2.ACTIVATION_GRANTED:
+                if not ((activation_state == JBoxUserV2.ACTIVATION_REQUESTED) and
+                        (activation_code == JBoxUserV2.ACTIVATION_CODE_AUTO)):
+                    activation_state = JBoxUserV2.ACTIVATION_REQUESTED
+                    jbuser.set_activation_state(JBoxUserV2.ACTIVATION_CODE_AUTO, activation_state)
+                    jbuser.save()
 
         return activation_state == JBoxUserV2.ACTIVATION_GRANTED
 
