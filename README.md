@@ -10,21 +10,17 @@ fuss. Use Julia through the browser, access lots of processors and
 memory, suck in data from anywhere, and have it always accessible
 through any device you use so long as it has a browser.
 
-Currently, the primary usage model is IJulia notebooks. We also have a
-shell, and we plan to make it easy to do things such as deploying your
-Julia code server-side behind REST APIs, without having to deal with
-all the hassle of infrastructure management.
-
 The only constraint is imagination (and server cost).
 
 ## Features
 
-- Runs each IJulia session in its own sandboxed container.
-- A bash session is also started in the container - can be used to run the Julia console REPL.
+- Run [IJulia](https://github.com/JuliaLang/IJulia.jl) sessions in sandboxed [Docker](http://www.docker.com) containers.
+- A number of [packages](PACKAGES.md) are available by default.
+- A bash session is also started in the container, which can be used to run the Julia REPL.
 - File transfer facility into a session's container.
-- File synchronization with remote git repositories &amp; Google Drive.
-- Basic admin screen to delete old/inactive sessions.
-- Login via. Google authentication.
+- File synchronization with Google Drive.
+- Clone Github repositories.
+- Basic admin screen to delete old and inactive sessions.
+- Login via Google authentication. Submit a PR for more auth methods!
 - Auto cleanup of sessions based on inactivity.
-- Ability to limit memory and CPU allocated for user sessions.
-- [Packages installed](PACKAGES.md)
+- Ability to limit CPU, memory, and disk space for user sessions.
