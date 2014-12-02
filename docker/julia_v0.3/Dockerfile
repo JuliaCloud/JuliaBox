@@ -1,7 +1,7 @@
 # Base Dockerfile with Julia 0.3 release
-# Version:9
+# Version:10
 
-FROM tanmaykm/jboxcore:7
+FROM tanmaykm/jboxcore:8
 
 MAINTAINER Tanmay Mohapatra
 

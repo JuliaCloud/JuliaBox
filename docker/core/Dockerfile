@@ -1,5 +1,5 @@
 # Base Ubuntu Docker file for JuliaBox
-# Version:7
+# Version:8
 
 FROM stackbrew/ubuntu:trusty
 
