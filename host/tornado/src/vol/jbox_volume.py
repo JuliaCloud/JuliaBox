@@ -218,7 +218,7 @@ class JBoxVol(LoggerMixin):
                 if len(info.name) == 0:
                     continue
                 src_tar.extract(info, self.disk_path)
-                JBoxVol.log_info("Restored backup at " + self.disk_path)
+            JBoxVol.log_info("Restored backup at " + self.disk_path)
         except IOError, ioe:
             if ioe.errno == errno.ENOSPC:
                 # continue login on ENOSPC to allow user to delete files

@@ -50,6 +50,8 @@ class JBoxUserV2(JBoxDB):
     RESOURCE_PROFILE_BASIC = 0
     RESOURCE_PROFILE_DISK_EBS_1G = 1 << 0
 
+    STATS = None
+
     def __init__(self, user_id, create=False):
         if self.table() is None:
             self.is_new = False
@@ -212,3 +214,117 @@ class JBoxUserV2(JBoxDB):
                 mon += 1
 
         return count
+
+    @staticmethod
+    def calc_stat(user, weeks, days):
+        stats = JBoxUserV2.STATS
+        stats['num_users'] += 1
+
+        if 'gtok' in user:
+            stats['sync']['gdrive'] += 1
+
+        role = stats['role']
+        role_val = int(user['role']) if 'role' in user else JBoxUserV2.ROLE_USER
+        if role_val == JBoxUserV2.ROLE_USER:
+            role['user'] += 1
+        else:
+            if (role_val & JBoxUserV2.ROLE_SUPER) == JBoxUserV2.ROLE_SUPER:
+                role['superuser'] += 1
+            if (role_val & JBoxUserV2.ROLE_ACCESS_STATS) == JBoxUserV2.ROLE_ACCESS_STATS:
+                role['access_stats'] += 1
+
+        act_status = stats['activation_status']
+        act_status_val = int(user['activation_status']) if 'activation_status' in user else JBoxUserV2.ACTIVATION_NONE
+        if act_status_val == JBoxUserV2.ACTIVATION_NONE:
+            act_status['none'] += 1
+        elif act_status_val == JBoxUserV2.ACTIVATION_GRANTED:
+            act_status['granted'] += 1
+        elif act_status_val == JBoxUserV2.ACTIVATION_REQUESTED:
+            act_status['requested'] += 1
+
+        res_profile = stats['resource_profile']
+        res_profile_val = int(user['resource_profile']) if 'resource_profile' in user \
+            else JBoxUserV2.RESOURCE_PROFILE_BASIC
+        if res_profile_val == JBoxUserV2.RESOURCE_PROFILE_BASIC:
+            res_profile['basic'] += 1
+        else:
+            if (res_profile_val & JBoxUserV2.RESOURCE_PROFILE_DISK_EBS_1G) == JBoxUserV2.RESOURCE_PROFILE_DISK_EBS_1G:
+                res_profile['disk_ebs_1G'] += 1
+
+        create_month_val = int(user['create_month'])
+        create_month = stats['created_time']['months']
+        if create_month_val not in create_month:
+            create_month[create_month_val] = 1
+        else:
+            create_month[create_month_val] += 1
+
+        create_time_val = int(user['create_time'])
+        last_n_weeks = JBoxUserV2.STATS['created_time']['last_n_weeks']
+        last_n_days = JBoxUserV2.STATS['created_time']['last_n_days']
+        for week in range(0, len(weeks)):
+            if create_time_val >= weeks[week]:
+                last_n_weeks[week+1] += 1
+                break
+        for day in range(0, len(days)):
+            if create_time_val >= days[day]:
+                last_n_days[day+1] += 1
+                break
+
+    @staticmethod
+    def calc_stats():
+        JBoxUserV2.STATS = {
+            'date': '',
+            'num_users': 0,
+            'sync': {
+                'gdrive': 0
+            },
+            'role': {
+                'user': 0,
+                'superuser': 0,
+                'access_stats': 0
+            },
+            'activation_status': {
+                'none': 0,
+                'granted': 0,
+                'requested': 0
+            },
+            'resource_profile': {
+                'basic': 0,
+                'disk_ebs_1G': 0
+            },
+            'created_time': {
+                'months': {
+                },
+                'last_n_weeks': {
+                },
+                'last_n_days': {
+                }
+            }
+        }
+
+        secs_day = 24 * 60 * 60
+        secs_week = secs_day * 7
+        now = datetime.datetime.now(pytz.utc)
+        secs_now = int(JBoxUserV2.datetime_to_epoch_secs(now))
+
+        weeks = [(secs_now - secs_week*week) for week in range(1, 5)]
+        days = [(secs_now - secs_day*day) for day in range(1, 8)]
+
+        last_n_weeks = JBoxUserV2.STATS['created_time']['last_n_weeks']
+        last_n_days = JBoxUserV2.STATS['created_time']['last_n_days']
+        for week in range(0, len(weeks)):
+            last_n_weeks[week+1] = 0
+        for day in range(0, len(days)):
+            last_n_days[day+1] = 0
+
+        result_set = JBoxUserV2.table().scan(attributes=('user_id',
+                                                         'create_month',
+                                                         'create_time',
+                                                         'gtok',
+                                                         'role',
+                                                         'resource_profile',
+                                                         'activation_status'))
+        for user in result_set:
+            JBoxUserV2.calc_stat(user, weeks, days)
+
+        JBoxUserV2.STATS['date'] = now.isoformat()

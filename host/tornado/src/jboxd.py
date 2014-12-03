@@ -8,7 +8,7 @@ import docker
 from cloud.aws import CloudHost
 
 import db
-from db import JBoxUserV2
+from db import JBoxUserV2, JBoxDynConfig
 from jbox_util import LoggerMixin, read_config, JBoxAsyncJob, retry
 from jbox_container import JBoxContainer
 from vol import VolMgr, JBoxLoopbackVol
@@ -170,6 +170,15 @@ class JBoxd(LoggerMixin):
         finally:
             JBoxd.finish_thread()
 
+    @staticmethod
+    def collect_stats():
+        try:
+            VolMgr.publish_stats()
+            db.publish_stats()
+            JBoxDynConfig.set_stat_collected_date(CloudHost.INSTALL_ID)
+        finally:
+            JBoxd.finish_thread()
+
     def run(self):
         if VolMgr.has_update_for_user_home_image():
             VolMgr.update_user_home_image(fetch=False)
@@ -193,6 +202,9 @@ class JBoxd(LoggerMixin):
             elif cmd == JBoxAsyncJob.CMD_REFRESH_DISKS:
                 args = ()
                 fn = JBoxd.refresh_disks
+            elif cmd == JBoxAsyncJob.CMD_COLLECT_STATS:
+                args = ()
+                fn = JBoxd.collect_stats
             else:
                 self.log_error("Unknown command " + str(cmd))
                 continue

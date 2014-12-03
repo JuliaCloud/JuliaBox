@@ -1,6 +1,8 @@
 import os
+import datetime
+import pytz
 
-from jbox_util import make_sure_path_exists, LoggerMixin
+from jbox_util import make_sure_path_exists, LoggerMixin, unique_sessname
 from db import JBoxUserV2, JBoxDynConfig
 from jbox_volume import JBoxVol
 from loopback import JBoxLoopbackVol
@@ -10,6 +12,7 @@ from cloud.aws import CloudHost
 
 class VolMgr(LoggerMixin):
     HAS_EBS = False
+    STATS = None
 
     @staticmethod
     def configure(dckr, cfg):
@@ -102,3 +105,66 @@ class VolMgr(LoggerMixin):
         JBoxLoopbackVol.refresh_disk_use_status(container_id_list=container_id_list)
         if VolMgr.HAS_EBS:
             JBoxEBSVol.refresh_disk_use_status(container_id_list=container_id_list)
+
+    @staticmethod
+    def calc_stat(user_email):
+        VolMgr.STATS['num_users'] += 1
+        sessname = unique_sessname(user_email)
+
+        k = CloudHost.pull_file_from_s3(JBoxVol.BACKUP_BUCKET, sessname + ".tar.gz", metadata_only=True)
+        if k is not None:
+            VolMgr.STATS['loopback']['sizes'].append(k.size)
+
+    @staticmethod
+    def calc_stats():
+        VolMgr.STATS = {
+            'date': '',
+            'num_users': 0,
+            'loopback': {
+                'num_files': 0,
+                'total_size': 0,
+                'sizes': [],
+                'min_size': 0,
+                'max_size': 0,
+                'avg_size': 0,
+                'sizes_hist': {
+                    'counts': [],
+                    'bins': []
+                }
+            }
+        }
+
+        result_set = JBoxUserV2.table().scan(attributes=('user_id',))
+        for user in result_set:
+            VolMgr.calc_stat(user['user_id'])
+
+        sizes = VolMgr.STATS['loopback']['sizes']
+        VolMgr.STATS['loopback']['num_files'] = len(sizes)
+        VolMgr.STATS['loopback']['total_size'] = sum(sizes)
+        VolMgr.STATS['loopback']['min_size'] = min(sizes)
+        VolMgr.STATS['loopback']['max_size'] = max(sizes)
+        VolMgr.STATS['loopback']['avg_size'] = sum(sizes) / len(sizes)
+
+        bin_size = int((VolMgr.STATS['loopback']['max_size'] - VolMgr.STATS['loopback']['min_size']) / 10)
+        min_size = VolMgr.STATS['loopback']['min_size']
+        bins = []
+        for idx in range(0, 10):
+            bins.append(min_size + bin_size*idx)
+        bins.append(VolMgr.STATS['loopback']['max_size'])
+        counts = [0] * 10
+
+        for size in sizes:
+            for idx in range(1, 11):
+                if size <= bins[idx]:
+                    counts[idx-1] += 1
+                    break
+        VolMgr.STATS['loopback']['sizes_hist']['counts'] = counts
+        VolMgr.STATS['loopback']['sizes_hist']['bins'] = bins
+        del VolMgr.STATS['loopback']['sizes']
+        VolMgr.STATS['date'] = datetime.datetime.now(pytz.utc).isoformat()
+
+    @staticmethod
+    def publish_stats():
+        VolMgr.calc_stats()
+        VolMgr.log_debug("stats: %r", VolMgr.STATS)
+        JBoxDynConfig.set_stat(CloudHost.INSTALL_ID, "stat_volmgr", VolMgr.STATS)

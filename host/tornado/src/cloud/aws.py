@@ -2,6 +2,7 @@ import datetime
 import os
 import pytz
 import stat
+import sys
 import traceback
 import boto.ec2
 import boto.ec2.cloudwatch
@@ -68,6 +69,7 @@ class CloudHost(LoggerMixin):
 
             return CloudHost.INSTANCE_IMAGE_VERS[inst_id]
         except:
+            CloudHost.log_exception("Exception finding image_version of %s", inst_id)
             return 0
 
     @staticmethod
@@ -437,7 +439,7 @@ class CloudHost(LoggerMixin):
         if instances is None:
             return 0
         max_ami_ver = 0
-        min_ami_ver = 0
+        min_ami_ver = sys.maxint
         for instance in instances:
             ami_ver = CloudHost.image_version(instance)
             max_ami_ver = max(max_ami_ver, ami_ver)

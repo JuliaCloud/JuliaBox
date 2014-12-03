@@ -7,3 +7,7 @@ JBOX_DIR=`readlink -e ${DIR}/../..`
 \rm -f ${JBOX_DIR}/host/run/*.log
 \rm -f ${JBOX_DIR}/host/nginx/logs/*.log
 \rm -f ${JBOX_DIR}/host/tornado/logs/*.log
+
+\rm -f ${JBOX_DIR}/host/run/*.log.?
+\rm -f ${JBOX_DIR}/host/nginx/logs/*.log.?
+\rm -f ${JBOX_DIR}/host/tornado/logs/*.log.?

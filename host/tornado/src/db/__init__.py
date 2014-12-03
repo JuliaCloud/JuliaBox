@@ -38,3 +38,9 @@ def is_cluster_leader():
         JBoxDynConfig.set_cluster_leader(cluster, CloudHost.instance_id())
         return False
     return leader == CloudHost.instance_id()
+
+
+def publish_stats():
+    JBoxUserV2.calc_stats()
+    JBoxUserV2.log_debug("stats: %r", JBoxUserV2.STATS)
+    JBoxDynConfig.set_stat(CloudHost.INSTALL_ID, "stat_users", JBoxUserV2.STATS)

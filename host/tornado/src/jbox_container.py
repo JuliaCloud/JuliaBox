@@ -129,6 +129,11 @@ class JBoxContainer(LoggerMixin):
         JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_UPDATE_USER_HOME_IMAGE, '')
 
     @staticmethod
+    def async_collect_stats():
+        JBoxContainer.log_info("scheduling stats collection")
+        JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_COLLECT_STATS, '')
+
+    @staticmethod
     def async_schedule_activations():
         JBoxContainer.log_info("scheduling activations")
         JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_AUTO_ACTIVATE, '')
