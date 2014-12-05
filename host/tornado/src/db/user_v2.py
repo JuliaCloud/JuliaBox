@@ -51,6 +51,7 @@ class JBoxUserV2(JBoxDB):
     RESOURCE_PROFILE_DISK_EBS_1G = 1 << 0
 
     STATS = None
+    STAT_NAME = "stat_users"
 
     def __init__(self, user_id, create=False):
         if self.table() is None:

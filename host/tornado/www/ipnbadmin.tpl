@@ -73,12 +73,27 @@
 	    		event.preventDefault();
 	    		parent.JuliaBox.show_ssh_key();
 	    	});
-	    	
-{% if d["invites_perm"] %}
-	    	$('#invites-report').click(function(event){
+
+{% if d["manage_containers"] %}
+            $('#showcfg').click(function(event){
 	    		event.preventDefault();
-	    		parent.JuliaBox.show_invites_report();
-            });
+	    		parent.JuliaBox.show_config();
+	    	});
+
+	    	$('#showuserstats').click(function(event){
+	    		event.preventDefault();
+	    		parent.JuliaBox.show_stats('stat_users', 'Users');
+	    	});
+
+	    	$('#showvolumestats').click(function(event){
+	    		event.preventDefault();
+	    		parent.JuliaBox.show_stats('stat_volmgr', 'Volumes');
+	    	});
+
+	    	$('#showinstanceloads').click(function(event){
+	    		event.preventDefault();
+	    		parent.JuliaBox.show_instance_info('load', 'Instance Loads (percent)');
+	    	});
 {% end %}
 
 	    	$('#disp_date_init').html((new Date('{{d["created"]}}')).toLocaleString());
@@ -91,7 +106,7 @@
 	    	show_time_remaining();
 	    	disp_timer = setInterval(show_time_remaining, 60000);
 	    });
-	</script>    
+	</script>
 </head>
 <body>
 
@@ -139,37 +154,18 @@ JuliaBox version: {{d["juliaboxver"]}} <br/>
     <h3>Administer this installation</h3>
     <hr/>
     <a href="/hostadmin/" class="btn btn-primary btn-lg active" role="button">Refresh</a>
-    <a href="#" class="btn btn-primary btn-lg active" role="button" onclick="$('#config').toggle(); return false;">Show/Hide Config</a>
     <a href="/hostadmin/?stop_all=1" class="btn btn-primary btn-lg active" role="button">Stop all containers</a>
     
     <br/><br/>
 
-    <div id="config" style="display:none">
-    <h3> Config </h3>
-    <table class="table table-striped">
-        <tr><th>Parameter</th><th>Value</th></tr>
-        {% for k,v in cfg.iteritems() %}
-            {% if k not in ['dummy', 'sesskey'] %}
-                <tr><td>{{ k }}</td><td>{{ str(v) }} </td></tr>
-            {% end %}
-        {% end %}
+    <table class="table">
+        <tr><td>Users Statistics:</td><td><a href="#" id="showuserstats">View</a></td></tr>
+        <tr><td>Volume Statistics:</td><td><a href="#" id="showvolumestats">View</a></td></tr>
+        <tr><td>Configuration:</td><td><a href="#" id="showcfg">View</a></td></tr>
+        <tr><td>Instance Loads:</td><td><a href="#" id="showinstanceloads">View</a></td></tr>
     </table>
+    <br/><br/>
 
-    <br/><br/>
-    </div>
-    
-    <h3>Load</h3>
-    <table class="table table-striped">
-        <tr><th>Instance</th><th>Load Percent</th></tr>
-        {% for o in d["loads"] %}
-        	<tr>
-        		<td>{{o['instance']}}</td>
-        		<td>{{o['load']}}</td>
-        	</tr>
-        {% end %}
-    </table>
-    <br/><br/>
-    
     {% for section in d["sections"] %}
         <h3> {{ section[0] }} containers </h3>
         <table class="table table-striped">

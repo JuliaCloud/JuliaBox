@@ -13,6 +13,7 @@ from cloud.aws import CloudHost
 class VolMgr(LoggerMixin):
     HAS_EBS = False
     STATS = None
+    STAT_NAME = "stat_volmgr"
 
     @staticmethod
     def configure(dckr, cfg):
@@ -167,4 +168,4 @@ class VolMgr(LoggerMixin):
     def publish_stats():
         VolMgr.calc_stats()
         VolMgr.log_debug("stats: %r", VolMgr.STATS)
-        JBoxDynConfig.set_stat(CloudHost.INSTALL_ID, "stat_volmgr", VolMgr.STATS)
+        JBoxDynConfig.set_stat(CloudHost.INSTALL_ID, VolMgr.STAT_NAME, VolMgr.STATS)

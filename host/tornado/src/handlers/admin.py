@@ -6,9 +6,7 @@ from cloud.aws import CloudHost
 from jbox_util import unquote
 from handlers.handler_base import JBoxHandler
 from jbox_container import JBoxContainer
-from db.user_v2 import JBoxUserV2
-from db.invites import JBoxInvite
-from db.accounting_v2 import JBoxAccountingV2
+from db import JBoxUserV2, JBoxDynConfig, JBoxAccountingV2, JBoxInvite
 
 
 class AdminHandler(JBoxHandler):
@@ -21,41 +19,33 @@ class AdminHandler(JBoxHandler):
             return
 
         user_id = jbox_cookie['u']
+        user = JBoxUserV2(user_id)
+        is_admin = sessname in self.config("admin_sessnames", [])
+        manage_containers = is_admin or user.has_role(JBoxUserV2.ROLE_MANAGE_CONTAINERS)
+        show_report = is_admin or user.has_role(JBoxUserV2.ROLE_ACCESS_STATS)
         cont = JBoxContainer.get_by_name(sessname)
 
         if cont is None:
             self.send_error()
             return
 
-        if self.do_logout(cont):
-            response = {'code': 0, 'data': ''}
-            self.write(response)
+        if self.handle_if_logout(cont):
+            return
+        if self.handle_if_stats(is_admin):
+            return
+        if self.handle_if_show_cfg(is_admin):
+            return
+        if self.handle_if_instance_info(is_admin):
             return
 
         juliaboxver, _upgrade_available = self.get_upgrade_available(cont)
 
-        user = JBoxUserV2(user_id)
-
-        is_admin = sessname in self.config("admin_sessnames", [])
-        manage_containers = is_admin or user.has_role(JBoxUserV2.ROLE_MANAGE_CONTAINERS)
-        show_report = is_admin or user.has_role(JBoxUserV2.ROLE_ACCESS_STATS)
-        invites_perm = is_admin or user.has_role(JBoxUserV2.ROLE_MANAGE_INVITES)
-
         sections = []
-        loads = []
         report = {}
         report_span = 'day'
 
-        action = self.get_argument("action", None)
-        #invite_code = self.request.get("invite_code", None)
-        if action == "invites_report" and invites_perm:
-            self.write(dict(
-                code=0,
-                data=[obj for obj in JBoxInvite.table().scan()]))
-            return
-
         if manage_containers:
-            sections, loads = self.do_containers()
+            sections = self.do_containers()
 
         if show_report:
             today = datetime.now()
@@ -69,7 +59,6 @@ class AdminHandler(JBoxHandler):
         d = dict(
             manage_containers=manage_containers,
             show_report=show_report,
-            invites_perm=invites_perm,
             report_span=report_span,
             sessname=sessname,
             user_id=user_id,
@@ -81,19 +70,81 @@ class AdminHandler(JBoxHandler):
             disk=cont.get_disk_allocated(),
             expire=self.config('expire'),
             sections=sections,
-            loads=loads,
             report=report,
             juliaboxver=juliaboxver
         )
 
         self.rendertpl("ipnbadmin.tpl", d=d, cfg=self.config())
 
-    def do_logout(self, cont):
+    def handle_if_show_cfg(self, is_allowed):
+        show_cfg = self.get_argument('show_cfg', None)
+        if show_cfg is None:
+            return False
+        if not is_allowed:
+            AdminHandler.log_error("Show config not allowed for user")
+            response = {'code': -1, 'data': 'You do not have permissions to view these stats'}
+        else:
+            response = {'code': 0, 'data': self.config()}
+        self.write(response)
+        return True
+
+    def handle_if_logout(self, cont):
         logout = self.get_argument('logout', False)
         if logout == 'me':
             cont.async_backup_and_cleanup()
+            response = {'code': 0, 'data': ''}
+            self.write(response)
             return True
         return False
+
+    def handle_if_instance_info(self, is_allowed):
+        stats = self.get_argument('instance_info', None)
+        if stats is None:
+            return False
+
+        if not is_allowed:
+            AdminHandler.log_error("Show instance info not allowed for user")
+            response = {'code': -1, 'data': 'You do not have permissions to view these stats'}
+        else:
+            try:
+                if stats == 'load':
+                    stats = {}
+                    # get cluster loads
+                    average_load = CloudHost.get_cluster_average_stats('Load')
+                    if None != average_load:
+                        stats['Average Load'] = average_load;
+
+                    machine_loads = CloudHost.get_cluster_stats('Load')
+                    if None != machine_loads:
+                        for n, v in machine_loads.iteritems():
+                            stats['Instance ' + n] = v
+
+                response = {'code': 0, 'data': stats} if stats is not None else {'code': 1, 'data': {}}
+            except:
+                AdminHandler.log_error("exception while getting stats")
+                response = {'code': -1, 'data': 'error getting stats'}
+
+        self.write(response)
+        return True
+
+    def handle_if_stats(self, is_allowed):
+        stats = self.get_argument('stats', None)
+        if stats is None:
+            return False
+
+        if not is_allowed:
+            AdminHandler.log_error("Show stats not allowed for user")
+            response = {'code': -1, 'data': 'You do not have permissions to view these stats'}
+        else:
+            try:
+                stats = JBoxDynConfig.get_stat(CloudHost.INSTALL_ID, stats)
+                response = {'code': 0, 'data': stats} if stats is not None else {'code': 1, 'data': {}}
+            except:
+                AdminHandler.log_error("exception while getting stats")
+                response = {'code': -1, 'data': 'error getting stats'}
+
+        self.write(response)
+        return True
 
     @staticmethod
     def get_upgrade_available(cont):
@@ -109,7 +160,6 @@ class AdminHandler(JBoxHandler):
 
     def do_containers(self):
         sections = []
-        loads = []
 
         iac = []
         ac = []
@@ -154,14 +204,4 @@ class AdminHandler(JBoxHandler):
             else:
                 ac.append(o)
 
-        # get cluster loads
-        average_load = CloudHost.get_cluster_average_stats('Load')
-        if None != average_load:
-            loads.append({'instance': 'Average', 'load': average_load})
-
-        machine_loads = CloudHost.get_cluster_stats('Load')
-        if None != machine_loads:
-            for n, v in machine_loads.iteritems():
-                loads.append({'instance': n, 'load': v})
-
-        return sections, loads
+        return sections

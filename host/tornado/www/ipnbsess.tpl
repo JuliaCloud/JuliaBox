@@ -16,7 +16,7 @@
 
     <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
     <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/bootbox.js/4.2.0/bootbox.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/bootbox.js/4.3.0/bootbox.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
     <script src="//apis.google.com/js/client.js"></script>
     <script src="/assets/js/jquery-gdrive.js"></script>
@@ -76,6 +76,12 @@
 	    	ping_timer = setInterval(do_ping, 60000);
         });
     </script>
+    <style>
+        .bootbox100 { margin: 0 auto; width: 1000px; }
+        .bootbox90 { margin: 0 auto; width: 900px; }
+        .bootbox80 { margin: 0 auto; width: 800px; }
+        .bootbox70 { margin: 0 auto; width: 700px; }
+    </style>
 </head>
 {% set admin_user = (sessname in cfg["admin_sessnames"]) or (cfg["admin_sessnames"] == []) %}
 <body>
