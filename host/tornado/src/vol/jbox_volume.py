@@ -2,6 +2,7 @@ import os
 import tarfile
 import time
 import datetime
+import errno
 
 import pytz
 from cloud.aws import CloudHost
@@ -207,17 +208,25 @@ class JBoxVol(LoggerMixin):
         JBoxVol.log_info("Filtering out restore info from backup " + src + " to " + self.disk_path)
 
         src_tar = tarfile.open(src, 'r:gz')
-        for info in src_tar.getmembers():
-            if not info.name.startswith('juser/'):
-                continue
-            if info.name.startswith('juser/.') and (info.name.split('/')[1] in ['.juliabox', '.julia', '.ipython']):
-                continue
-            info.name = info.name[6:]
-            if len(info.name) == 0:
-                continue
-            src_tar.extract(info, self.disk_path)
-        src_tar.close()
-        JBoxVol.log_info("Restored backup at " + self.disk_path)
+        try:
+            for info in src_tar.getmembers():
+                if not info.name.startswith('juser/'):
+                    continue
+                if info.name.startswith('juser/.') and (info.name.split('/')[1] in ['.juliabox', '.julia', '.ipython']):
+                    continue
+                info.name = info.name[6:]
+                if len(info.name) == 0:
+                    continue
+                src_tar.extract(info, self.disk_path)
+            JBoxVol.log_info("Restored backup at " + self.disk_path)
+        except IOError, ioe:
+            if ioe.errno == errno.ENOSPC:
+                # continue login on ENOSPC to allow user to delete files
+                JBoxVol.log_exception("No space left to restore backup for %s", sessname)
+            else:
+                raise
+        finally:
+            src_tar.close()
         # delete local copy of backup if we have it on s3
         if k is not None:
             os.remove(src)

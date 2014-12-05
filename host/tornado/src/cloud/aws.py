@@ -2,6 +2,7 @@ import datetime
 import os
 import pytz
 import stat
+import sys
 import traceback
 import boto.ec2
 import boto.ec2.cloudwatch
@@ -68,6 +69,7 @@ class CloudHost(LoggerMixin):
 
             return CloudHost.INSTANCE_IMAGE_VERS[inst_id]
         except:
+            CloudHost.log_exception("Exception finding image_version of %s", inst_id)
             return 0
 
     @staticmethod
@@ -437,7 +439,7 @@ class CloudHost(LoggerMixin):
         if instances is None:
             return 0
         max_ami_ver = 0
-        min_ami_ver = 0
+        min_ami_ver = sys.maxint
         for instance in instances:
             ami_ver = CloudHost.image_version(instance)
             max_ami_ver = max(max_ami_ver, ami_ver)
@@ -505,6 +507,43 @@ class CloudHost(LoggerMixin):
         if (k is not None) and (not metadata_only):
             k.get_contents_to_filename(local_file)
         return k
+
+    @staticmethod
+    def del_file_from_s3(bucket, local_file):
+        if not CloudHost.ENABLED['s3']:
+            return None
+
+        key_name = os.path.basename(local_file)
+        k = CloudHost.connect_s3_bucket(bucket).delete_key(key_name)
+        return k
+
+    @staticmethod
+    def copy_file_in_s3(from_file, to_file, from_bucket, to_bucket=None):
+        if not CloudHost.ENABLED['s3']:
+            return None
+
+        if to_bucket is None:
+            to_bucket = from_bucket
+
+        from_key_name = os.path.basename(from_file)
+        to_key_name = os.path.basename(to_file)
+
+        k = CloudHost.connect_s3_bucket(from_bucket).get_key(from_key_name)
+        if k is None:
+            return None
+        k_new = k.copy(to_bucket, to_key_name)
+        return k_new
+
+    @staticmethod
+    def move_file_in_s3(from_file, to_file, from_bucket, to_bucket=None):
+        if not CloudHost.ENABLED['s3']:
+            return None
+
+        k_new = CloudHost.copy_file_in_s3(from_file, to_file, from_bucket, to_bucket)
+        if k_new is None:
+            return None
+        CloudHost.del_file_from_s3(from_bucket, from_file)
+        return k_new
 
     @staticmethod
     def _get_block_device_mapping(instance_id):

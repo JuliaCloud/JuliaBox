@@ -42,11 +42,80 @@ var JuliaBox = (function($, _, undefined){
 	    	});
 	    },
 
-	    show_ssh_key: function () {
+	    show_ssh_key: function() {
 	    	s = function(sshkey){ bootbox.alert('<pre>' + sshkey.data + '</pre>'); };
 	    	f = function() { bootbox.alert("Oops. Unexpected error while retrieving the ssh key.<br/><br/>Please try again later."); };
 	    	self.comm('/hostupload/sshkey', 'GET', null, s, f);
 	    },
+
+        _json_to_table: function(o) {
+            resp = '<table class="table">';
+            for(n in o) {
+                resp += '<tr><td>';
+                resp += '<b>' + n + '</b>';
+                resp += '</td><td>';
+                v = o[n];
+                if(v instanceof Array) {
+                    resp += JSON.stringify(v, [","], " ");
+                }
+                else if(v && (typeof v === "object")) {
+                    resp += self._json_to_table(v);
+                }
+                else {
+                    resp += v;
+                }
+                resp += '</td></tr>';
+            }
+            resp += '</table>';
+            return resp;
+        },
+
+        show_config: function() {
+	    	s = function(cfg){
+	    	    if(cfg.code == 0) {
+	    	        bootbox.dialog({
+	    	            message: self._json_to_table(cfg.data),
+	    	            title: "Config"
+	    	        }).find("div.modal-dialog").addClass("bootbox90");
+	    	    }
+	    	    else bootbox.alert('<pre>' + cfg.data + '</pre>');
+	    	};
+	    	f = function() { bootbox.alert("Oops. Unexpected error while retrieving config.<br/><br/>Please try again later."); };
+	    	self.comm('/hostadmin/', 'GET', {'show_cfg': true}, s, f);
+        },
+
+        show_stats: function(stat_name, title) {
+	    	s = function(stats){
+	    	    if(stats.code == 0) {
+	    	        bootbox.dialog({
+	    	            message: self._json_to_table(stats.data),
+	    	            title: title
+	    	        }).find("div.modal-dialog").addClass("bootbox70");
+	    	    }
+	    	    else {
+	    	        if(stats.code == 1) bootbox.alert('No data collected yet');
+	    	        else bootbox.alert('<pre>' + cfg.data + '</pre>');
+	    	    }
+	    	};
+	    	f = function() { bootbox.alert("Oops. Unexpected error while retrieving stats.<br/><br/>Please try again later."); };
+	    	self.comm('/hostadmin/', 'GET', {'stats': stat_name}, s, f);
+        },
+
+        show_instance_info: function(stat_name, title) {
+	    	s = function(stats){
+	    	    if(stats.code == 0) {
+	    	        bootbox.dialog({
+	    	            message: self._json_to_table(stats.data),
+	    	            title: title
+	    	        }).find("div.modal-dialog").addClass("bootbox70");
+	    	    }
+	    	    else {
+	    	        bootbox.alert('<pre>' + cfg.data + '</pre>');
+	    	    }
+	    	};
+	    	f = function() { bootbox.alert("Oops. Unexpected error while retrieving stats.<br/><br/>Please try again later."); };
+	    	self.comm('/hostadmin/', 'GET', {'instance_info': stat_name}, s, f);
+        },
 
         make_invites_table: function(data) {
             var invites = data.data;

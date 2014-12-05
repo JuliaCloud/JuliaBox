@@ -148,3 +148,43 @@ class JBoxDynConfig(JBoxDB):
         if not record.is_new:
             record.set_value(img)
             record.save()
+
+    @staticmethod
+    def set_stat_collected_date(cluster):
+        dt = datetime.datetime.now(pytz.utc).isoformat()
+        record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'stat_date'), create=True, value=dt)
+        if not record.is_new:
+            record.set_value(dt)
+            record.save()
+
+    @staticmethod
+    def get_stat_collected_date(cluster):
+        try:
+            record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'stat_date'))
+        except boto.dynamodb2.exceptions.ItemNotFound:
+            return None
+        return parse_iso_time(record.get_value())
+
+    @staticmethod
+    def is_stat_collected_within(cluster, days):
+        last_date = JBoxDynConfig.get_stat_collected_date(cluster)
+        if last_date is None:
+            return False
+        dt = datetime.datetime.now(pytz.utc) - datetime.timedelta(days=days)
+        return last_date > dt
+
+    @staticmethod
+    def set_stat(cluster, stat_name, stat):
+        val = json.dumps(stat)
+        record = JBoxDynConfig(JBoxDynConfig._n(cluster, stat_name), create=True, value=val)
+        if not record.is_new:
+            record.set_value(val)
+            record.save()
+
+    @staticmethod
+    def get_stat(cluster, stat_name):
+        try:
+            record = JBoxDynConfig(JBoxDynConfig._n(cluster, stat_name))
+        except boto.dynamodb2.exceptions.ItemNotFound:
+            return None
+        return json.loads(record.get_value())

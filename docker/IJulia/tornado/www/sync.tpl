@@ -62,8 +62,8 @@
         	{% set reponame = os.path.basename(repo.loc) %}
         	{% set loc = repo.loc %}
             <tr>
-            	<td><small>{{loc}}</small></td>
-            	<td><b>{{reponame}}</b></td>
+            	<td><small>{{reponame}}</small></td>
+            	<td><b>{{loc}}</b></td>
             	<td>
             		<span class="glyphicon glyphicon-refresh syncgdrive btn" id="syncgdrive_{{repokey}}" title="Synchronize with Google Drive"></span>
             		<span class="glyphicon glyphicon-trash delgdrive btn" id="delgdrive_{{repokey}}" title="Delete from JuliaBox"></span>
