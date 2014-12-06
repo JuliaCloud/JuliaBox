@@ -13,6 +13,9 @@ http {
     resolver 8.8.8.8 8.8.4.4;
     server {
         listen 80;
+
+        # allow larger uploads
+        client_body_buffer_size 10M;
         
         # To enable SSL on nginx uncomment and configure the following lines
         # We enable TLS, but not SSLv2/SSLv3 which is weak and should no longer be used and disable all weak ciphers.
