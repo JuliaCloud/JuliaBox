@@ -11,6 +11,7 @@ from jbox_util import LoggerMixin, unique_sessname
 from jbox_container import JBoxContainer
 from jbox_crypto import signstr
 from cloud.aws import CloudHost
+from db import is_proposed_cluster_leader
 
 
 class JBoxHandler(RequestHandler, LoggerMixin):
@@ -63,7 +64,8 @@ class JBoxHandler(RequestHandler, LoggerMixin):
         if cont is not None:
             cls.log_debug("container running: %r", cont.is_running())
 
-        if ((cont is None) or (not cont.is_running())) and (not CloudHost.should_accept_session()):
+        is_leader = is_proposed_cluster_leader()
+        if ((cont is None) or (not cont.is_running())) and (not CloudHost.should_accept_session(is_leader)):
             if cont is not None:
                 cont.async_backup_and_cleanup()
             return False

@@ -1,9 +1,9 @@
 #! /usr/bin/env bash
 # Mount JuliaBox loopback volumes
 
-if [ $# -ne 3 ]
+if [ $# -ne 4 ]
 then
-    echo "Usage: sudo mount_fs.sh <ndisks> <ds_size_mb> <fs_user_id>"
+    echo "Usage: sudo mount_fs.sh <ndisks> <ds_size_mb> <fs_user_id> <ebs(0/1)>"
     exit 1
 fi
 
@@ -16,6 +16,8 @@ fi
 NDISKS=$1
 FS_SIZE_MB=$2
 ID=$3
+HAVE_EBS=$4
+
 echo "Creating and mounting $NDISKS user disks of size $FS_SIZE_MB MB each..."
 
 function error_exit {
@@ -50,8 +52,12 @@ MNT_DIR=${FS_DIR}/mnt
 EBS_DIR=${FS_DIR}/ebs
 echo "    Creating folders to hold filesystems..."
 mkdir -p ${FS_DIR} ${IMG_DIR} ${MNT_DIR} ${EBS_DIR} || error_exit "Could not create folders to hold filesystems"
-echo "    Creating fstab entries..."
-make_ebs_fstab_entries ${EBS_DIR} ${NDISKS}
+
+if [ $HAVE_EBS -eq 1 ]
+then
+    echo "    Creating fstab entries..."
+    make_ebs_fstab_entries ${EBS_DIR} ${NDISKS}
+fi
 
 echo "    Stopping docker to make sure no loop devices are in use..."
 service docker stop
@@ -95,13 +101,16 @@ done
 
 rm -f ${MNT_DIR}/jimg
 
-echo "    Creating mount points for EBS devices..."
-ebs_mnt_dirs=`grep "${EBS_DIR}" /etc/fstab | cut -d" " -f2`
-for ebs_mnt_dir in ${ebs_mnt_dirs}
-do
-    mkdir -p ${ebs_mnt_dir}
-done
-chown -R ${ID}:${ID} ${EBS_DIR}
+if [ $HAVE_EBS -eq 1 ]
+then
+    echo "    Creating mount points for EBS devices..."
+    ebs_mnt_dirs=`grep "${EBS_DIR}" /etc/fstab | cut -d" " -f2`
+    for ebs_mnt_dir in ${ebs_mnt_dirs}
+    do
+        mkdir -p ${ebs_mnt_dir}
+    done
+    chown -R ${ID}:${ID} ${EBS_DIR}
+fi
 
 echo ""
 echo "DONE"

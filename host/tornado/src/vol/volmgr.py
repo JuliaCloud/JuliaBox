@@ -37,15 +37,16 @@ class VolMgr(LoggerMixin):
     @staticmethod
     def has_update_for_user_home_image():
         img_dir, curr_img = os.path.split(JBoxVol.USER_HOME_IMG)
-        VolMgr.log_debug("checking for updates to user home image %s/%s", img_dir, curr_img)
+        #VolMgr.log_debug("checking for updates to user home image %s/%s", img_dir, curr_img)
         bucket, new_img = JBoxDynConfig.get_user_home_image(CloudHost.INSTALL_ID)
         if bucket is None:
-            VolMgr.log_debug("no images configured")
+            VolMgr.log_info("User home image: none configured. current: %s/%s", img_dir, curr_img)
             return False
-        VolMgr.log_debug("latest user home image %s/%s", bucket, new_img)
         if new_img == curr_img:
-            VolMgr.log_debug("already on latest image")
+            VolMgr.log_info("User home image: no updates. current: %s/%s", img_dir, curr_img)
             return False
+        else:
+            VolMgr.log_info("User home image: update: %s/%s. current: %s/%s", bucket, new_img, img_dir, curr_img)
         return True
 
     @staticmethod
