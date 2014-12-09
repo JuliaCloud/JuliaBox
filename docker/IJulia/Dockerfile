@@ -1,7 +1,7 @@
 # Docker file for JuliaBox
-# Version:18
+# Version:19
 
-FROM tanmaykm/jboxjulia:v0.3.3_9
+FROM tanmaykm/jboxjulia:v0.3.3_10
 
 MAINTAINER Tanmay Mohapatra
 
@@ -61,6 +61,15 @@ RUN apt-get install -y \
     openmpi-bin \
     libopenmpi-dev \
     && apt-get clean
+
+# Stan
+RUN mkdir stan; cd stan; wget https://github.com/stan-dev/cmdstan/releases/download/v2.5.0/cmdstan-2.5.0.tar.gz; \
+    tar -xzvf cmdstan-2.5.0.tar.gz; mv cmdstan /usr/share/cmdstan; \
+    (cd /usr/share/cmdstan && make build); \
+    echo "export CMDSTAN_HOME=/usr/share/cmdstan" > /etc/profile.d/cmdstan.sh; \
+    chmod 755 /etc/profile.d/cmdstan.sh; \
+    cd ..; \
+    rm -rf stan
 
 # add juser
 # create group and user with specific ids if required on systems where the user running juliabox is not the first user
