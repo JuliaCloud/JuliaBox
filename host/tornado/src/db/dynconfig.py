@@ -46,6 +46,14 @@ class JBoxDynConfig(JBoxDB):
         return self.get_attrib('value')
 
     @staticmethod
+    def unset_cluster_leader(cluster):
+        try:
+            record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'leader'))
+            record.delete()
+        except boto.dynamodb2.exceptions.ItemNotFound:
+            return
+
+    @staticmethod
     def set_cluster_leader(cluster, instance):
         record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'leader'), create=True, value=instance)
         if not record.is_new:

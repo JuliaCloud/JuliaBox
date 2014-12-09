@@ -49,6 +49,8 @@ class TestDBTables(LoggerMixin):
 
         JBoxDynConfig.set_cluster_leader(TESTCLSTR, 'testinstance')
         assert JBoxDynConfig.get_cluster_leader(TESTCLSTR) == 'testinstance'
+        JBoxDynConfig.unset_cluster_leader(TESTCLSTR)
+        assert JBoxDynConfig.get_cluster_leader(TESTCLSTR) is None
 
         assert JBoxDynConfig.get_allow_registration(TESTCLSTR)
         JBoxDynConfig.set_allow_registration(TESTCLSTR, False)

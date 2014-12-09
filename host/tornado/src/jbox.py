@@ -10,7 +10,7 @@ import docker
 from cloud.aws import CloudHost
 
 import db
-from db import JBoxDynConfig, JBoxUserV2, is_cluster_leader
+from db import JBoxDynConfig, JBoxUserV2, is_cluster_leader, is_proposed_cluster_leader
 from jbox_util import read_config, LoggerMixin
 from vol import VolMgr
 from jbox_container import JBoxContainer
@@ -105,25 +105,35 @@ class JBox(LoggerMixin):
                 JBoxContainer.async_schedule_activations()
 
     @staticmethod
-    def do_housekeeping():
-        JBox.do_update_user_home_image()
+    def is_ready_to_terminate():
+        if not JBox.cfg['cloud_host']['scale_down']:
+            return False
 
+        num_containers = JBoxContainer.num_active() + JBoxContainer.num_stopped()
+        return (num_containers == 0) and CloudHost.can_terminate(is_proposed_cluster_leader())
+
+    @staticmethod
+    def do_housekeeping():
+        terminating = False
         server_delete_timeout = JBox.cfg['expire']
         JBoxContainer.maintain(max_timeout=server_delete_timeout, inactive_timeout=JBox.cfg['inactivity_timeout'],
                                protected_names=JBox.cfg['protected_docknames'])
-        if JBox.cfg['cloud_host']['scale_down'] and (JBoxContainer.num_active() == 0) and \
-                (JBoxContainer.num_stopped() == 0) and CloudHost.should_terminate():
+        if is_cluster_leader():
+            CloudHost.log_info("I am the cluster leader")
+            JBox.monitor_registrations()
+            if not JBoxDynConfig.is_stat_collected_within(CloudHost.INSTALL_ID, 7):
+                JBoxContainer.async_collect_stats()
+        elif JBox.is_ready_to_terminate():
+            terminating = True
             JBox.log_info("terminating to scale down")
             try:
                 CloudHost.deregister_instance_dns()
             except:
                 CloudHost.log_error("Error deregistering instance dns")
             CloudHost.terminate_instance()
-        elif is_cluster_leader():
-            CloudHost.log_info("I am the cluster leader")
-            JBox.monitor_registrations()
-            if not JBoxDynConfig.is_stat_collected_within(CloudHost.INSTALL_ID, 7):
-                JBoxContainer.async_collect_stats()
+
+        if not terminating:
+            JBox.do_update_user_home_image()
 
 if __name__ == "__main__":
     JBox().run()

@@ -21,12 +21,13 @@ class VolMgr(LoggerMixin):
 
         backup_location = os.path.expanduser(cfg['backup_location'])
         user_home_img = os.path.expanduser(cfg['user_home_image'])
+        wsock_proto = cfg['websocket_protocol']
         mnt_location = os.path.expanduser(cfg['mnt_location'])
         backup_bucket = cloud_cfg['backup_bucket']
         num_disks_max = cfg["numdisksmax"]
         make_sure_path_exists(backup_location)
 
-        JBoxVol.configure_base(dckr, user_home_img, backup_location, backup_bucket=backup_bucket)
+        JBoxVol.configure_base(dckr, wsock_proto, user_home_img, backup_location, backup_bucket=backup_bucket)
         JBoxLoopbackVol.configure(cfg['disk_limit'], mnt_location, num_disks_max)
         if cloud_cfg['ebs']:
             VolMgr.HAS_EBS = True
@@ -36,15 +37,16 @@ class VolMgr(LoggerMixin):
     @staticmethod
     def has_update_for_user_home_image():
         img_dir, curr_img = os.path.split(JBoxVol.USER_HOME_IMG)
-        VolMgr.log_debug("checking for updates to user home image %s/%s", img_dir, curr_img)
+        #VolMgr.log_debug("checking for updates to user home image %s/%s", img_dir, curr_img)
         bucket, new_img = JBoxDynConfig.get_user_home_image(CloudHost.INSTALL_ID)
         if bucket is None:
-            VolMgr.log_debug("no images configured")
+            VolMgr.log_info("User home image: none configured. current: %s/%s", img_dir, curr_img)
             return False
-        VolMgr.log_debug("latest user home image %s/%s", bucket, new_img)
         if new_img == curr_img:
-            VolMgr.log_debug("already on latest image")
+            VolMgr.log_info("User home image: no updates. current: %s/%s", img_dir, curr_img)
             return False
+        else:
+            VolMgr.log_info("User home image: update: %s/%s. current: %s/%s", bucket, new_img, img_dir, curr_img)
         return True
 
     @staticmethod

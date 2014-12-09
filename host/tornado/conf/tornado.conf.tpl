@@ -1,6 +1,7 @@
 {
     "port" : 8888,
     "async_job_port" : 8889,
+    "websocket_protocol" : "wss",
     # debug:10, info:20, warning:30, error:40
     "jbox_log_level": 10,
     "root_log_level": 40,

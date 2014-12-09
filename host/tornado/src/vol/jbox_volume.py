@@ -17,6 +17,7 @@ class JBoxVol(LoggerMixin):
     DCKR = None
     LOCAL_TZ_OFFSET = 0
     BACKUP_BUCKET = None
+    NOTEBOOK_WEBSOCK_PROTO = "wss://"
 
     def __init__(self, disk_path, user_email=None, user_name=None, sessname=None, old_sessname=None):
         self.disk_path = disk_path
@@ -55,8 +56,9 @@ class JBoxVol(LoggerMixin):
         return props['Name'] if ('Name' in props) else None
 
     @classmethod
-    def configure_base(cls, dckr, user_home_img, backup_loc, backup_bucket=None):
+    def configure_base(cls, dckr, wsock_proto, user_home_img, backup_loc, backup_bucket=None):
         JBoxVol.DCKR = dckr
+        JBoxVol.NOTEBOOK_WEBSOCK_PROTO = wsock_proto + '://'
         JBoxVol.USER_HOME_IMG = user_home_img
         JBoxVol.BACKUP_LOC = backup_loc
         JBoxVol.LOCAL_TZ_OFFSET = JBoxVol.local_time_offset()
@@ -140,7 +142,8 @@ class JBoxVol(LoggerMixin):
             os.remove(nbconfig_temp)
         os.rename(nbconfig, nbconfig_temp)
 
-        wsock_cfg = "c.NotebookApp.websocket_url = 'wss://" + CloudHost.notebook_websocket_hostname() + "'\n"
+        wsock_cfg = "c.NotebookApp.websocket_url = '" + JBoxVol.NOTEBOOK_WEBSOCK_PROTO + \
+                    CloudHost.notebook_websocket_hostname() + "'\n"
 
         replaced = False
         with open(nbconfig_temp) as fin, open(nbconfig, 'w') as fout:

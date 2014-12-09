@@ -296,7 +296,7 @@ class CloudHost(LoggerMixin):
             traceback.print_exc()
 
     @staticmethod
-    def should_terminate():
+    def can_terminate(is_leader):
         if not CloudHost.ENABLED['cloudwatch']:
             return False
 
@@ -310,6 +310,11 @@ class CloudHost(LoggerMixin):
         if not CloudHost.ENABLED['cloudwatch']:
             return False
 
+        # cluster leader stays
+        if is_leader:
+            CloudHost.log_debug("not terminating as this is the cluster leader")
+            return False
+
         # older amis terminate while newer amis never terminate
         ami_recentness = CloudHost.get_ami_recentness()
         CloudHost.log_debug("AMI recentness = %d", ami_recentness)
@@ -320,83 +325,89 @@ class CloudHost(LoggerMixin):
             CloudHost.log_debug("Not terminating because running a more recent AMI")
             return False
 
-        cluster_load = CloudHost.get_cluster_stats('Load')
-
         # keep at least 1 machine running
-        if len(cluster_load) == 1:
+        instances = CloudHost.get_autoscaled_instances()
+        if len(instances) == 1:
             CloudHost.log_debug("not terminating as this is the only machine")
-            return False
-
-        # sort by load and instance_id
-        sorted_nodes = sorted(cluster_load.iteritems(),
-                              key=lambda x: CloudHost.instance_accept_session_priority(x[0], x[1]))
-        # if this is not the node with least load, keep running
-        if sorted_nodes[-1][0] != CloudHost.instance_id():
-            CloudHost.log_debug("not terminating as this is not the last node in sorted list")
             return False
 
         return True
 
     @staticmethod
-    def should_accept_session():
+    def should_accept_session(is_leader):
         self_load = CloudHost.get_instance_stats(CloudHost.instance_id(), 'Load')
-        CloudHost.log_debug("Load self: " + repr(self_load))
+        CloudHost.log_debug("Self load: " + repr(self_load))
 
         if CloudHost.ENABLED['cloudwatch']:
             cluster_load = CloudHost.get_cluster_stats('Load')
+            CloudHost.log_debug("Cluster load: %r", cluster_load)
+
+            # remove machines with older AMIs
+            cluster_load = {k: v for k, v in cluster_load.iteritems() if CloudHost.get_ami_recentness(k) >= 0}
+            CloudHost.log_debug("Cluster load (excluding old amis): %r", cluster_load)
+
             avg_load = CloudHost.get_cluster_average_stats('Load', results=cluster_load)
-            CloudHost.log_debug("Load cluster: " + repr(cluster_load) + " avg: " + repr(avg_load))
+            CloudHost.log_debug("Average load (excluding old amis): %r", avg_load)
 
             if avg_load >= CloudHost.SCALE_UP_AT_LOAD:
-                CloudHost.log_info("Requesting scale up as cluster average load " +
-                                     str(avg_load) + " > " + str(CloudHost.SCALE_UP_AT_LOAD))
+                CloudHost.log_info("Requesting scale up as cluster average load %r > %r",
+                                   avg_load, CloudHost.SCALE_UP_AT_LOAD)
                 CloudHost.add_instance()
         else:
             avg_load = self_load
             cluster_load = []
 
         if self_load >= 100:
+            CloudHost.log_debug("Not accepting: fully loaded")
             return False
 
         if not CloudHost.ENABLED['cloudwatch']:
+            CloudHost.log_debug("Accepting: not in a cluster")
             return True
 
         # handle ami switchover. newer AMIs always accept, older AMIs always reject
         ami_recentness = CloudHost.get_ami_recentness()
         CloudHost.log_debug("AMI recentness = %d", ami_recentness)
         if ami_recentness > 0:
-            CloudHost.log_debug("Accepting because running a more recent AMI")
+            CloudHost.log_debug("Accepting: more recent AMI")
             return True
         elif ami_recentness < 0:
-            CloudHost.log_debug("Not accepting because running an older AMI")
+            CloudHost.log_debug("Not accepting: older AMI")
             return False
 
-        # if not least loaded, accept
-        if self_load >= avg_load:
-            CloudHost.log_debug("Accepting because this is not the least loaded (self load >= avg)")
+        # if cluster leader, then accept as this will stick around
+        if is_leader:
+            CloudHost.log_debug("Accepting: cluster leader")
             return True
 
-        # exclude machines with load >= avg load
-        filtered_nodes = {k: v for k, v in cluster_load.iteritems() if v >= avg_load}
-        # if this is the only instance with load less than average, accept
-        if len(filtered_nodes) == 1:
-            CloudHost.log_debug("Accepting because this is the only instance with load less than average")
+        # if only instance, accept
+        if len(cluster_load) == 1:
+            CloudHost.log_debug("Accepting: only instance (new AMI)")
             return True
 
-        # sort by load and instance_id
-        sorted_nodes = sorted(filtered_nodes.iteritems(),
-                              key=lambda x: CloudHost.instance_accept_session_priority(x[0], x[1]))
-        # if this is not the node with least load, accept
-        if sorted_nodes[0][1] != CloudHost.instance_id():
-            CloudHost.log_debug("Accepting because this is not the node with least load")
+        if avg_load >= 50:
+            if self_load >= avg_load:
+                CloudHost.log_debug("Accepting: not least loaded (self load >= avg)")
+                return True
+
+            # exclude machines with load >= avg_load
+            filtered_nodes = [k for k, v in cluster_load.iteritems() if v < avg_load]
+        else:
+            filtered_nodes = cluster_load.keys()
+
+        # at low load values, sorting by load will be inaccurate, sort alphabetically instead
+        filtered_nodes.sort()
+        if filtered_nodes[0] == CloudHost.instance_id():
+            CloudHost.log_debug("Accepting: top among sorted instances (%r)", filtered_nodes)
             return True
+
+        CloudHost.log_debug("Not accepting: not at top among sorted instances (%r)", filtered_nodes)
         return False
 
     @staticmethod
     def get_instance_stats(instance, stat_name, namespace=None):
         if (instance == CloudHost.instance_id()) and (stat_name in CloudHost.SELF_STATS):
-            CloudHost.log_debug("Using cached self_stats. " + stat_name + "=" +
-                                  repr(CloudHost.SELF_STATS[stat_name]))
+            CloudHost.log_debug("Using cached self_stats. %s=%r", stat_name, CloudHost.SELF_STATS[stat_name])
             return CloudHost.SELF_STATS[stat_name]
         elif not CloudHost.ENABLED['cloudwatch']:
             return None
