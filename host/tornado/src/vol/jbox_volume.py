@@ -129,10 +129,31 @@ class JBoxVol(LoggerMixin):
         if os.path.exists(marker):
             os.remove(marker)
 
-    def restore_user_home(self):
-        user_home = tarfile.open(JBoxVol.USER_HOME_IMG, 'r:gz')
-        user_home.extractall(self.disk_path)
-        user_home.close()
+    def restore_user_home(self, new_disk):
+        with tarfile.open(JBoxVol.USER_HOME_IMG, 'r:gz') as user_home:
+            if new_disk:
+                user_home.extractall(self.disk_path)
+            else:
+                # extract .juliabox, .ipython/README, .ipython/kernels, .ipython/profile_julia, .ipython/profile_default
+                paths_to_extract = ['.juliabox', '.ipython/README', '.ipython/kernels',
+                                    '.ipython/profile_julia', '.ipython/profile_default']
+
+                def _to_extract(chk_path):
+                    chk_path = os.path.normpath(chk_path)
+                    for p in paths_to_extract:
+                        if chk_path.startswith(p):
+                            return True
+                    return False
+
+                for path in paths_to_extract:
+                    full_path = os.path.join(self.disk_path, path)
+                    if os.path.exists(full_path):
+                        ensure_delete(full_path, include_itself=True)
+
+                for info in user_home.getmembers():
+                    if not _to_extract(info.name):
+                        continue
+                    user_home.extract(info, self.disk_path)
 
     def setup_instance_config(self):
         nbconfig = os.path.join(self.disk_path, '.ipython/profile_julia/ipython_notebook_config.py')
