@@ -443,7 +443,7 @@ class CloudHost(LoggerMixin):
         return instances
 
     @staticmethod
-    def get_ami_recentness():
+    def get_ami_recentness(instance=None):
         if not CloudHost.ENABLED['autoscale']:
             return 0
         instances = CloudHost.get_autoscaled_instances()
@@ -456,8 +456,11 @@ class CloudHost(LoggerMixin):
             max_ami_ver = max(max_ami_ver, ami_ver)
             min_ami_ver = min(min_ami_ver, ami_ver)
 
-        self_ami_ver = CloudHost.image_version(CloudHost.instance_id())
-        CloudHost.log_debug("ami versions: max: %d, min: %d, self:%d", max_ami_ver, min_ami_ver, self_ami_ver)
+        if instance is None:
+            instance = CloudHost.instance_id()
+        self_ami_ver = CloudHost.image_version(instance)
+        CloudHost.log_debug("ami versions: max: %d, min: %d, self(%s):%d", max_ami_ver, min_ami_ver,
+                            instance, self_ami_ver)
         if self_ami_ver == 0:
             return 0
         elif max_ami_ver > self_ami_ver:
