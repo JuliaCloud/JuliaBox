@@ -18,14 +18,14 @@ sudo docker run -i -v ${JUSER_HOME}:/home/juser --entrypoint="/home/juser/setup_
 ${SUDO_JUSER} rm ${JUSER_HOME}/setup_julia.sh
 
 ${SUDO_JUSER} mkdir -p ${JUSER_HOME}/.ipython/kernels/julia
-${SUDO_JUSER} cat > ${JUSER_HOME}/.ipython/kernels/julia/kernel.json <<DELIM
+${SUDO_JUSER} cat > ${JUSER_HOME}/.ipython/kernels/julia/kernel.json <<EOF
 {
         "argv": ["/usr/bin/julia", "-F", "/home/juser/.julia/v0.3/IJulia/src/kernel.jl", "{connection_file}"],
         "codemirror_mode": {   "version": 0.3,   "name": "julia"  },
-        "display_name": "IJulia (Julia 0.3.2)",
+        "display_name": "IJulia (Julia 0.3)",
         "language": "julia"
 }
-DELIM
+EOF
 
 echo "c.NotebookApp.open_browser = False" | ${SUDO_JUSER} tee --append ${JUSER_HOME}/.ipython/profile_julia/ipython_notebook_config.py
 echo "c.NotebookApp.ip = \"*\"" | ${SUDO_JUSER} tee --append ${JUSER_HOME}/.ipython/profile_julia/ipython_notebook_config.py

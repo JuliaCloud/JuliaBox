@@ -163,9 +163,11 @@ class JBoxEBSVol(JBoxVol):
 
         if snap_id == JBoxEBSVol.DISK_TEMPLATE_SNAPSHOT:
             JBoxEBSVol.log_debug("creating home folder on blank volume for %s", user_email)
-            ebsvol.restore_user_home()
+            ebsvol.restore_user_home(True)
             ebsvol.restore()
-        #else:
+        else:
+            JBoxEBSVol.log_debug("updating home folder on existing volume for %s", user_email)
+            ebsvol.restore_user_home(False)
         #    snap_age_days = CloudHost.get_snapshot_age(snap_id).total_seconds()/(60*60*24)
         #    if snap_age_days > 7:
         #        ebsvol.restore_user_home()

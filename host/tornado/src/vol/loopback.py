@@ -161,7 +161,7 @@ class JBoxLoopbackVol(JBoxVol):
         self.log_debug("blanking out disk at %s", self.disk_path)
         ensure_delete(self.disk_path)
         self.log_debug("restoring common data on disk at %s", self.disk_path)
-        self.restore_user_home()
+        self.restore_user_home(True)
         self.setup_instance_config()
         if mark_refreshed:
             self.mark_refreshed()

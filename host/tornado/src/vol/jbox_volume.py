@@ -13,11 +13,16 @@ from jbox_crypto import ssh_keygen
 
 class JBoxVol(LoggerMixin):
     BACKUP_LOC = None
-    USER_HOME_IMG = None
     DCKR = None
     LOCAL_TZ_OFFSET = 0
     BACKUP_BUCKET = None
     NOTEBOOK_WEBSOCK_PROTO = "wss://"
+
+    # includes Julia packages and other essentials to be placed into user home folder
+    USER_HOME_IMG = None
+    # files that must be restored from user home for proper functioning of JuliaBox
+    USER_HOME_ESSENTIALS = ['.juliabox', '.ipython/README', '.ipython/kernels',
+                            '.ipython/profile_julia', '.ipython/profile_default']
 
     def __init__(self, disk_path, user_email=None, user_name=None, sessname=None, old_sessname=None):
         self.disk_path = disk_path
@@ -129,10 +134,30 @@ class JBoxVol(LoggerMixin):
         if os.path.exists(marker):
             os.remove(marker)
 
-    def restore_user_home(self):
-        user_home = tarfile.open(JBoxVol.USER_HOME_IMG, 'r:gz')
-        user_home.extractall(self.disk_path)
-        user_home.close()
+    @staticmethod
+    def _is_path_user_home_essential(chk_path):
+        chk_path = os.path.normpath(chk_path)
+        for p in JBoxVol.USER_HOME_ESSENTIALS:
+            if chk_path.startswith(p) and ((len(p) == len(chk_path)) or (chk_path[len(p)] == os.path.sep)):
+                return True
+        return False
+
+    def restore_user_home(self, new_disk):
+        with tarfile.open(JBoxVol.USER_HOME_IMG, 'r:gz') as user_home:
+            if new_disk:
+                user_home.extractall(self.disk_path)
+            else:
+                # extract .juliabox, .ipython/README, .ipython/kernels, .ipython/profile_julia, .ipython/profile_default
+
+                for path in JBoxVol.USER_HOME_ESSENTIALS:
+                    full_path = os.path.join(self.disk_path, path)
+                    if os.path.exists(full_path):
+                        ensure_delete(full_path, include_itself=True)
+
+                for info in user_home.getmembers():
+                    if not JBoxVol._is_path_user_home_essential(info.name):
+                        continue
+                    user_home.extract(info, self.disk_path)
 
     def setup_instance_config(self):
         nbconfig = os.path.join(self.disk_path, '.ipython/profile_julia/ipython_notebook_config.py')
@@ -176,7 +201,7 @@ class JBoxVol(LoggerMixin):
         bkup_tar = tarfile.open(bkup_file, 'w:gz')
 
         for f in os.listdir(self.disk_path):
-            if f.startswith('.') and (f in ['.julia', '.ipython']):
+            if f.startswith('.') and (f in ['.julia']):
                 continue
             full_path = os.path.join(self.disk_path, f)
             bkup_tar.add(full_path, os.path.join('juser', f))
@@ -191,7 +216,7 @@ class JBoxVol(LoggerMixin):
             datetime.timedelta(seconds=JBoxVol.LOCAL_TZ_OFFSET)
         if JBoxVol.BACKUP_BUCKET is not None:
             if CloudHost.push_file_to_s3(JBoxVol.BACKUP_BUCKET, bkup_file,
-                                           metadata={'backup_time': bkup_file_mtime.isoformat()}) is not None:
+                                         metadata={'backup_time': bkup_file_mtime.isoformat()}) is not None:
                 os.remove(bkup_file)
                 JBoxVol.log_info("Moved backup to S3 " + self.sessname)
 
@@ -215,9 +240,12 @@ class JBoxVol(LoggerMixin):
             for info in src_tar.getmembers():
                 if not info.name.startswith('juser/'):
                     continue
-                if info.name.startswith('juser/.') and (info.name.split('/')[1] in ['.juliabox', '.julia', '.ipython']):
-                    continue
-                info.name = info.name[6:]
+                extract_name = info.name[6:]
+                if info.name.startswith('juser/.'):
+                    folder = info.name.split('/')[1]
+                    if (folder == '.julia') or JBoxVol._is_path_user_home_essential(extract_name):
+                        continue
+                info.name = extract_name
                 if len(info.name) == 0:
                     continue
                 src_tar.extract(info, self.disk_path)
