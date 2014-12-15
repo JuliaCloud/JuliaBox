@@ -21,8 +21,8 @@ ${SUDO_JUSER} mkdir -p ${JUSER_HOME}/.ipython/kernels/julia
 ${SUDO_JUSER} cat > ${JUSER_HOME}/.ipython/kernels/julia/kernel.json <<EOF
 {
         "argv": ["/usr/bin/julia", "-F", "/home/juser/.julia/v0.3/IJulia/src/kernel.jl", "{connection_file}"],
-        "codemirror_mode": {   "version": 0.3,   "name": "julia"  },
-        "display_name": "IJulia (Julia 0.3)",
+        "codemirror_mode": "julia",
+        "display_name": "Julia",
         "language": "julia"
 }
 EOF

@@ -1,5 +1,5 @@
 # Base Ubuntu Docker file for JuliaBox
-# Version:8
+# Version:9
 
 FROM stackbrew/ubuntu:trusty
 
@@ -57,9 +57,17 @@ RUN cd /tmp/tl; wget http://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx
     echo "export MANPATH=/usr/local/texlive/2014/texmf-dist/doc/man:\$MANPATH" >>  /etc/profile.d/texlive.sh; \
     chmod 755 /etc/profile.d/texlive.sh
 
+#RUN cd /tmp/tl; git clone https://github.com/scottkosty/install-tl-ubuntu.git; \
+#    ./install-tl-ubuntu/install-tl-ubuntu --allow-small --profile /tmp/tl/texlive.profile --retry 5; \
+#    cd /; rm -rf /tmp/tl; \
+#    echo "export PATH=/usr/local/texlive/2014/bin/x86_64-linux:\$PATH" > /etc/profile.d/texlive.sh; \
+#    echo "export INFOPATH=/usr/local/texlive/2014/texmf-dist/doc/info:\$INFOPATH" >> /etc/profile.d/texlive.sh; \
+#    echo "export MANPATH=/usr/local/texlive/2014/texmf-dist/doc/man:\$MANPATH" >>  /etc/profile.d/texlive.sh; \
+#    chmod 755 /etc/profile.d/texlive.sh
+
 RUN pip install --upgrade PyDrive google-api-python-client jsonpointer jsonschema tornado sphinx pygments nose readline mistune
 
-RUN git clone --recursive https://github.com/tanmaykm/ipython.git; cd ipython; python setup.py install; cd ..; rm -rf ipython
+RUN git clone --recursive https://github.com/tanmaykm/ipython.git; cd ipython; git checkout juliabox; python setup.py install; cd ..; rm -rf ipython
 
 RUN git clone https://github.com/tanmaykm/shellinabox_fork.git; cd shellinabox_fork; ./configure; make install; cd ..; rm -rf shellinabox_fork
 
