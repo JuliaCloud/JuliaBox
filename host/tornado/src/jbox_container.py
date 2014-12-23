@@ -156,8 +156,7 @@ class JBoxContainer(LoggerMixin):
     @staticmethod
     def sync_session_status(instance_id):
         JBoxContainer.log_debug("fetching session status from %s", instance_id)
-        addr = '127.0.0.1' if (instance_id == 'localhost') else CloudHost.make_instance_dns_name(instance_id)
-        return JBoxContainer.ASYNC_JOB.sendrecv(JBoxAsyncJob.CMD_SESSION_STATUS, {}, dest=addr)
+        return JBoxContainer.ASYNC_JOB.sendrecv(JBoxAsyncJob.CMD_SESSION_STATUS, {}, dest=instance_id)
 
     @staticmethod
     def launch_by_name(name, email, reuse=True):

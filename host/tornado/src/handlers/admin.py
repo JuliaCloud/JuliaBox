@@ -129,6 +129,7 @@ class AdminHandler(JBoxHandler):
                 response = {'code': 0, 'data': result}
             except:
                 AdminHandler.log_error("exception while getting stats")
+                AdminHandler._get_logger().exception("exception while getting stats")
                 response = {'code': -1, 'data': 'error getting stats'}
 
         self.write(response)
@@ -148,6 +149,7 @@ class AdminHandler(JBoxHandler):
                 response = {'code': 0, 'data': stats} if stats is not None else {'code': 1, 'data': {}}
             except:
                 AdminHandler.log_error("exception while getting stats")
+                AdminHandler._get_logger().exception("exception while getting stats")
                 response = {'code': -1, 'data': 'error getting stats'}
 
         self.write(response)

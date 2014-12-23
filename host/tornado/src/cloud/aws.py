@@ -43,6 +43,9 @@ class CloudHost(LoggerMixin):
     INSTANCE_ID = None
     INSTANCE_IMAGE_VERS = {}
     PUBLIC_HOSTNAME = None
+    LOCAL_HOSTNAME = None
+    LOCAL_IP = None
+    PUBLIC_IP = None
     SELF_STATS = {}
     # STATS_CACHE = {} # TODO: cache stats
 
@@ -88,13 +91,56 @@ class CloudHost(LoggerMixin):
         return CloudHost.instance_public_hostname()
 
     @staticmethod
-    def instance_public_hostname():
-        if CloudHost.PUBLIC_HOSTNAME is None:
-            if not CloudHost.ENABLED['cloudwatch']:
-                CloudHost.PUBLIC_HOSTNAME = 'localhost'
-            else:
-                CloudHost.PUBLIC_HOSTNAME = boto.utils.get_instance_metadata()['public-hostname']
-        return CloudHost.PUBLIC_HOSTNAME
+    def instance_public_hostname(instance_id=None):
+        if instance_id is None:
+            if CloudHost.PUBLIC_HOSTNAME is None:
+                if not CloudHost.ENABLED['cloudwatch']:
+                    CloudHost.PUBLIC_HOSTNAME = 'localhost'
+                else:
+                    CloudHost.PUBLIC_HOSTNAME = boto.utils.get_instance_metadata()['public-hostname']
+            return CloudHost.PUBLIC_HOSTNAME
+        else:
+            attrs = CloudHost.instance_attrs(instance_id)
+            return attrs.dns_name
+
+    @staticmethod
+    def instance_local_hostname(instance_id=None):
+        if instance_id is None:
+            if CloudHost.LOCAL_HOSTNAME is None:
+                if not CloudHost.ENABLED['cloudwatch']:
+                    CloudHost.LOCAL_HOSTNAME = 'localhost'
+                else:
+                    CloudHost.LOCAL_HOSTNAME = boto.utils.get_instance_metadata()['local-hostname']
+            return CloudHost.LOCAL_HOSTNAME
+        else:
+            attrs = CloudHost.instance_attrs(instance_id)
+            return attrs.private_dns_name
+
+    @staticmethod
+    def instance_public_ip(instance_id=None):
+        if instance_id is None:
+            if CloudHost.PUBLIC_IP is None:
+                if not CloudHost.ENABLED['cloudwatch']:
+                    CloudHost.PUBLIC_IP = '127.0.0.1'
+                else:
+                    CloudHost.PUBLIC_IP = boto.utils.get_instance_metadata()['public-ipv4']
+            return CloudHost.PUBLIC_IP
+        else:
+            attrs = CloudHost.instance_attrs(instance_id)
+            return attrs.ip_address
+
+    @staticmethod
+    def instance_local_ip(instance_id=None):
+        if instance_id is None:
+            if CloudHost.LOCAL_IP is None:
+                if not CloudHost.ENABLED['cloudwatch']:
+                    CloudHost.LOCAL_IP = '127.0.0.1'
+                else:
+                    CloudHost.LOCAL_IP = boto.utils.get_instance_metadata()['local-ipv4']
+            return CloudHost.LOCAL_IP
+        else:
+            attrs = CloudHost.instance_attrs(instance_id)
+            return attrs.private_ip_address
 
     @staticmethod
     def instance_attrs(instance_id=None):
