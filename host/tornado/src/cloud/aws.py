@@ -451,8 +451,8 @@ class CloudHost(LoggerMixin):
             return 0
         max_ami_ver = 0
         min_ami_ver = sys.maxint
-        for instance in instances:
-            ami_ver = CloudHost.image_version(instance)
+        for inst in instances:
+            ami_ver = CloudHost.image_version(inst)
             max_ami_ver = max(max_ami_ver, ami_ver)
             min_ami_ver = min(min_ami_ver, ami_ver)
 
