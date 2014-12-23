@@ -94,6 +94,11 @@
 	    		event.preventDefault();
 	    		parent.JuliaBox.show_instance_info('load', 'Instance Loads (percent)');
 	    	});
+
+	    	$('#showsessions').click(function(event){
+	    		event.preventDefault();
+	    		parent.JuliaBox.show_instance_info('sessions', 'Sessions');
+	    	});
 {% end %}
 
 	    	$('#disp_date_init').html((new Date('{{d["created"]}}')).toLocaleString());
@@ -152,37 +157,19 @@ JuliaBox version: {{d["juliaboxver"]}} <br/>
 {% if d["manage_containers"] %}
     <hr/>
     <h3>Administer this installation</h3>
-    <hr/>
+    <!--hr/>
     <a href="/hostadmin/" class="btn btn-primary btn-lg active" role="button">Refresh</a>
-    <a href="/hostadmin/?stop_all=1" class="btn btn-primary btn-lg active" role="button">Stop all containers</a>
-    
-    <br/><br/>
+
+    <br/><br/-->
 
     <table class="table">
         <tr><td>Users Statistics:</td><td><a href="#" id="showuserstats">View</a></td></tr>
         <tr><td>Volume Statistics:</td><td><a href="#" id="showvolumestats">View</a></td></tr>
         <tr><td>Configuration:</td><td><a href="#" id="showcfg">View</a></td></tr>
         <tr><td>Instance Loads:</td><td><a href="#" id="showinstanceloads">View</a></td></tr>
+        <tr><td>Sessions:</td><td><a href="#" id="showsessions">View</a></td></tr>
     </table>
     <br/><br/>
-
-    {% for section in d["sections"] %}
-        <h3> {{ section[0] }} containers </h3>
-        <table class="table table-striped">
-            <tr><th>Id</th><th>Status</th><th>Name</th><th colspan="2">Action</th></tr>
-            {% for o in section[1] %}
-                <tr>
-                    <td> {{ o["Id"] }} </td>
-                    <td>{{ o["Status"] }} </td>
-                    <td>{{ o["Name"] }} </td>
-                    <td><a href="/hostadmin/?stop_id={{ o['Id'] }}">Stop</a></td>
-                    <td><a href="/hostadmin/?delete_id={{ o['Id'] }}">Delete</a></td>
-                </tr>
-            {% end %}
-        </table>
-        <br/><br/>
-    {% end %}
-    
 {% end %}
 </body>
 </html>

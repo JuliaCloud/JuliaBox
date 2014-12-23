@@ -94,7 +94,7 @@ var JuliaBox = (function($, _, undefined){
 	    	    }
 	    	    else {
 	    	        if(stats.code == 1) bootbox.alert('No data collected yet');
-	    	        else bootbox.alert('<pre>' + cfg.data + '</pre>');
+                    else bootbox.alert('<pre>' + stats.data + '</pre>');
 	    	    }
 	    	};
 	    	f = function() { bootbox.alert("Oops. Unexpected error while retrieving stats.<br/><br/>Please try again later."); };
@@ -105,12 +105,12 @@ var JuliaBox = (function($, _, undefined){
 	    	s = function(stats){
 	    	    if(stats.code == 0) {
 	    	        bootbox.dialog({
-	    	            message: self._json_to_table(stats.data),
+	                    message: self._json_to_table(stats.data),
 	    	            title: title
-	    	        }).find("div.modal-dialog").addClass("bootbox70");
+                    }).find("div.modal-dialog").addClass("bootbox80");
 	    	    }
 	    	    else {
-	    	        bootbox.alert('<pre>' + cfg.data + '</pre>');
+                    bootbox.alert('<pre>' + stats.data + '</pre>');
 	    	    }
 	    	};
 	    	f = function() { bootbox.alert("Oops. Unexpected error while retrieving stats.<br/><br/>Please try again later."); };

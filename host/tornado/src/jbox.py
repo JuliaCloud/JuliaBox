@@ -11,6 +11,7 @@ from cloud.aws import CloudHost
 
 import db
 from db import JBoxDynConfig, JBoxUserV2, is_cluster_leader, is_proposed_cluster_leader
+from jbox_tasks import JBoxAsyncJob
 from jbox_util import read_config, LoggerMixin
 from vol import VolMgr
 from jbox_container import JBoxContainer
@@ -46,8 +47,9 @@ class JBox(LoggerMixin):
                             install_id=cloud_cfg['install_id'])
 
         VolMgr.configure(dckr, cfg)
+        JBoxAsyncJob.configure(cfg)
         JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'],
-                                cfg['numlocalmax'], cfg['async_job_port'])
+                                cfg['numlocalmax'], cfg['async_job_ports'])
 
         self.application = tornado.web.Application([
             (r"/", MainHandler),

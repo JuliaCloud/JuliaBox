@@ -3,7 +3,6 @@ import time
 import errno
 import hashlib
 import math
-import zmq
 import logging
 
 import isodate
@@ -200,37 +199,3 @@ class LoggerMixin(object):
     @classmethod
     def log_debug(cls, msg, *args, **kwargs):
         cls._get_logger().debug(msg, *args, **kwargs)
-
-
-class JBoxAsyncJob(LoggerMixin):
-    MODE_PUB = zmq.PUSH
-    MODE_SUB = zmq.PULL
-
-    CMD_BACKUP_CLEANUP = 1
-    CMD_LAUNCH_SESSION = 2
-    CMD_AUTO_ACTIVATE = 3
-    CMD_UPDATE_USER_HOME_IMAGE = 4
-    CMD_REFRESH_DISKS = 5
-    CMD_COLLECT_STATS = 6
-
-    def __init__(self, port, mode):
-        self._mode = mode
-        self._ctx = zmq.Context()
-        self._sock = self._ctx.socket(mode)
-        addr = 'tcp://127.0.0.1:%d' % port
-        if mode == JBoxAsyncJob.MODE_PUB:
-            self._sock.bind(addr)
-        else:
-            self._sock.connect(addr)
-
-    def send(self, cmd, data):
-        assert self._mode == JBoxAsyncJob.MODE_PUB
-        msg = {
-            'cmd': cmd,
-            'data': data
-        }
-        self._sock.send_json(msg)
-
-    def recv(self):
-        msg = self._sock.recv_json()
-        return msg['cmd'], msg['data']

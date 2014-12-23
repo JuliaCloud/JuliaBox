@@ -8,7 +8,8 @@ import psutil
 from cloud.aws import CloudHost
 
 from db import JBoxAccountingV2
-from jbox_util import LoggerMixin, JBoxAsyncJob, parse_iso_time
+from jbox_tasks import JBoxAsyncJob
+from jbox_util import LoggerMixin, parse_iso_time
 from vol import VolMgr
 
 
@@ -95,13 +96,13 @@ class JBoxContainer(LoggerMixin):
         return []
 
     @staticmethod
-    def configure(dckr, image, mem_limit, cpu_limit, max_containers, async_job_port, async_mode=JBoxAsyncJob.MODE_PUB):
+    def configure(dckr, image, mem_limit, cpu_limit, max_containers, async_job_ports, async_mode=JBoxAsyncJob.MODE_PUB):
         JBoxContainer.DCKR = dckr
         JBoxContainer.DCKR_IMAGE = image
         JBoxContainer.MEM_LIMIT = mem_limit
         JBoxContainer.CPU_LIMIT = cpu_limit
         JBoxContainer.MAX_CONTAINERS = max_containers
-        JBoxContainer.ASYNC_JOB = JBoxAsyncJob(async_job_port, async_mode)
+        JBoxContainer.ASYNC_JOB = JBoxAsyncJob(async_job_ports, async_mode)
 
     @staticmethod
     def _create_new(name):
@@ -145,6 +146,18 @@ class JBoxContainer(LoggerMixin):
         if JBoxContainer.VALID_CONTAINERS.has_key(cname):
             del JBoxContainer.VALID_CONTAINERS[cname]
         JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_LAUNCH_SESSION, (name, email, reuse))
+
+    def async_backup_and_cleanup(self):
+        JBoxContainer.log_info("scheduling cleanup for %s", self.debug_str())
+        if self.get_name() in JBoxContainer.VALID_CONTAINERS:
+            del JBoxContainer.VALID_CONTAINERS[self.get_name()]
+        JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_BACKUP_CLEANUP, self.dockid)
+
+    @staticmethod
+    def sync_session_status(instance_id):
+        JBoxContainer.log_debug("fetching session status from %s", instance_id)
+        addr = '127.0.0.1' if (instance_id == 'localhost') else CloudHost.make_instance_dns_name(instance_id)
+        return JBoxContainer.ASYNC_JOB.sendrecv(JBoxAsyncJob.CMD_SESSION_STATUS, {}, dest=addr)
 
     @staticmethod
     def launch_by_name(name, email, reuse=True):
@@ -284,12 +297,6 @@ class JBoxContainer(LoggerMixin):
             return hostports == cont.get_host_ports()
         except:
             return False
-
-    def async_backup_and_cleanup(self):
-        JBoxContainer.log_info("scheduling cleanup for %s", self.debug_str())
-        if self.get_name() in JBoxContainer.VALID_CONTAINERS:
-            del JBoxContainer.VALID_CONTAINERS[self.get_name()]
-        JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_BACKUP_CLEANUP, self.dockid)
 
     def backup_and_cleanup(self):
         self.stop()
