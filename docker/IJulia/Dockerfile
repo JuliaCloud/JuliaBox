@@ -1,5 +1,5 @@
 # Docker file for JuliaBox
-# Version:20
+# Version:21
 
 FROM tanmaykm/jboxjulia:v0.3.3_11
 
@@ -70,6 +70,22 @@ RUN mkdir stan; cd stan; wget https://github.com/stan-dev/cmdstan/releases/downl
     chmod 755 /etc/profile.d/cmdstan.sh; \
     cd ..; \
     rm -rf stan
+
+ENV PATH /usr/local/texlive/2014/bin/x86_64-linux:/usr/local/bin:/usr/bin:/bin:/usr/games:/sbin:/usr/sbin
+
+# Cairo
+RUN apt-get install -y \
+    gettext \
+    libpango1.0-dev \
+    libpango1.0-0 \
+    libgvc6 \
+    graphviz \
+    libgraphviz-dev \
+    && apt-get clean
+
+RUN apt-get install -y \
+    unzip \
+    && apt-get clean
 
 # add juser
 # create group and user with specific ids if required on systems where the user running juliabox is not the first user
