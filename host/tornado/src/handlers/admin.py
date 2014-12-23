@@ -40,12 +40,8 @@ class AdminHandler(JBoxHandler):
 
         juliaboxver, _upgrade_available = self.get_upgrade_available(cont)
 
-        sections = []
         report = {}
         report_span = 'day'
-
-        if manage_containers:
-            sections = self.do_containers()
 
         if show_report:
             today = datetime.now()
@@ -69,7 +65,6 @@ class AdminHandler(JBoxHandler):
             cpu=cont.get_cpu_allocated(),
             disk=cont.get_disk_allocated(),
             expire=self.config('expire'),
-            sections=sections,
             report=report,
             juliaboxver=juliaboxver
         )
@@ -108,18 +103,30 @@ class AdminHandler(JBoxHandler):
         else:
             try:
                 if stats == 'load':
-                    stats = {}
+                    result = {}
                     # get cluster loads
                     average_load = CloudHost.get_cluster_average_stats('Load')
                     if None != average_load:
-                        stats['Average Load'] = average_load;
+                        result['Average Load'] = average_load;
 
                     machine_loads = CloudHost.get_cluster_stats('Load')
                     if None != machine_loads:
                         for n, v in machine_loads.iteritems():
-                            stats['Instance ' + n] = v
+                            result['Instance ' + n] = v
+                elif stats == 'sessions':
+                    result = {}
+                    if CloudHost.ENABLED['autoscale']:
+                        instances = CloudHost.get_autoscaled_instances()
+                    else:
+                        instances = ['localhost']
 
-                response = {'code': 0, 'data': stats} if stats is not None else {'code': 1, 'data': {}}
+                    for idx in range(0, len(instances)):
+                        inst = instances[idx]
+                        result[inst] = JBoxContainer.sync_session_status(inst)['data']
+                else:
+                    raise Exception("unknown command %s" % (stats,))
+
+                response = {'code': 0, 'data': result}
             except:
                 AdminHandler.log_error("exception while getting stats")
                 response = {'code': -1, 'data': 'error getting stats'}
@@ -157,51 +164,3 @@ class AdminHandler(JBoxHandler):
             if ':' not in upgrade_available:
                 upgrade_available += ':latest'
         return juliaboxver, upgrade_available
-
-    def do_containers(self):
-        sections = []
-
-        iac = []
-        ac = []
-        sections.append(["Active", ac])
-        sections.append(["Inactive", iac])
-
-        delete_id = self.get_argument("delete_id", '')
-        stop_id = self.get_argument("stop_id", '')
-        stop_all = (self.get_argument('stop_all', None) is not None)
-
-        if stop_all:
-            all_containers = JBoxContainer.DCKR.containers(all=False)
-            for c in all_containers:
-                cont = JBoxContainer(c['Id'])
-                cname = cont.get_name()
-
-                if None == cname:
-                    self.log_info("Admin: Not stopping unknown " + cont.debug_str())
-                elif cname not in self.config("protected_docknames"):
-                    cont.stop()
-
-        elif not (stop_id == ''):
-            cont = JBoxContainer(stop_id)
-            cont.stop()
-        elif not (delete_id == ''):
-            cont = JBoxContainer(delete_id)
-            cont.delete()
-
-        # get them all again (in case we deleted some)
-        jsonobj = JBoxContainer.DCKR.containers(all=all)
-        for c in jsonobj:
-            o = dict()
-            o["Id"] = c["Id"][0:12]
-            o["Status"] = c["Status"]
-            if ("Names" in c) and (c["Names"] is not None):
-                o["Name"] = c["Names"][0]
-            else:
-                o["Name"] = "/None"
-
-            if (c["Ports"] is None) or (c["Ports"] == []):
-                iac.append(o)
-            else:
-                ac.append(o)
-
-        return sections

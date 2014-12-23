@@ -9,7 +9,8 @@ from cloud.aws import CloudHost
 
 import db
 from db import JBoxUserV2, JBoxDynConfig
-from jbox_util import LoggerMixin, read_config, JBoxAsyncJob, retry
+from jbox_tasks import JBoxAsyncJob
+from jbox_util import LoggerMixin, read_config, retry
 from jbox_container import JBoxContainer
 from vol import VolMgr, JBoxLoopbackVol
 
@@ -22,6 +23,7 @@ class JBoxd(LoggerMixin):
     ACTIVATION_SUBJECT = None
     ACTIVATION_BODY = None
     ACTIVATION_SENDER = None
+    QUEUE = None
 
     def __init__(self):
         dckr = docker.Client()
@@ -48,10 +50,11 @@ class JBoxd(LoggerMixin):
                             region=cloud_cfg['region'],
                             install_id=cloud_cfg['install_id'])
         VolMgr.configure(dckr, cfg)
+        JBoxAsyncJob.configure(cfg)
         JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'],
-                                cfg['numlocalmax'], cfg['async_job_port'], async_mode=JBoxAsyncJob.MODE_SUB)
-        self.log_debug("Backup daemon listening on port: " + str(cfg['async_job_port']))
-        self.queue = JBoxContainer.ASYNC_JOB
+                                cfg['numlocalmax'], cfg['async_job_ports'], async_mode=JBoxAsyncJob.MODE_SUB)
+        self.log_debug("Backup daemon listening on ports: %s", repr(cfg['async_job_ports']))
+        JBoxd.QUEUE = JBoxContainer.ASYNC_JOB
 
         JBoxd.MAX_ACTIVATIONS_PER_SEC = user_activation_cfg['max_activations_per_sec']
         JBoxd.MAX_AUTO_ACTIVATIONS_PER_RUN = user_activation_cfg['max_activations_per_run']
@@ -179,37 +182,82 @@ class JBoxd(LoggerMixin):
         finally:
             JBoxd.finish_thread()
 
+    def process_offline(self):
+        self.log_debug("processing offline...")
+        cmd, data = JBoxd.QUEUE.recv()
+
+        if cmd == JBoxAsyncJob.CMD_BACKUP_CLEANUP:
+            args = (data,)
+            fn = JBoxd.backup_and_cleanup
+        elif cmd == JBoxAsyncJob.CMD_LAUNCH_SESSION:
+            args = (data[0], data[1], data[2])
+            fn = JBoxd.launch_session
+        elif cmd == JBoxAsyncJob.CMD_AUTO_ACTIVATE:
+            args = ()
+            fn = JBoxd.auto_activate
+        elif cmd == JBoxAsyncJob.CMD_UPDATE_USER_HOME_IMAGE:
+            args = ()
+            fn = JBoxd.update_user_home_image
+        elif cmd == JBoxAsyncJob.CMD_REFRESH_DISKS:
+            args = ()
+            fn = JBoxd.refresh_disks
+        elif cmd == JBoxAsyncJob.CMD_COLLECT_STATS:
+            args = ()
+            fn = JBoxd.collect_stats
+        else:
+            self.log_error("Unknown command " + str(cmd))
+            return
+
+        JBoxd.schedule_thread(cmd, fn, args)
+
+    @staticmethod
+    def get_session_status():
+        ret = {}
+        jsonobj = JBoxContainer.DCKR.containers(all=all)
+        for c in jsonobj:
+            name = c["Names"][0] if (("Names" in c) and (c["Names"] is not None)) else c["Id"][0:12]
+            ret[name] = c["Status"]
+
+        return ret
+
+    @staticmethod
+    def process_and_respond():
+        def _callback(cmd, data):
+            try:
+                if cmd == JBoxAsyncJob.CMD_SESSION_STATUS:
+                    resp = {'code': 0, 'data': JBoxd.get_session_status()}
+                else:
+                    resp = {'code:': -2, 'data': ('unknown command %s' % (repr(cmd,)))}
+            except Exception as ex:
+                resp = {'code:': -1, 'data': str(ex)}
+            return resp
+
+        try:
+            JBoxd.QUEUE.respond(_callback)
+        finally:
+            JBoxd.finish_thread()
+
     def run(self):
         if VolMgr.has_update_for_user_home_image():
             VolMgr.update_user_home_image(fetch=False)
 
         while True:
             self.log_debug("JBox daemon waiting for commands...")
-            cmd, data = self.queue.recv()
-
-            if cmd == JBoxAsyncJob.CMD_BACKUP_CLEANUP:
-                args = (data,)
-                fn = JBoxd.backup_and_cleanup
-            elif cmd == JBoxAsyncJob.CMD_LAUNCH_SESSION:
-                args = (data[0], data[1], data[2])
-                fn = JBoxd.launch_session
-            elif cmd == JBoxAsyncJob.CMD_AUTO_ACTIVATE:
-                args = ()
-                fn = JBoxd.auto_activate
-            elif cmd == JBoxAsyncJob.CMD_UPDATE_USER_HOME_IMAGE:
-                args = ()
-                fn = JBoxd.update_user_home_image
-            elif cmd == JBoxAsyncJob.CMD_REFRESH_DISKS:
-                args = ()
-                fn = JBoxd.refresh_disks
-            elif cmd == JBoxAsyncJob.CMD_COLLECT_STATS:
-                args = ()
-                fn = JBoxd.collect_stats
-            else:
-                self.log_error("Unknown command " + str(cmd))
+            try:
+                offline, reply_req = JBoxd.QUEUE.poll(self._is_scheduled(JBoxAsyncJob.CMD_REQ_RESP, ()))
+            except ValueError:
+                self.log_exception("Exception reading command. Will retry after 10 seconds")
+                time.sleep(10)
                 continue
 
-            JBoxd.schedule_thread(cmd, fn, args)
+            if offline:
+                try:
+                    self.process_offline()
+                except:
+                    self.log_exception("Exception scheduling request")
+
+            if reply_req:
+                JBoxd.schedule_thread(JBoxAsyncJob.CMD_REQ_RESP, JBoxd.process_and_respond, ())
 
 if __name__ == "__main__":
     JBoxd().run()
