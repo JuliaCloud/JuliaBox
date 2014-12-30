@@ -1,7 +1,7 @@
 # Docker file for JuliaBox
-# Version:21
+# Version:22
 
-FROM tanmaykm/jboxjulia:v0.3.3_11
+FROM tanmaykm/jboxjulia:v0.3.4_12
 
 MAINTAINER Tanmay Mohapatra
 
@@ -81,10 +81,6 @@ RUN apt-get install -y \
     libgvc6 \
     graphviz \
     libgraphviz-dev \
-    && apt-get clean
-
-RUN apt-get install -y \
-    unzip \
     && apt-get clean
 
 # add juser
