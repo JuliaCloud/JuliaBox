@@ -3,6 +3,7 @@ import tarfile
 import time
 import datetime
 import errno
+import json
 
 import pytz
 from cloud.aws import CloudHost
@@ -22,7 +23,7 @@ class JBoxVol(LoggerMixin):
     USER_HOME_IMG = None
     # files that must be restored from user home for proper functioning of JuliaBox
     USER_HOME_ESSENTIALS = ['.juliabox', '.ipython/README', '.ipython/kernels',
-                            '.ipython/profile_julia', '.ipython/profile_default']
+                            '.ipython/profile_julia', '.ipython/profile_default', '.ipython/profile_jboxjulia']
 
     def __init__(self, disk_path, user_email=None, user_name=None, sessname=None, old_sessname=None):
         self.disk_path = disk_path
@@ -147,7 +148,8 @@ class JBoxVol(LoggerMixin):
             if new_disk:
                 user_home.extractall(self.disk_path)
             else:
-                # extract .juliabox, .ipython/README, .ipython/kernels, .ipython/profile_julia, .ipython/profile_default
+                # extract .juliabox, .ipython/README, .ipython/kernels,
+                # .ipython/profile_julia, .ipython/profile_default, .ipython/profile_jboxjulia
 
                 for path in JBoxVol.USER_HOME_ESSENTIALS:
                     full_path = os.path.join(self.disk_path, path)
@@ -159,26 +161,65 @@ class JBoxVol(LoggerMixin):
                         continue
                     user_home.extract(info, self.disk_path)
 
-    def setup_instance_config(self):
-        nbconfig = os.path.join(self.disk_path, '.ipython/profile_julia/ipython_notebook_config.py')
-        nbconfig_temp = os.path.join(self.disk_path, '.ipython/profile_julia/ipython_notebook_config.py.temp')
+    @staticmethod
+    def replace_in_file(filepath, startstring, replacement):
+        filepath_temp = filepath + '.temp'
 
-        if os.path.exists(nbconfig_temp):
-            os.remove(nbconfig_temp)
-        os.rename(nbconfig, nbconfig_temp)
-
-        wsock_cfg = "c.NotebookApp.websocket_url = '" + JBoxVol.NOTEBOOK_WEBSOCK_PROTO + \
-                    CloudHost.notebook_websocket_hostname() + "'\n"
+        if os.path.exists(filepath_temp):
+            os.remove(filepath_temp)
+        if not os.path.exists(filepath):
+            open(filepath, 'a').close()
+        os.rename(filepath, filepath_temp)
 
         replaced = False
-        with open(nbconfig_temp) as fin, open(nbconfig, 'w') as fout:
+        with open(filepath_temp) as fin, open(filepath, 'w') as fout:
             for line in fin:
-                if line.startswith("c.NotebookApp.websocket_url"):
-                    line = wsock_cfg
+                if line.startswith(startstring):
                     replaced = True
+                    if replacement is None:
+                        continue
+                    line = replacement
                 fout.write(line)
-            if not replaced:
-                fout.write(wsock_cfg)
+            if (not replaced) and (replacement is not None):
+                fout.write(replacement)
+        os.remove(filepath_temp)
+
+    def setup_julia_image(self, custom_profile, custom_jimg):
+        # switch profile in supervisord.conf
+        supervisordconf_path = os.path.join(self.disk_path, ".juliabox", "supervisord.conf")
+        new_cmd = "command=ipython notebook --profile " + custom_profile + '\n'
+        JBoxVol.replace_in_file(supervisordconf_path, "command=ipython notebook", new_cmd)
+
+        # switch profile in kernel.json
+        kernel_path = os.path.join(self.disk_path, ".ipython", "kernels", "julia", "kernel.json")
+        kernel_cfg = {
+            "argv": ["/usr/bin/julia"],
+            "codemirror_mode": "julia",
+            "display_name": "Julia",
+            "language": "julia"
+        }
+
+        if custom_jimg is not None:
+            kernel_cfg['argv'].extend(["-J", custom_jimg])
+        kernel_cfg['argv'].extend(["-i", "-F", "/home/juser/.julia/v0.3/IJulia/src/kernel.jl", "{connection_file}"])
+        with open(kernel_path, 'w') as kout:
+            kout.write(json.dumps(kernel_cfg, indent=4))
+
+        # add/remove alias in .bashrc
+        bashrc_path = os.path.join(self.disk_path, ".bashrc")
+        new_alias = None if custom_jimg is None else ("alias julia=\"julia -J " + custom_jimg + "\"\n")
+        JBoxVol.replace_in_file(bashrc_path, "alias julia", new_alias)
+
+    def setup_instance_config(self, profiles=('julia', 'jboxjulia')):
+        for profile in profiles:
+            profile_path = '.ipython/profile_' + profile
+            profile_path = os.path.join(self.disk_path, profile_path)
+            if not os.path.exists(profile_path):
+                continue
+            nbconfig = os.path.join(profile_path, 'ipython_notebook_config.py')
+            wsock_cfg = "c.NotebookApp.websocket_url = '" + JBoxVol.NOTEBOOK_WEBSOCK_PROTO + \
+                        CloudHost.notebook_websocket_hostname() + "'\n"
+            JBoxVol.replace_in_file(nbconfig, "c.NotebookApp.websocket_url", wsock_cfg)
 
     @staticmethod
     def local_time_offset():
@@ -201,7 +242,7 @@ class JBoxVol(LoggerMixin):
         bkup_tar = tarfile.open(bkup_file, 'w:gz')
 
         for f in os.listdir(self.disk_path):
-            if f.startswith('.') and (f in ['.julia']):
+            if f.startswith('.') and (f in ['.julia', '.juliabox']):
                 continue
             full_path = os.path.join(self.disk_path, f)
             bkup_tar.add(full_path, os.path.join('juser', f))

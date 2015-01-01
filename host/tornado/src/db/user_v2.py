@@ -2,7 +2,6 @@ import boto.dynamodb2.exceptions
 import datetime
 import pytz
 from jbox_crypto import encrypt, decrypt
-from boto.dynamodb.condition import BETWEEN
 
 from db.db_base import JBoxDB
 
@@ -47,8 +46,10 @@ class JBoxUserV2(JBoxDB):
 
     ACTIVATION_CODE_AUTO = 'AUTO'
     
-    RESOURCE_PROFILE_BASIC = 0
-    RESOURCE_PROFILE_DISK_EBS_1G = 1 << 0
+    RES_PROF_BASIC = 0
+    RES_PROF_DISK_EBS_1G = 1 << 0
+
+    RES_PROF_JULIA_PKG_PRECOMP = 1 << 12
 
     STATS = None
     STAT_NAME = "stat_users"
@@ -160,10 +161,29 @@ class JBoxUserV2(JBoxDB):
     def get_container_type(self):
         if self.item is None:
             return None, None
-        return self.item.get('image', None), int(self.item.get('resource_profile', JBoxUserV2.RESOURCE_PROFILE_BASIC))
+        return self.item.get('image', None), int(self.item.get('resource_profile', JBoxUserV2.RES_PROF_BASIC))
+
+    def get_resource_profile(self):
+        if self.item is None:
+            return JBoxUserV2.RES_PROF_BASIC
+        return int(self.item.get('resource_profile', JBoxUserV2.RES_PROF_BASIC))
+
+    def set_resource_profile(self, mask):
+        if self.item is not None:
+            resource_profile = self.get_resource_profile()
+            new_resource_profile = resource_profile | mask
+            if new_resource_profile != resource_profile:
+                self.item['resource_profile'] = new_resource_profile
+
+    def unset_resource_profile(self, mask):
+        if self.item is not None:
+            resource_profile = self.get_resource_profile()
+            new_resource_profile = resource_profile & (~mask)
+            if new_resource_profile != resource_profile:
+                self.item['resource_profile'] = new_resource_profile
 
     def has_resource_profile(self, mask):
-        _image, resource_profile = self.get_container_type()
+        resource_profile = self.get_resource_profile()
         if mask == 0:
             return resource_profile == 0
         return (resource_profile & mask) == mask
@@ -245,12 +265,14 @@ class JBoxUserV2(JBoxDB):
 
         res_profile = stats['resource_profile']
         res_profile_val = int(user['resource_profile']) if 'resource_profile' in user \
-            else JBoxUserV2.RESOURCE_PROFILE_BASIC
-        if res_profile_val == JBoxUserV2.RESOURCE_PROFILE_BASIC:
+            else JBoxUserV2.RES_PROF_BASIC
+        if res_profile_val == JBoxUserV2.RES_PROF_BASIC:
             res_profile['basic'] += 1
         else:
-            if (res_profile_val & JBoxUserV2.RESOURCE_PROFILE_DISK_EBS_1G) == JBoxUserV2.RESOURCE_PROFILE_DISK_EBS_1G:
+            if (res_profile_val & JBoxUserV2.RES_PROF_DISK_EBS_1G) == JBoxUserV2.RES_PROF_DISK_EBS_1G:
                 res_profile['disk_ebs_1G'] += 1
+            elif (res_profile_val & JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP) == JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP:
+                res_profile['julia_precompiled_packages'] += 1
 
         create_month_val = int(user['create_month'])
         create_month = stats['created_time']['months']
@@ -291,7 +313,8 @@ class JBoxUserV2(JBoxDB):
             },
             'resource_profile': {
                 'basic': 0,
-                'disk_ebs_1G': 0
+                'disk_ebs_1G': 0,
+                'julia_packages_precompiled': 0
             },
             'created_time': {
                 'months': {

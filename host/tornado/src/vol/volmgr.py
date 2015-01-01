@@ -92,16 +92,25 @@ class VolMgr(LoggerMixin):
     @staticmethod
     def get_disk_for_user(email):
         VolMgr.log_debug("restoring disk for %s", email)
-        ebs = False
+        user = JBoxUserV2(email)
 
+        ebs = False
         if VolMgr.HAS_EBS:
-            user = JBoxUserV2(email)
-            ebs = user.has_resource_profile(JBoxUserV2.RESOURCE_PROFILE_DISK_EBS_1G)
+            ebs = user.has_resource_profile(JBoxUserV2.RES_PROF_DISK_EBS_1G)
+
+        custom_jimg = None
+        ipython_profile = 'julia'
+        # TODO: image path should be picked up from config
+        if user.has_resource_profile(JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP):
+            custom_jimg = '/home/juser/.juliabox/jimg/sys.ji'
+            ipython_profile = 'jboxjulia'
 
         if ebs:
-            return JBoxEBSVol.get_disk_for_user(email)
+            disk = JBoxEBSVol.get_disk_for_user(email)
         else:
-            return JBoxLoopbackVol.get_disk_for_user(email)
+            disk = JBoxLoopbackVol.get_disk_for_user(email)
+        disk.setup_julia_image(ipython_profile, custom_jimg)
+        return disk
 
     @staticmethod
     def refresh_disk_use_status(container_id_list=None):

@@ -74,6 +74,11 @@
 	    		parent.JuliaBox.show_ssh_key();
 	    	});
 
+	    	$('#jimg_switch').click(function(event){
+	    		event.preventDefault();
+	    		parent.JuliaBox.switch_julia_image($('#jimg_curr'), $('#jimg_new'));
+	    	});
+
 {% if d["manage_containers"] %}
             $('#showcfg').click(function(event){
 	    		event.preventDefault();
@@ -101,6 +106,7 @@
 	    	});
 {% end %}
 
+            parent.JuliaBox.set_julia_image_type($('#jimg_curr'), $('#jimg_new'), {{d["jimg_type"]}});
 	    	$('#disp_date_init').html((new Date('{{d["created"]}}')).toLocaleString());
 	    	$('#disp_date_start').html((new Date('{{d["started"]}}')).toLocaleString());
 	    	$('#disp_date_allowed_till').html((new Date('{{d["allowed_till"]}}')).toLocaleString());
@@ -126,6 +132,7 @@
 	<tr><td>Allocated Memory:</td><td><span id='disp_mem'></span></td></tr>
 	<tr><td>Allocated CPUs:</td><td>{{d["cpu"]}}</td></tr>
 	<tr><td>SSH Public Key:</td><td><a href="#" id="showsshkey">View</a></td></tr>
+	<tr><td>Julia Image:</td><td><span id='jimg_curr'>precompiled packages</span> (<a href="#" id="jimg_switch"><small>switch to: <span id='jimg_new'>standard</span></small></a>)</td></tr>
 </table>
 
 <h3>JuliaBox version:</h3>
