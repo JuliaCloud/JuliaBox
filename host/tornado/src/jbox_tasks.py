@@ -29,24 +29,22 @@ class JBoxAsyncJob(LoggerMixin):
         self._push_pull_sock = self._ctx.socket(ppmode)
 
         rrmode = zmq.REQ if (mode == JBoxAsyncJob.MODE_PUB) else zmq.REP
-        self._req_rep_sock = self._ctx.socket(rrmode)
 
-        #public_hostname = CloudHost.instance_public_hostname()
-        #if public_hostname == 'localhost':
-        #    public_hostname = '127.0.0.1'
+        local_ip = CloudHost.instance_local_ip()
+        JBoxAsyncJob.log_debug("local hostname [%s]", local_ip)
 
-        ppbindaddr = 'tcp://*:%d' % (ports[0],)
-        ppconnaddr = 'tcp://127.0.0.1:%d' % (ports[0],)
-        rraddr = 'tcp://*:%d' % (ports[1],)
+        ppbindaddr = 'tcp://%s:%d' % (local_ip, ports[0],)
+        ppconnaddr = 'tcp://%s:%d' % (local_ip, ports[0],)
+        rraddr = 'tcp://%s:%d' % (local_ip, ports[1],)
         self._rrport = ports[1]
         self._poller = zmq.Poller()
 
         if mode == JBoxAsyncJob.MODE_PUB:
             self._push_pull_sock.bind(ppbindaddr)
-            self._req_rep_sock.setsockopt(zmq.LINGER, 0)
         else:
             self._push_pull_sock.connect(ppconnaddr)
             self._poller.register(self._push_pull_sock, zmq.POLLIN)
+            self._req_rep_sock = self._ctx.socket(rrmode)
             self._req_rep_sock.bind(rraddr)
 
     @staticmethod
@@ -76,29 +74,35 @@ class JBoxAsyncJob(LoggerMixin):
     def sendrecv(self, cmd, data, dest=None, port=None):
         if (dest is None) or (dest == 'localhost'):
             dest = '127.0.0.1'
+        else:
+            dest = CloudHost.instance_local_ip(dest)
         if port is None:
             port = self._rrport
         rraddr = 'tcp://%s:%d' % (dest, port)
 
         JBoxAsyncJob.log_debug("sendrecv to %s. connecting...", rraddr)
-        self._req_rep_sock.connect(rraddr)
+        sock = self._ctx.socket(zmq.REQ)
+        sock.setsockopt(zmq.LINGER, 5*1000)
+        sock.connect(rraddr)
 
         poller = zmq.Poller()
-        poller.register(self._req_rep_sock, zmq.POLLOUT)
+        poller.register(sock, zmq.POLLOUT)
 
         if poller.poll(10*1000):
-            self._req_rep_sock.send_json(self._make_msg(cmd, data))
+            sock.send_json(self._make_msg(cmd, data))
         else:
+            sock.close()
             raise IOError("could not connect to %s", rraddr)
 
-        poller.modify(self._req_rep_sock, zmq.POLLIN)
+        poller.modify(sock, zmq.POLLIN)
         if poller.poll(10*1000):
-            msg = self._req_rep_sock.recv_json()
+            msg = sock.recv_json()
         else:
+            sock.close()
             raise IOError("did not receive anything from %s", rraddr)
 
         JBoxAsyncJob.log_debug("sendrecv to %s. received.", rraddr)
-        #self._req_rep_sock.close()
+        sock.close()
         return msg
 
     def respond(self, callback):

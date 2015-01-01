@@ -1,4 +1,5 @@
 import os
+import sys
 import shutil
 import db
 from db import JBoxDynConfig
@@ -47,6 +48,9 @@ if __name__ == "__main__":
     VolMgr.log_debug("pushing new image file to s3 at: %s", bucket)
     CloudHost.push_file_to_s3(bucket, new_img_file)
 
-    for cluster in ['JuliaBoxTest', 'JuliaBox']:
+    # JuliaBoxTest JuliaBox
+    clusters = sys.argv[1] if (len(sys.argv) > 1) else ['JuliaBoxTest']
+
+    for cluster in clusters:
         VolMgr.log_debug("setting image for cluster: %s", cluster)
         JBoxDynConfig.set_user_home_image(cluster, bucket, new_img_file_name)

@@ -1,5 +1,5 @@
 # Base Ubuntu Docker file for JuliaBox
-# Version:9
+# Version:10
 
 FROM stackbrew/ubuntu:trusty
 
@@ -20,6 +20,7 @@ RUN apt-get update \
     vim \
     screen \
     tmux \
+    unzip \
     pkg-config \
     pandoc \
     pdf2svg \
