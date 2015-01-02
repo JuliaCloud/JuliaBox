@@ -35,6 +35,7 @@ class JBoxAccountingV2(JBoxDB):
 
     @staticmethod
     def query_stats_date(date):
+        # TODO: caching items is not a good idea. Should cache computed data instead.
         if None == JBoxAccountingV2.table():
             return []
 
@@ -81,8 +82,6 @@ class JBoxAccountingV2(JBoxDB):
             return "%dh %dm %ds" % (hrs, mins % 60, secs % 60)
 
         return dict(
-            total_time=sum_time,
             session_count=item_count,
             avg_time=fmt(float(sum_time) / item_count) if item_count != 0 else 'NA',
-            images_used=sorted([{'image_id': x, 'count': image_count[x]}
-                                for x in image_count], key=lambda k: k['count'], reverse=True))
+            images_used=image_count)
