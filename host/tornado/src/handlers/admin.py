@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 import isodate
+import json
 from cloud.aws import CloudHost
 
 from jbox_util import unquote
@@ -31,7 +32,7 @@ class AdminHandler(JBoxHandler):
 
         if self.handle_if_logout(cont):
             return
-        if self.handle_if_stats(is_admin):
+        if self.handle_if_stats(is_admin or show_report):
             return
         if self.handle_if_show_cfg(is_admin):
             return
@@ -42,18 +43,6 @@ class AdminHandler(JBoxHandler):
 
         juliaboxver, _upgrade_available = self.get_upgrade_available(cont)
 
-        report = {}
-        report_span = 'day'
-
-        if show_report:
-            today = datetime.now()
-            if self.get_argument('range', 'day') == 'week':
-                dates = [today - timedelta(days=i) for i in range(6, -1, -1)]
-                report_span = 'week'
-            else:
-                dates = [today]
-            report = JBoxAccountingV2.get_stats(dates)
-
         jimg_type = 0
         if user.has_resource_profile(JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP):
             jimg_type = JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP
@@ -61,7 +50,6 @@ class AdminHandler(JBoxHandler):
         d = dict(
             manage_containers=manage_containers,
             show_report=show_report,
-            report_span=report_span,
             sessname=sessname,
             user_id=user_id,
             created=isodate.datetime_isoformat(cont.time_created()),
@@ -71,7 +59,6 @@ class AdminHandler(JBoxHandler):
             cpu=cont.get_cpu_allocated(),
             disk=cont.get_disk_allocated(),
             expire=self.config('expire'),
-            report=report,
             juliaboxver=juliaboxver,
             jimg_type=jimg_type
         )
@@ -157,6 +144,17 @@ class AdminHandler(JBoxHandler):
         self.write(response)
         return True
 
+    @staticmethod
+    def get_session_stats():
+        today = datetime.now()
+        week_dates = [today - timedelta(days=i) for i in range(6, -1, -1)]
+        today_dates = [today]
+        stats = {
+            'day': JBoxAccountingV2.get_stats(today_dates),
+            'week': JBoxAccountingV2.get_stats(week_dates)
+        }
+        return stats
+
     def handle_if_stats(self, is_allowed):
         stats = self.get_argument('stats', None)
         if stats is None:
@@ -167,7 +165,10 @@ class AdminHandler(JBoxHandler):
             response = {'code': -1, 'data': 'You do not have permissions to view these stats'}
         else:
             try:
-                stats = JBoxDynConfig.get_stat(CloudHost.INSTALL_ID, stats)
+                if stats == 'stat_sessions':
+                    stats = self.get_session_stats()
+                else:
+                    stats = JBoxDynConfig.get_stat(CloudHost.INSTALL_ID, stats)
                 response = {'code': 0, 'data': stats} if stats is not None else {'code': 1, 'data': {}}
             except:
                 AdminHandler.log_error("exception while getting stats")

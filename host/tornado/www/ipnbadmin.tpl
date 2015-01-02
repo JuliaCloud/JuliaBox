@@ -79,21 +79,29 @@
 	    		parent.JuliaBox.switch_julia_image($('#jimg_curr'), $('#jimg_new'));
 	    	});
 
-{% if d["manage_containers"] %}
-            $('#showcfg').click(function(event){
-	    		event.preventDefault();
-	    		parent.JuliaBox.show_config();
-	    	});
-
+{% if (d["manage_containers"] or d["show_report"]) %}
 	    	$('#showuserstats').click(function(event){
 	    		event.preventDefault();
 	    		parent.JuliaBox.show_stats('stat_users', 'Users');
+	    	});
+
+	    	$('#showsessionstats').click(function(event){
+	    		event.preventDefault();
+	    		parent.JuliaBox.show_stats('stat_sessions', 'Sessions');
 	    	});
 
 	    	$('#showvolumestats').click(function(event){
 	    		event.preventDefault();
 	    		parent.JuliaBox.show_stats('stat_volmgr', 'Volumes');
 	    	});
+{% end %}
+
+{% if d["manage_containers"] %}
+            $('#showcfg').click(function(event){
+	    		event.preventDefault();
+	    		parent.JuliaBox.show_config();
+	    	});
+
 
 	    	$('#showinstanceloads').click(function(event){
 	    		event.preventDefault();
@@ -137,47 +145,23 @@
 
 <h3>JuliaBox version:</h3>
 JuliaBox version: {{d["juliaboxver"]}} <br/>
+Julia version: 0.3.4 <br/>
 <br/>
-
-{% if d["show_report"] %}
-    <h3 id="stats">System statistics</h3>
-    <p> Stats for the:
-       {% if d["report_span"] == "day" %}
-        <b>Day</b> | <a href="/hostadmin/?range=week#stats">Week</a>
-       {% else %}
-        <a href="/hostadmin/?range=day#stats">Day</a> | <b>Week</b>
-       {% end %}
-    </p>
-    <table class="table table-striped">
-        <tr><td>Number of sessions</td><td>{{d["report"]["session_count"]}}</td></tr>
-        <tr><td>Average time spent</td><td>{{d["report"]["avg_time"]}}</td></tr>
-    </table>
-    <h3>Most used containers</h3>
-    <table class="table table-striped">
-      {% for x in d["report"]["images_used"] %}
-        <tr><td>{{x["image_id"]}}</td><td>{{x["count"]}}</td></tr>
-      {% end %}
-    </table>
-
-{% end %}
-
-{% if d["manage_containers"] %}
+{% if (d["manage_containers"] or d["show_report"]) %}
     <hr/>
-    <h3>Administer this installation</h3>
-    <!--hr/>
-    <a href="/hostadmin/" class="btn btn-primary btn-lg active" role="button">Refresh</a>
-
-    <br/><br/-->
+    <h3>System statistics{% if d["manage_containers"] %} &amp; administration{% end %}</h3>
 
     <table class="table">
+        <tr><td>Session Statistics:</td><td><a href="#" id="showsessionstats">View</a></td></tr>
         <tr><td>Users Statistics:</td><td><a href="#" id="showuserstats">View</a></td></tr>
         <tr><td>Volume Statistics:</td><td><a href="#" id="showvolumestats">View</a></td></tr>
+{% if d["manage_containers"] %}
         <tr><td>Configuration:</td><td><a href="#" id="showcfg">View</a></td></tr>
-        <tr><td>Instance Loads:</td><td><a href="#" id="showinstanceloads">View</a></td></tr>
         <tr><td>Sessions:</td><td><a href="#" id="showsessions">View</a></td></tr>
+        <tr><td>Instance Loads:</td><td><a href="#" id="showinstanceloads">View</a></td></tr>
+{% end %}
     </table>
     <br/><br/>
 {% end %}
 </body>
 </html>
-

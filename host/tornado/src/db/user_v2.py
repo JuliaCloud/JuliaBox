@@ -272,7 +272,7 @@ class JBoxUserV2(JBoxDB):
             if (res_profile_val & JBoxUserV2.RES_PROF_DISK_EBS_1G) == JBoxUserV2.RES_PROF_DISK_EBS_1G:
                 res_profile['disk_ebs_1G'] += 1
             elif (res_profile_val & JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP) == JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP:
-                res_profile['julia_precompiled_packages'] += 1
+                res_profile['julia_packages_precompiled'] += 1
 
         create_month_val = int(user['create_month'])
         create_month = stats['created_time']['months']
