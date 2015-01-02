@@ -212,7 +212,7 @@ class JBoxVol(LoggerMixin):
 
     def setup_tutorial_link(self):
         tut_link = os.path.join(self.disk_path, "tutorial")
-        tut_path = os.path.join("home", "juser", ".juliabox", "tutorial")
+        tut_path = os.path.join("/home", "juser", ".juliabox", "tutorial")
         if not (os.path.exists(tut_link) or os.path.lexists(tut_link)):
             os.symlink(tut_path, tut_link)
 
