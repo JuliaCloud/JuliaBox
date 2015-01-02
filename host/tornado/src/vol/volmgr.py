@@ -110,6 +110,7 @@ class VolMgr(LoggerMixin):
         else:
             disk = JBoxLoopbackVol.get_disk_for_user(email)
         disk.setup_julia_image(ipython_profile, custom_jimg)
+        disk.setup_tutorial_link()
         return disk
 
     @staticmethod

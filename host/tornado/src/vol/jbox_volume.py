@@ -210,6 +210,12 @@ class JBoxVol(LoggerMixin):
         new_alias = None if custom_jimg is None else ("alias julia=\"julia -J " + custom_jimg + "\"\n")
         JBoxVol.replace_in_file(bashrc_path, "alias julia", new_alias)
 
+    def setup_tutorial_link(self):
+        tut_link = os.path.join(self.disk_path, "tutorial")
+        tut_path = os.path.join("home", "juser", ".juliabox", "tutorial")
+        if not (os.path.exists(tut_link) or os.path.lexists(tut_link)):
+            os.symlink(tut_path, tut_link)
+
     def setup_instance_config(self, profiles=('julia', 'jboxjulia')):
         for profile in profiles:
             profile_path = '.ipython/profile_' + profile
