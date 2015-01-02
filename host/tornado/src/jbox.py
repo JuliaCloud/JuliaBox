@@ -123,7 +123,7 @@ class JBox(LoggerMixin):
         if is_cluster_leader():
             CloudHost.log_info("I am the cluster leader")
             JBox.monitor_registrations()
-            if not JBoxDynConfig.is_stat_collected_within(CloudHost.INSTALL_ID, 7):
+            if not JBoxDynConfig.is_stat_collected_within(CloudHost.INSTALL_ID, 1):
                 JBoxContainer.async_collect_stats()
         elif JBox.is_ready_to_terminate():
             terminating = True
