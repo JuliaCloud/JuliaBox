@@ -57,6 +57,7 @@ done
 
 ${SUDO_JUSER} cp -R ${DIR}/IJulia/tornado ${JUSER_HOME}/.juliabox/tornado
 ${SUDO_JUSER} cp ${DIR}/IJulia/supervisord.conf ${JUSER_HOME}/.juliabox/supervisord.conf
+${SUDO_JUSER} cp -R ${DIR}/IJulia/tutorial ${JUSER_HOME}/.juliabox/tutorial
 
 sudo rm ~/user_home.tar.gz
 sudo tar -czvf ~/user_home.tar.gz -C ${JUSER_HOME} .
