@@ -66,7 +66,8 @@ class JBoxUserV2(JBoxDB):
         except boto.dynamodb2.exceptions.ItemNotFound:
             if create:
                 data = {
-                    'user_id': user_id
+                    'user_id': user_id,
+                    'resource_profile': JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP
                 }
                 JBoxUserV2._set_time(data, "create")
                 JBoxUserV2._set_activation_state(data, '-', JBoxUserV2.ACTIVATION_NONE)
