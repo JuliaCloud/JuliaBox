@@ -6,26 +6,31 @@
     <script>    
     	$(document).ready(function() {
     		$('.syncgit').click(function(event){
+    		    event.preventDefault();
     			repo = event.target.id.split('_')[1];
     			parent.JuliaBox.sync_syncgit(repo);
     		});
 
     		$('.syncgdrive').click(function(event){
+    		    event.preventDefault();
     			repo = event.target.id.split('_')[1];
     			parent.JuliaBox.sync_syncgdrive(repo);
     		});
     		
     		$('.delgit').click(function(event){
+    		    event.preventDefault();
     			repo = event.target.id.split('_')[1];
     			parent.JuliaBox.sync_delgit_confirm(repo);
     		});
     		
     		$('.delgdrive').click(function(event){
+    		    event.preventDefault();
     			repo = event.target.id.split('_')[1];
     			parent.JuliaBox.sync_delgdrive_confirm(repo);
     		});
     		
     		$('#addgit').click(function(event){
+    		    event.preventDefault();
     			repo = $('#gitrepo').val();
     			loc = $('#gitrepoloc').val();
     			branch = $('#gitbranch').val();
@@ -33,12 +38,24 @@
     		});
     		
     		$('#addgdrive').click(function(event){
+    		    event.preventDefault();
     			gfolder = $('#gfolder').val();
     			loc = $('#gfolderloc').val();
     			parent.JuliaBox.sync_addgdrive(gfolder, loc);
     		});
-    		
+
+    		$('#helpgit').click(function(event){
+    		    event.preventDefault();
+                parent.JuliaBox.showhelp_git();
+    		});
+
+    		$('#helpgdrive').click(function(event){
+    		    event.preventDefault();
+                parent.JuliaBox.showhelp_gdrive();
+    		});
+
     		$('#gitrepo').change(function(event){
+    		    event.preventDefault();
     			n = $('#gitrepo').val();
     			if(n.length > 0) {
     				d = n.split('/').pop().slice(0, -4)
@@ -80,7 +97,10 @@
         		</table>
 			</td>
         	<td><input type="text" id="gfolderloc" class="form-control"/></td>
-        	<td><span class="glyphicon glyphicon-plus btn" id="addgdrive" title="Add to JuliaBox"></span></td>
+        	<td>
+                <span class="glyphicon glyphicon-plus btn" id="addgdrive" title="Add to JuliaBox"></span>
+                <span class="glyphicon glyphicon-question-sign btn" id="helpgdrive" title="Help"></span>
+            </td>
         </tr>
     </table>
 
@@ -107,7 +127,10 @@
         	<td><input type="text" id="gitrepo" class="form-control"/></td>
         	<td><input type="text" id="gitbranch" class="form-control"/></td>
         	<td><input type="text" id="gitrepoloc" class="form-control"/></td>
-        	<td><span class="glyphicon glyphicon-plus btn" id="addgit" title="Add to JuliaBox"></span></td>
+        	<td>
+                <span class="glyphicon glyphicon-plus btn" id="addgit" title="Add to JuliaBox"></span>
+                <span class="glyphicon glyphicon-question-sign btn" id="helpgit" title="Help"></span>
+            </td>
         </tr>
     </table>
 </body>

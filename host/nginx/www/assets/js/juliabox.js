@@ -142,82 +142,6 @@ var JuliaBox = (function($, _, undefined){
 	    	self.comm('/hostadmin/', 'GET', {'instance_info': stat_name}, s, f);
         },
 
-        make_invites_table: function(data) {
-            var invites = data.data;
-
-            function tr(i) {
-		function fmt_date(date) {
-			return new Date(Date.parse(date))
-				.toLocaleString();
-		}
-
-                return _.reduce(
-                    [ i.invite_code
-                    , fmt_date(i.time_created)
-                    , i.max_count || 'Unlimited'
-                    , fmt_date(i.expires_on)
-                    , i.count || 'NA'],
-		    function(row, cell) {
-			    return row.append($("<td/>").text(cell));
-		    }, $("<tr/>"));
-            }
-	    var $header = $("<h2>Existing invite codes</h2>"),
-                $thead = $("<thead></thead>");
-
-            $("<tr></tr>")
-		    .append("<th>Code</th>")
-		    .append("<th>Created</th>")
-		    .append("<th>Max</th>")
-		    .append("<th>Expires</th>")
-		    .append("<th>Used</th>").appendTo($thead)
-
-            var $tbody = _.reduce(
-                    _.map(invites, tr),
-                    function (x, c) { return x.append(c); },
-                    $("<tbody/>")
-                    );
-            var $table = $("<table/>")
-                        .attr("class", "table table-striped")
-                        .append($thead).append($tbody)
-
-	    var $newinvite = $('<form method="POST" action="/hostadmin?action=make_invite"/>')
-	    	.append($('<label for="invite_code">Code</label>' +
-			    '<input class="form-control" id="invite_code" type="text" name="invite_code" placeholder="Create a new code">'))
-		.append($('<label for="expires_on">Expires</label>' +
-			     '<input class="form-control" id="expires_on" type="datetime" name="expires_on" placeholder="Expires on">'))
-	    	.append($('<label for="max_count" for="max_count">Max</label>' +
-			  '<input class="form-control" id="max_count" type="text" name="max_count" placeholder="Max">'))
-	    	.append($('<input class="btn btn-primary" type="submit">'))
-
-	    return $("<div/>").append($header).append($table);
-
-        },
-
-        show_invites_report: function () {
-            s = function(data) {
-                bootbox.alert(self.make_invites_table(data).html());
-            };
-            f = function () {
-                bootbox.alert("Oops. Unexpected error occured while showing invite codes");
-            }
-            self.comm('/hostadmin/?action=invites_report', 'GET', null, s,f);
-        },
-	    
-		do_upgrade: function () {
-			s = function(res) {
-				if(res.code == 0) {
-					bootbox.alert('Upgrade initiated. You have been logged out. Press Ok to log in again and complete the upgrade.', function(){
-						top.location.href = '/';
-					});    					
-				}
-				else {
-					bootbox.alert('Oops. Unexpected error while upgrading.<br/><br/>Please try again later.');
-				}
-			};
-			f = function() { bootbox.alert("Oops. Unexpected error while upgrading.<br/><br/>Please try again later."); };
-    		self.comm('/hostadmin/', 'GET', { 'upgrade_id' : 'me' }, s, f);
-		},
-
 		init_gauth_tok: function(tok) {
 			_gauth = tok;
 		},
@@ -249,6 +173,28 @@ var JuliaBox = (function($, _, undefined){
 				});				
 			}
 		},
+
+        showhelp_git: function() {
+            bootbox.dialog({
+                message: "This is a simple interface to synchronize with GitHub repositories.<br/><br/>" +
+                         "Repositories registered here with their HTTPS URLs can only be synchronized from GitHub to JuliaBox. " +
+                         "Register the SSH URL to be able to synchronize both ways. " +
+                         "You must also <a href='https://help.github.com/articles/generating-ssh-keys/'>add your JuliaBox ssh key to your GitHub account</a> for that. " +
+                         "Your JuliaBox ssh key is already generated and can be copied from the settings tab.<br/><br/>" +
+                         "Conflicting changes that can not be auto merged are not handled.<br/><br/>",
+                title: "Synchronize Git Repositories"
+            }).find("div.modal-dialog").addClass("bootbox80");
+        },
+
+        showhelp_gdrive: function() {
+            bootbox.dialog({
+                message: "This is a simple interface to synchronize with Google Drive folders.<br/><br/>" +
+                         "Only files that can be downloaded as text or binary formats are supported. " +
+                         "If there are conflicting changes between local and remote folders, only the latest version is retained. " +
+                         "To delete a file, it must be deleted both from local and remote folders.<br/>",
+                title: "Synchronize Google Drive Folders"
+            }).find("div.modal-dialog").addClass("bootbox80");
+        },
 
 		sync_addgit: function(repo, loc, branch) {
 			repo = repo.trim();
