@@ -424,8 +424,11 @@ class JBoxContainer(LoggerMixin):
         JBoxContainer.log_info("Deleted %s", self.debug_str())
 
     def record_usage(self):
-        start_time = self.time_created()
-        finish_time = self.time_finished()
-        acct = JBoxAccountingV2(self.get_name(), json.dumps(self.get_image_names()),
-                                start_time, stop_time=finish_time)
-        acct.save()
+        try:
+            start_time = self.time_created()
+            finish_time = self.time_finished()
+            acct = JBoxAccountingV2(self.get_name(), json.dumps(self.get_image_names()),
+                                    start_time, stop_time=finish_time)
+            acct.save()
+        except:
+            self.log_exception("error recording usage")

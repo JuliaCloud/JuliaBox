@@ -66,7 +66,7 @@ class JBoxDB(LoggerMixin):
     @staticmethod
     def datetime_to_epoch_secs(dt):
         epoch = datetime.datetime.fromtimestamp(0, pytz.utc)
-        return (dt - epoch).total_seconds()
+        return int((dt - epoch).total_seconds())
 
     @staticmethod
     def epoch_secs_to_datetime(secs):
