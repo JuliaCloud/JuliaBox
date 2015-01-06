@@ -57,12 +57,18 @@ class JBoxHandler(RequestHandler, LoggerMixin):
         return True
 
     @classmethod
-    def try_launch_container(cls, user_id):
+    def try_launch_container(cls, user_id, max_hop=False):
         sessname = unique_sessname(user_id)
         cont = JBoxContainer.get_by_name(sessname)
         cls.log_debug("have existing container for %s: %r", sessname, None != cont)
         if cont is not None:
             cls.log_debug("container running: %r", cont.is_running())
+
+        if max_hop:
+            self_load = CloudHost.get_instance_stats(CloudHost.instance_id(), 'Load')
+            if self_load < 100:
+                JBoxContainer.async_launch_by_name(sessname, user_id, True)
+                return True
 
         is_leader = is_proposed_cluster_leader()
         if ((cont is None) or (not cont.is_running())) and (not CloudHost.should_accept_session(is_leader)):
