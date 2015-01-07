@@ -62,7 +62,7 @@ class JBoxDiskState(JBoxDB):
         self.set_attrib('detach_time', JBoxDiskState.datetime_to_epoch_secs(detach_time))
 
     def get_detach_time(self):
-        return JBoxDiskState.epoch_secs_to_datetime(self.item['detach_time'])
+        return JBoxDiskState.epoch_secs_to_datetime(int(self.item['detach_time']))
 
     def get_state(self):
         return self.get_attrib('state')
@@ -110,10 +110,15 @@ class JBoxDiskState(JBoxDB):
 
     @staticmethod
     def get_detached_disks(max_count=None):
-        records = JBoxDiskState.table().query_2(state__eq=JBoxDiskState.STATE_DETACHED,
-                                                index='state-index',
-                                                limit=max_count)
         disk_keys = []
-        for rec in records:
-            disk_keys.append(rec['disk_key'])
+        try:
+            records = JBoxDiskState.table().query_2(state__eq=JBoxDiskState.STATE_DETACHED,
+                                                    index='state-index',
+                                                    limit=max_count)
+            for rec in records:
+                disk_keys.append(rec['disk_key'])
+        except:
+            # boto bug: https://github.com/boto/boto/issues/2708
+            JBoxDiskState.TABLE = None
+            JBoxDiskState.log_info("Exception in getting detached disks. Probably empty table.")
         return disk_keys
