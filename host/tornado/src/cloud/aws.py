@@ -13,6 +13,7 @@ from boto.s3.key import Key
 import boto.utils
 import psutil
 import sh
+import time
 
 from jbox_util import LoggerMixin, parse_iso_time, retry
 
@@ -427,7 +428,7 @@ class CloudHost(LoggerMixin):
             return True
 
         # if only instance, accept
-        if len(cluster_load) == 1:
+        if len(cluster_load) < 1:
             CloudHost.log_debug("Accepting: only instance (new AMI)")
             return True
 
@@ -616,6 +617,7 @@ class CloudHost(LoggerMixin):
 
     @staticmethod
     def _mount_device(dev_id, mount_dir):
+        t1 = time.time()
         device = os.path.join('/dev', dev_id)
         mount_point = os.path.join(mount_dir, dev_id)
         actual_mount_point = CloudHost._get_mount_point(dev_id)
@@ -628,6 +630,8 @@ class CloudHost(LoggerMixin):
                 raise Exception("Failed to mount device " + device + " at " + mount_point)
         else:
             raise Exception("Device already mounted at " + actual_mount_point)
+        tdiff = int(time.time() - t1)
+        CloudHost.publish_stats("EBSMountTime", "Count", tdiff)
 
     @staticmethod
     def _get_volume(vol_id):
@@ -650,15 +654,18 @@ class CloudHost(LoggerMixin):
         actual_mount_point = CloudHost._get_mount_point(dev_id)
         if actual_mount_point is None:
             return  # not mounted
+        t1 = time.time()
         CloudHost.log_debug("Unmounting dev_id:" + repr(dev_id) +
-                              " mount_point:" + repr(mount_point) +
-                              " actual_mount_point:" + repr(actual_mount_point))
+                            " mount_point:" + repr(mount_point) +
+                            " actual_mount_point:" + repr(actual_mount_point))
         if mount_point != actual_mount_point:
             CloudHost.log_info("Mount point expected:" + mount_point + ", got:" + repr(actual_mount_point))
             mount_point = actual_mount_point
         res = sh.umount(mount_point)  # the mount point must be mentioned in fstab file
         if res.exit_code != 0:
             raise Exception("Device could not be unmounted from " + mount_point)
+        tdiff = int(time.time() - t1)
+        CloudHost.publish_stats("EBSUnmountTime", "Count", tdiff)
 
     @staticmethod
     def _get_mount_point(dev_id):
@@ -736,6 +743,7 @@ class CloudHost(LoggerMixin):
         vol = CloudHost._get_volume(vol_id)
 
         CloudHost.log_info("Attaching volume " + vol_id + " at " + device)
+        t1 = time.time()
         conn.attach_volume(vol_id, instance_id, device)
 
         if not CloudHost._wait_for_status(vol, 'in-use'):
@@ -745,6 +753,8 @@ class CloudHost(LoggerMixin):
         if not CloudHost._wait_for_device(device):
             CloudHost.log_error("Could not attach volume " + vol_id + " to device " + device)
             raise Exception("Volume could not be attached. Volume id: " + vol_id + ", device: " + device)
+        tdiff = int(time.time() - t1)
+        CloudHost.publish_stats("EBSAttachTime", "Count", tdiff)
 
         CloudHost._mount_device(dev_id, mount_dir)
         return device, mount_point
@@ -755,7 +765,7 @@ class CloudHost(LoggerMixin):
             instance_id = CloudHost.instance_id()
 
         return CloudHost.connect_ec2().get_instance_attribute(instance_id=instance_id,
-                                                                attribute='blockDeviceMapping')['blockDeviceMapping']
+                                                              attribute='blockDeviceMapping')['blockDeviceMapping']
 
     @staticmethod
     def get_volume_id_from_device(dev_id):
@@ -765,6 +775,14 @@ class CloudHost(LoggerMixin):
         if device not in maps:
             return None
         return maps[device].volume_id
+
+    @staticmethod
+    def is_snapshot_complete(snap_id):
+        snaps = CloudHost.connect_ec2().get_all_snapshots([snap_id])
+        if len(snaps) == 0:
+            raise Exception("Snapshot not found with id " + str(snap_id))
+        snap = snaps[0]
+        return snap.status == 'completed'
 
     @staticmethod
     def get_snapshot_age(snap_id):
@@ -780,9 +798,9 @@ class CloudHost(LoggerMixin):
     @staticmethod
     def create_new_volume(snap_id, dev_id, mount_dir, tag=None):
         CloudHost.log_info("Creating volume with tag " + tag +
-                             " from snapshot " + snap_id +
-                             " at dev_id " + dev_id +
-                             " mount_dir " + mount_dir)
+                           " from snapshot " + snap_id +
+                           " at dev_id " + dev_id +
+                           " mount_dir " + mount_dir)
         conn = CloudHost.connect_ec2()
         disk_sz_gb = 1
         vol = conn.create_volume(disk_sz_gb, CloudHost.zone(),
@@ -798,7 +816,8 @@ class CloudHost(LoggerMixin):
             conn.create_tags([vol_id], {"Name": tag})
             CloudHost.log_info("Added tag " + tag + " to volume with id " + vol_id)
 
-        return CloudHost._attach_free_volume(vol_id, dev_id, mount_dir)
+        mnt_info = CloudHost._attach_free_volume(vol_id, dev_id, mount_dir)
+        return mnt_info[0], mnt_info[1], vol_id
 
     # @staticmethod
     # def detach_mounted_volume(dev_id, mount_dir, delete=False):
@@ -827,9 +846,12 @@ class CloudHost(LoggerMixin):
         if instance is not None:  # the volume is attached
             CloudHost.log_debug("Detaching " + vol_id + " from instance " + instance + " device " + repr(device))
             vol = CloudHost._get_volume(vol_id)
+            t1 = time.time()
             conn.detach_volume(vol_id, instance, device)
             if not CloudHost._wait_for_status_extended(vol, 'available'):
                 raise Exception("Volume could not be detached " + vol_id)
+            tdiff = int(time.time() - t1)
+            CloudHost.publish_stats("EBSDetachTime", "Count", tdiff)
         if delete:
             CloudHost.log_debug("Deleting " + vol_id)
             conn.delete_volume(vol_id)
@@ -865,7 +887,7 @@ class CloudHost(LoggerMixin):
             return att_device, mount_dir
 
     @staticmethod
-    def snapshot_volume(vol_id=None, dev_id=None, tag=None, description=None):
+    def snapshot_volume(vol_id=None, dev_id=None, tag=None, description=None, wait_till_complete=True):
         if dev_id is not None:
             vol_id = CloudHost.get_volume_id_from_device(dev_id)
         if vol_id is None:
@@ -874,7 +896,7 @@ class CloudHost(LoggerMixin):
         vol = CloudHost._get_volume(vol_id)
         CloudHost.log_info("Creating snapshot for volume: " + vol_id)
         snap = vol.create_snapshot(description)
-        if not CloudHost._wait_for_status_extended(snap, 'completed'):
+        if wait_till_complete and (not CloudHost._wait_for_status_extended(snap, 'completed')):
             raise Exception("Could not create snapshot for volume " + vol_id)
         CloudHost.log_info("Created snapshot " + snap.id + " for volume " + vol_id)
         if tag is not None:

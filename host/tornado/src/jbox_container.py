@@ -134,6 +134,11 @@ class JBoxContainer(LoggerMixin):
         JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_COLLECT_STATS, '')
 
     @staticmethod
+    def async_update_disk_state():
+        JBoxContainer.log_info("updating disk states")
+        JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_UPDATE_DISK_STATES, '')
+
+    @staticmethod
     def async_schedule_activations():
         JBoxContainer.log_info("scheduling activations")
         JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_AUTO_ACTIVATE, '')

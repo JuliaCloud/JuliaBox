@@ -4,7 +4,7 @@ import threading
 import time
 from cloud.aws import CloudHost
 
-from db import JBoxSessionProps
+from db import JBoxSessionProps, JBoxDiskState
 from jbox_util import unique_sessname
 from jbox_volume import JBoxVol
 
@@ -148,17 +148,39 @@ class JBoxEBSVol(JBoxVol):
         if disk_id is None:
             raise Exception("No free disk available")
 
-        sess_id = unique_sessname(user_email)
-        sess_props = JBoxSessionProps(sess_id, create=True, user_id=user_email)
-        if sess_props.is_new:
-            sess_props.save()
-        snap_id = sess_props.get_snapshot_id()
-        if snap_id is None:
-            snap_id = JBoxEBSVol.DISK_TEMPLATE_SNAPSHOT
+        try:
+            existing_disk = JBoxDiskState(cluster_id=CloudHost.INSTALL_ID, region_id=CloudHost.REGION,
+                                          user_id=user_email)
+        except:
+            existing_disk = None
 
-        JBoxEBSVol.log_debug("will use snapshot id %s for %s", snap_id, user_email)
+        if existing_disk is None:
+            sess_id = unique_sessname(user_email)
+            sess_props = JBoxSessionProps(sess_id, create=True, user_id=user_email)
+            if sess_props.is_new:
+                sess_props.save()
+            snap_id = sess_props.get_snapshot_id()
+            if snap_id is None:
+                snap_id = JBoxEBSVol.DISK_TEMPLATE_SNAPSHOT
 
-        _dev_path, mnt_path = CloudHost.create_new_volume(snap_id, disk_id, JBoxEBSVol.FS_LOC, tag=user_email)
+            JBoxEBSVol.log_debug("will use snapshot id %s for %s", snap_id, user_email)
+
+            _dev_path, mnt_path, vol_id = CloudHost.create_new_volume(snap_id, disk_id,
+                                                                      JBoxEBSVol.FS_LOC,
+                                                                      tag=user_email)
+            existing_disk = JBoxDiskState(cluster_id=CloudHost.INSTALL_ID, region_id=CloudHost.REGION,
+                                          user_id=user_email,
+                                          volume_id=vol_id,
+                                          attach_time=None,
+                                          create=True)
+        else:
+            _dev_path, mnt_path = CloudHost.attach_volume(existing_disk.get_volume_id(), disk_id, JBoxEBSVol.FS_LOC)
+            existing_disk.set_attach_time()
+            snap_id = None
+
+        existing_disk.set_state(JBoxDiskState.STATE_ATTACHED)
+        existing_disk.save()
+
         ebsvol = JBoxEBSVol(mnt_path, user_email=user_email)
 
         if snap_id == JBoxEBSVol.DISK_TEMPLATE_SNAPSHOT:
@@ -191,12 +213,14 @@ class JBoxEBSVol(JBoxVol):
         sess_props = JBoxSessionProps(self.sessname)
         desc = sess_props.get_user_id() + " JuliaBox Backup"
         disk_id = self.disk_path.split('/')[-1]
-        snap_id = CloudHost.snapshot_volume(dev_id=disk_id, tag=self.sessname, description=desc)
-        old_snap_id = sess_props.get_snapshot_id()
-        sess_props.set_snapshot_id(snap_id)
-        sess_props.save()
-        if old_snap_id is not None:
-            CloudHost.delete_snapshot(old_snap_id)
+        snap_id = CloudHost.snapshot_volume(dev_id=disk_id, tag=self.sessname, description=desc,
+                                            wait_till_complete=False)
+        #old_snap_id = sess_props.get_snapshot_id()
+        #sess_props.set_snapshot_id(snap_id)
+        #sess_props.save()
+        #if old_snap_id is not None:
+        #    CloudHost.delete_snapshot(old_snap_id)
+        return snap_id
 
     def release(self, backup=False):
         if not JBoxEBSVol.HAS_EBS:
@@ -204,6 +228,17 @@ class JBoxEBSVol(JBoxVol):
         disk_id = self.disk_path.split('/')[-1]
         CloudHost.unmount_device(disk_id, JBoxEBSVol.FS_LOC)
         if backup:
-            self._backup()
+            snap_id = self._backup()
+        else:
+            snap_id = None
         vol_id = CloudHost.get_volume_id_from_device(disk_id)
-        CloudHost.detach_volume(vol_id, delete=True)
+        CloudHost.detach_volume(vol_id, delete=False)
+
+        sess_props = JBoxSessionProps(self.sessname)
+        existing_disk = JBoxDiskState(cluster_id=CloudHost.INSTALL_ID, region_id=CloudHost.REGION,
+                                      user_id=sess_props.get_user_id())
+        if snap_id is not None:
+            existing_disk.add_snapshot_id(snap_id)
+        existing_disk.set_detach_time()
+        existing_disk.set_state(JBoxDiskState.STATE_DETACHED)
+        existing_disk.save()

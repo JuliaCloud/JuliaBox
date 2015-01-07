@@ -125,6 +125,7 @@ class JBox(LoggerMixin):
             JBox.monitor_registrations()
             if not JBoxDynConfig.is_stat_collected_within(CloudHost.INSTALL_ID, 1):
                 JBoxContainer.async_collect_stats()
+            JBoxContainer.async_update_disk_state()
         elif JBox.is_ready_to_terminate():
             terminating = True
             JBox.log_info("terminating to scale down")
