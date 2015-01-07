@@ -71,7 +71,7 @@ class AuthHandler(JBoxHandler, GoogleOAuth2Mixin):
                 if jbuser.is_new:
                     jbuser.save()
 
-                if self.try_launch_container(user_id):
+                if self.try_launch_container(user_id, max_hop=False):
                     self.set_loading_state(user_id)
                 self.redirect('/')
                 return

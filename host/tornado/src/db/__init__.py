@@ -4,6 +4,7 @@ from db.invites import JBoxInvite
 from db.accounting_v2 import JBoxAccountingV2
 from db.container import JBoxSessionProps
 from db.dynconfig import JBoxDynConfig
+from db.disk_state import JBoxDiskState
 from cloud.aws import CloudHost
 
 
@@ -21,6 +22,8 @@ def configure_db(cfg):
         JBoxSessionProps.NAME = cloud_cfg['jbox_session']
     if 'jbox_dynconfig' in cloud_cfg:
         JBoxDynConfig.NAME = cloud_cfg['jbox_dynconfig']
+    if 'jbox_diskstate' in cloud_cfg:
+        JBoxDiskState.NAME = cloud_cfg['jbox_diskstate']
 
 
 def is_proposed_cluster_leader():

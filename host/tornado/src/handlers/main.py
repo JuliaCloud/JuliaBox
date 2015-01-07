@@ -114,7 +114,10 @@ class MainHandler(JBoxHandler):
                            user_id=user_id)
 
     def chk_and_launch_docker(self, user_id):
-        launched = self.try_launch_container(user_id)
+        nhops = int(self.get_argument('h', 0))
+        numhopmax = self.config('numhopmax', 0)
+        max_hop = nhops > numhopmax
+        launched = self.try_launch_container(user_id, max_hop=max_hop)
 
         if launched:
             self.set_loading_state(user_id)
@@ -122,9 +125,8 @@ class MainHandler(JBoxHandler):
             return
 
         self.unset_affinity()
-        nhops = int(self.get_argument('h', 0))
         self.log_debug("at hop %d for user %s", nhops, user_id)
-        if nhops > self.config('numhopmax', 0):
+        if max_hop:
             self.rendertpl("index.tpl", cfg=self.config(), state=self.state(
                 error="Maximum number of JuliaBox instances active. Please try after sometime.", success=''))
         else:

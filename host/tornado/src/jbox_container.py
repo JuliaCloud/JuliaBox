@@ -3,7 +3,6 @@ import pytz
 import json
 import multiprocessing
 
-import isodate
 import psutil
 from cloud.aws import CloudHost
 
@@ -133,6 +132,11 @@ class JBoxContainer(LoggerMixin):
     def async_collect_stats():
         JBoxContainer.log_info("scheduling stats collection")
         JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_COLLECT_STATS, '')
+
+    @staticmethod
+    def async_update_disk_state():
+        JBoxContainer.log_info("updating disk states")
+        JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_UPDATE_DISK_STATES, '')
 
     @staticmethod
     def async_schedule_activations():
@@ -424,8 +428,11 @@ class JBoxContainer(LoggerMixin):
         JBoxContainer.log_info("Deleted %s", self.debug_str())
 
     def record_usage(self):
-        start_time = self.time_created()
-        finish_time = self.time_finished()
-        acct = JBoxAccountingV2(self.get_name(), json.dumps(self.get_image_names()),
-                                start_time, stop_time=finish_time)
-        acct.save()
+        try:
+            start_time = self.time_created()
+            finish_time = self.time_finished()
+            acct = JBoxAccountingV2(self.get_name(), json.dumps(self.get_image_names()),
+                                    start_time, stop_time=finish_time)
+            acct.save()
+        except:
+            self.log_exception("error recording usage")

@@ -34,7 +34,7 @@ function make_ebs_fstab_entries {
             if [ $var -le $2 ]
             then
                 dev_id="xvd${pfx1}${pfx2}"
-                fstab_line="/dev/${dev_id} $1/${dev_id} ext4 rw,user,exec 0 0"
+                fstab_line="/dev/${dev_id} $1/${dev_id} ext4 rw,user,exec,noatime 0 0"
                 found_line=$( grep -ic "${fstab_line}" /etc/fstab )
                 if [ $found_line -ne 1 ]
                 then
