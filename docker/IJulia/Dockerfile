@@ -1,5 +1,5 @@
 # Docker file for JuliaBox
-# Version:22
+# Version:23
 
 FROM tanmaykm/jboxjulia:v0.3.4_12
 
@@ -82,6 +82,32 @@ RUN apt-get install -y \
     graphviz \
     libgraphviz-dev \
     && apt-get clean
+
+# Nemo
+RUN apt-get install -y \
+    m4 \
+    && apt-get clean
+
+RUN mkdir mpir; cd mpir; wget http://mpir.org/mpir-2.7.0-alpha11.tar.bz2; \
+    tar -xvf mpir-2.7.0-alpha11.tar.bz2; cd mpir-2.7.0; \
+    ./configure M4=/usr/bin/m4 --enable-gmpcompat --disable-static --enable-shared; \
+    make; make install; \
+    cd ../..; \
+    rm -rf mpir
+
+RUN mkdir mpfr; cd mpfr; wget http://www.mpfr.org/mpfr-current/mpfr-3.1.2.tar.bz2; \
+    tar -xvf mpfr-3.1.2.tar.bz2; cd mpfr-3.1.2; \
+    ./configure --with-gmp=/usr/local --disable-static --enable-shared; \
+    make; make install; \
+    cd ../..; \
+    rm -rf mpfr
+
+RUN mkdir flint2; cd flint2; git clone https://github.com/wbhart/flint2.git; \
+    cd flint2; \
+    ./configure --disable-static --enable-shared --with-mpir --with-mpfr; \
+    make; make install; \
+    cd ../..; \
+    rm -rf flint2
 
 # add juser
 # create group and user with specific ids if required on systems where the user running juliabox is not the first user
