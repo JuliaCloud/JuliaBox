@@ -1,5 +1,5 @@
 # Base Dockerfile with Julia 0.3 release
-# Version:12
+# Version:13
 
 FROM tanmaykm/jboxcore:10
 
@@ -10,5 +10,5 @@ RUN apt-get install -y -o Dpkg::Options::="--force-confdef" -o DPkg::Options::="
     && apt-add-repository -y ppa:staticfloat/juliareleases \
     && add-apt-repository -y ppa:staticfloat/julia-deps \
     && apt-get update \
-    && apt-get install -y julia=0.3.4~trusty1 \
+    && apt-get install -y julia=0.3.5~trusty1 \
     && apt-get clean
