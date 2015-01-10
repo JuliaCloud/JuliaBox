@@ -10,5 +10,5 @@ RUN apt-get install -y -o Dpkg::Options::="--force-confdef" -o DPkg::Options::="
     && apt-add-repository -y ppa:staticfloat/juliareleases \
     && add-apt-repository -y ppa:staticfloat/julia-deps \
     && apt-get update \
-    && apt-get install -y julia=0.3.5~trusty1 \
+    && apt-get install -y julia=0.3.5~trusty4 \
     && apt-get clean
