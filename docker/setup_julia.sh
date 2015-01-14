@@ -14,4 +14,4 @@ julia -e 'Pkg.add("BayesNets"); Pkg.add("PGFPlots"); Pkg.add("GraphLayout");'
 
 julia -e 'Pkg.add("Stan");'
 
-julia -e 'Pkg.add("Patchwork"); Pkg.add("Quandl");'
+julia -e 'Pkg.add("Patchwork"); Pkg.add("Quandl"); Pkg.add("Lazy");'
