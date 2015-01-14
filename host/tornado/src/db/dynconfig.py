@@ -1,3 +1,6 @@
+from boto.dynamodb2.fields import HashKey
+from boto.dynamodb2.types import STRING
+
 import json
 import datetime
 import isodate
@@ -11,6 +14,13 @@ from jbox_util import parse_iso_time
 
 class JBoxDynConfig(JBoxDB):
     NAME = 'jbox_dynconfig'
+
+    SCHEMA = [
+        HashKey('name', data_type=STRING)
+    ]
+
+    INDEXES = None
+
     TABLE = None
     DEFAULT_REGISTRATION_RATE = 60
 

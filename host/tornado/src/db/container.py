@@ -1,3 +1,6 @@
+from boto.dynamodb2.fields import HashKey
+from boto.dynamodb2.types import STRING
+
 import json
 
 import boto.dynamodb2.exceptions
@@ -7,6 +10,13 @@ from db.db_base import JBoxDB
 
 class JBoxSessionProps(JBoxDB):
     NAME = 'jbox_session'
+
+    SCHEMA = [
+        HashKey('session_id', data_type=STRING)
+    ]
+
+    INDEXES = None
+
     TABLE = None
 
     def __init__(self, session_id, create=False, user_id=None):

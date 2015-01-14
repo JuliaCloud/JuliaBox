@@ -1,3 +1,6 @@
+from boto.dynamodb2.fields import HashKey, RangeKey, AllIndex, IncludeIndex
+from boto.dynamodb2.types import NUMBER, STRING
+
 import datetime
 import pytz
 import json
@@ -7,6 +10,23 @@ from db.db_base import JBoxDB
 
 class JBoxAccountingV2(JBoxDB):
     NAME = 'jbox_accounting_v2'
+
+    SCHEMA = [
+        HashKey('stop_date', data_type=NUMBER),
+        RangeKey('stop_time', data_type=NUMBER)
+    ]
+
+    INDEXES = [
+        AllIndex('container_id-stop_time-index', parts=[
+            HashKey('container_id', data_type=STRING),
+            RangeKey('stop_time', data_type=NUMBER)
+        ]),
+        IncludeIndex('image_id-stop_time-index', parts=[
+            HashKey('image_id', data_type=STRING),
+            RangeKey('stop_time', data_type=NUMBER)
+        ], includes=['container_id'])
+    ]
+
     TABLE = None
     _stats_cache = {}
 

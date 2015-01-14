@@ -1,3 +1,6 @@
+from boto.dynamodb2.fields import HashKey, RangeKey, GlobalKeysOnlyIndex
+from boto.dynamodb2.types import NUMBER, STRING
+
 import boto.dynamodb2.exceptions
 import datetime
 import pytz
@@ -28,6 +31,26 @@ class JBoxUserV2(JBoxDB):
         - gtok
     """
     NAME = 'jbox_users_v2'
+
+    SCHEMA = [
+        HashKey('user_id', data_type=STRING)
+    ]
+
+    INDEXES = [
+        GlobalKeysOnlyIndex('create_month-create_time-index', parts=[
+            HashKey('create_month', data_type=NUMBER),
+            RangeKey('create_time', data_type=NUMBER)
+        ]),
+        GlobalKeysOnlyIndex('update_month-update_time-index', parts=[
+            HashKey('update_month', data_type=NUMBER),
+            RangeKey('update_time', data_type=NUMBER)
+        ]),
+        GlobalKeysOnlyIndex('activation_code-activation_status-index', parts=[
+            HashKey('activation_code', data_type=STRING),
+            RangeKey('activation_status', data_type=NUMBER)
+        ])
+    ]
+
     TABLE = None
 
     STATUS_ACTIVE = 0
