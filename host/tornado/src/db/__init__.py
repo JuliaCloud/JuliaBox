@@ -65,5 +65,4 @@ def is_cluster_leader():
 
 def publish_stats():
     JBoxUserV2.calc_stats()
-    JBoxUserV2.log_debug("stats: %r", JBoxUserV2.STATS)
     JBoxDynConfig.set_stat(CloudHost.INSTALL_ID, JBoxUserV2.STAT_NAME, JBoxUserV2.STATS)

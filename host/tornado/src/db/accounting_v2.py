@@ -63,16 +63,22 @@ class JBoxAccountingV2(JBoxDB):
         sum_time = 0
         item_count = 0
         image_count = {}
+        container_freq = {}
         for date in dates:
             items = JBoxAccountingV2.query_stats_date(date)
             for x in items:
                 item_count += 1
                 if 'start_time' in x:
                     sum_time += x['stop_time'] - int(x['start_time'])
-                image_ids = json.loads(x['image_id'])
+                try:
+                    image_ids = json.loads(x['image_id'])
+                except:
+                    image_ids = []
                 for image_id in image_ids:
                     if image_id.startswith("juliabox/") and (not image_id.endswith(":latest")):
                         image_count[image_id] = image_count.get(image_id, 0) + 1
+                cid = x['container_id']
+                container_freq[cid] = container_freq.get(cid, 0) + 1
 
         def fmt(seconds):
             hrs = int(seconds / 3600)
@@ -81,7 +87,14 @@ class JBoxAccountingV2(JBoxDB):
 
             return "%dh %dm %ds" % (hrs, mins % 60, secs % 60)
 
+        active_users = 0
+        for container in container_freq:
+            if container_freq[container] > 2:
+                active_users += 1
+
         return dict(
             session_count=item_count,
             avg_time=fmt(float(sum_time) / item_count) if item_count != 0 else 'NA',
-            images_used=image_count)
+            images_used=image_count,
+            unique_users=len(container_freq),
+            active_users=active_users)
