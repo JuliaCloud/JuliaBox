@@ -1,3 +1,6 @@
+from boto.dynamodb2.fields import HashKey
+from boto.dynamodb2.types import STRING
+
 import boto.dynamodb2.exceptions
 import datetime
 import isodate
@@ -8,6 +11,13 @@ from db.db_base import JBoxDB
 
 class JBoxInvite(JBoxDB):
     NAME = 'jbox_invites'
+
+    SCHEMA = [
+        HashKey('invite_code', data_type=STRING)
+    ]
+
+    INDEXES = None
+
     TABLE = None
 
     def __init__(self, invite_code, invited=None, create=False):

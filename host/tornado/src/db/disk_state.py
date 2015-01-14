@@ -1,3 +1,6 @@
+from boto.dynamodb2.fields import HashKey, GlobalKeysOnlyIndex
+from boto.dynamodb2.types import NUMBER, STRING
+
 import json
 import datetime
 import pytz
@@ -9,6 +12,17 @@ from db.db_base import JBoxDB
 
 class JBoxDiskState(JBoxDB):
     NAME = 'jbox_diskstate'
+
+    SCHEMA = [
+        HashKey('disk_key', data_type=STRING)
+    ]
+
+    INDEXES = [
+        GlobalKeysOnlyIndex('state-index', parts=[
+            HashKey('state', data_type=NUMBER)
+        ])
+    ]
+
     TABLE = None
 
     STATE_ATTACHED = 1
