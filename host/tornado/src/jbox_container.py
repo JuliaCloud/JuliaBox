@@ -2,6 +2,7 @@ import datetime
 import pytz
 import json
 import multiprocessing
+import random
 
 import psutil
 from cloud.aws import CloudHost
@@ -428,11 +429,18 @@ class JBoxContainer(LoggerMixin):
         JBoxContainer.log_info("Deleted %s", self.debug_str())
 
     def record_usage(self):
-        try:
-            start_time = self.time_created()
-            finish_time = self.time_finished()
-            acct = JBoxAccountingV2(self.get_name(), json.dumps(self.get_image_names()),
-                                    start_time, stop_time=finish_time)
-            acct.save()
-        except:
-            self.log_exception("error recording usage")
+        for retry in range(1, 10):
+            try:
+                start_time = self.time_created()
+                finish_time = self.time_finished()
+                if retry > 1:
+                    finish_time += datetime.timedelta(microseconds=random.randint(1, 100))
+                acct = JBoxAccountingV2(self.get_name(), json.dumps(self.get_image_names()),
+                                        start_time, stop_time=finish_time)
+                acct.save()
+                break
+            except:
+                if retry == 10:
+                    self.log_exception("error recording usage")
+                else:
+                    self.log_info("error recording usage, shall retry.")

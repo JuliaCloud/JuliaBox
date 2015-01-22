@@ -39,7 +39,7 @@ class JBoxAccountingV2(JBoxDB):
         else:
             stop_datetime = stop_time
 
-        stop_time = JBoxAccountingV2.datetime_to_epoch_secs(stop_datetime)
+        stop_time = JBoxAccountingV2.datetime_to_epoch_secs(stop_datetime, allow_microsecs=True)
         stop_date = JBoxAccountingV2.datetime_to_yyyymmdd(stop_datetime)
         data = {
             'stop_date': stop_date,

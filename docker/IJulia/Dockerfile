@@ -1,5 +1,5 @@
 # Docker file for JuliaBox
-# Version:24
+# Version:25
 
 FROM tanmaykm/jboxjulia:v0.3.5_13
 
@@ -8,11 +8,12 @@ MAINTAINER Tanmay Mohapatra
 # Install additional packages required for Julia packages
 RUN apt-get update \
     && apt-get install -y \
+    cmake \
+    gfortran \
     hdf5-tools \
     python-sympy \
     glpk-utils \
     libnlopt0 \
-    gfortran \
     imagemagick \
     inkscape \
     gettext \
