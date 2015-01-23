@@ -35,7 +35,7 @@ class JBoxEBSVol(JBoxVol):
 
     @classmethod
     def get_disk_allocated_size(cls):
-        return JBoxEBSVol.DISK_LIMIT
+        return JBoxEBSVol.DISK_LIMIT * 1000000000
 
     @staticmethod
     def _id_from_device(dev_path):
@@ -134,10 +134,6 @@ class JBoxEBSVol(JBoxVol):
         pct = (sum(JBoxEBSVol.DISK_USE_STATUS.values()) * 100) / len(JBoxEBSVol.DISK_USE_STATUS)
         return min(100, max(0, pct))
 
-    @classmethod
-    def get_disk_allocated_size(cls):
-        return JBoxEBSVol.DISK_LIMIT
-
     @staticmethod
     def get_disk_for_user(user_email):
         JBoxEBSVol.log_debug("creating EBS volume for %s", user_email)
@@ -167,7 +163,8 @@ class JBoxEBSVol(JBoxVol):
 
             _dev_path, mnt_path, vol_id = CloudHost.create_new_volume(snap_id, disk_id,
                                                                       JBoxEBSVol.FS_LOC,
-                                                                      tag=user_email)
+                                                                      tag=user_email,
+                                                                      disk_sz_gb=JBoxEBSVol.DISK_LIMIT)
             existing_disk = JBoxDiskState(cluster_id=CloudHost.INSTALL_ID, region_id=CloudHost.REGION,
                                           user_id=user_email,
                                           volume_id=vol_id,

@@ -622,12 +622,13 @@ class CloudHost(LoggerMixin):
         mount_point = os.path.join(mount_dir, dev_id)
         actual_mount_point = CloudHost._get_mount_point(dev_id)
         if actual_mount_point == mount_point:
+            CloudHost.log_debug("Device %s already mounted at %s", device, mount_point)
             return
         elif actual_mount_point is None:
-            CloudHost.log_debug("Mounting device " + device + " at " + mount_point)
+            CloudHost.log_debug("Mounting device %s at %s", device, mount_point)
             res = sh.mount(mount_point)  # the mount point must be mentioned in fstab file
             if res.exit_code != 0:
-                raise Exception("Failed to mount device " + device + " at " + mount_point)
+                raise Exception("Failed to mount device %s at %s. Error code: %d", device, mount_point, res.exit_code)
         else:
             raise Exception("Device already mounted at " + actual_mount_point)
         tdiff = int(time.time() - t1)
@@ -796,13 +797,12 @@ class CloudHost(LoggerMixin):
         return nt - st
 
     @staticmethod
-    def create_new_volume(snap_id, dev_id, mount_dir, tag=None):
+    def create_new_volume(snap_id, dev_id, mount_dir, tag=None, disk_sz_gb=1):
         CloudHost.log_info("Creating volume with tag " + tag +
                            " from snapshot " + snap_id +
                            " at dev_id " + dev_id +
                            " mount_dir " + mount_dir)
         conn = CloudHost.connect_ec2()
-        disk_sz_gb = 1
         vol = conn.create_volume(disk_sz_gb, CloudHost.zone(),
                                  snapshot=snap_id,
                                  volume_type='gp2')
@@ -884,7 +884,7 @@ class CloudHost(LoggerMixin):
         else:
             CloudHost.log_info("Volume " + vol_id + " already attached to " + att_instance_id + " at " + att_device)
             CloudHost._mount_device(dev_id, mount_dir)
-            return att_device, mount_dir
+            return att_device, os.path.join(mount_dir, dev_id)
 
     @staticmethod
     def snapshot_volume(vol_id=None, dev_id=None, tag=None, description=None, wait_till_complete=True):
