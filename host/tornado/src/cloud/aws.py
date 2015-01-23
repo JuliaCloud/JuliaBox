@@ -797,13 +797,12 @@ class CloudHost(LoggerMixin):
         return nt - st
 
     @staticmethod
-    def create_new_volume(snap_id, dev_id, mount_dir, tag=None):
+    def create_new_volume(snap_id, dev_id, mount_dir, tag=None, disk_sz_gb=1):
         CloudHost.log_info("Creating volume with tag " + tag +
                            " from snapshot " + snap_id +
                            " at dev_id " + dev_id +
                            " mount_dir " + mount_dir)
         conn = CloudHost.connect_ec2()
-        disk_sz_gb = 1
         vol = conn.create_volume(disk_sz_gb, CloudHost.zone(),
                                  snapshot=snap_id,
                                  volume_type='gp2')
