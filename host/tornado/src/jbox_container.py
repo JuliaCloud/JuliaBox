@@ -443,4 +443,4 @@ class JBoxContainer(LoggerMixin):
                 if retry == 10:
                     self.log_exception("error recording usage")
                 else:
-                    self.log_info("error recording usage, shall retry.")
+                    self.log_warn("error recording usage, shall retry.")

@@ -16,6 +16,5 @@ class PingHandler(JBoxHandler):
             self.set_status(status_code=204)
             self.finish()
         else:
-            self.log_info("Invalid ping request for " + sessname)
+            self.log_warn("Invalid ping request for " + sessname)
             self.send_error(status_code=403)
-

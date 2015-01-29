@@ -89,7 +89,7 @@ class MainHandler(JBoxHandler):
                         creds_json = self.renew_creds(creds_json)
                         authtok = creds_json['access_token']
                     except:
-                        self.log_info("stale stored creds. will renew on next use. user: " + user_id)
+                        self.log_warn("stale stored creds. will renew on next use. user: " + user_id)
                         creds = None
                         authtok = None
                 else:

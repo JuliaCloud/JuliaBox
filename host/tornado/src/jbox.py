@@ -74,7 +74,7 @@ class JBox(LoggerMixin):
         try:
             CloudHost.deregister_instance_dns()
         except:
-            CloudHost.log_info("No prior dns registration found for the instance")
+            CloudHost.log_warn("No prior dns registration found for the instance")
         CloudHost.register_instance_dns()
         JBoxContainer.publish_container_stats()
         JBox.do_update_user_home_image()
@@ -97,7 +97,7 @@ class JBox(LoggerMixin):
 
         if (reg_allowed and (rate > max_rate*1.1)) or ((not reg_allowed) and (rate < max_rate*0.9)):
             reg_allowed = not reg_allowed
-            CloudHost.log_info("Changing registration allowed to %r", reg_allowed)
+            CloudHost.log_warn("Changing registration allowed to %r", reg_allowed)
             JBoxDynConfig.set_allow_registration(CloudHost.INSTALL_ID, reg_allowed)
 
         if reg_allowed:
@@ -128,7 +128,7 @@ class JBox(LoggerMixin):
             JBoxContainer.async_update_disk_state()
         elif JBox.is_ready_to_terminate():
             terminating = True
-            JBox.log_info("terminating to scale down")
+            JBox.log_warn("terminating to scale down")
             try:
                 CloudHost.deregister_instance_dns()
             except:
