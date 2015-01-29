@@ -257,13 +257,13 @@ class JBoxContainer(LoggerMixin):
                 # JBoxContainer.log_info("time_started " + str(cont.time_started()) +
                 #               " delete_before: " + str(delete_before) +
                 #               " cond: " + str(cont.time_started() < delete_before))
-                JBoxContainer.log_info("Running beyond allowed time %s", cont.debug_str())
+                JBoxContainer.log_warn("Running beyond allowed time %s", cont.debug_str())
                 cont.async_backup_and_cleanup()
             elif (last_ping is not None) and c_is_active and (last_ping < stop_inacive_before):
                 # if inactive for too long, stop it
                 # JBoxContainer.log_info("last_ping " + str(last_ping) + " stop_before: " + str(stop_before) +
                 #           " cond: " + str(last_ping < stop_before))
-                JBoxContainer.log_info("Inactive beyond allowed time %s", cont.debug_str())
+                JBoxContainer.log_warn("Inactive beyond allowed time %s", cont.debug_str())
                 cont.async_backup_and_cleanup()
 
         # delete ping entries for non exixtent containers
@@ -377,7 +377,7 @@ class JBoxContainer(LoggerMixin):
         self.refresh()
         JBoxContainer.log_info("Starting %s", self.debug_str())
         if self.is_running() or self.is_restarting():
-            JBoxContainer.log_info("Already started %s", self.debug_str())
+            JBoxContainer.log_warn("Already started %s. Browser connectivity issues?", self.debug_str())
             return
 
         disk = VolMgr.get_disk_for_user(email)

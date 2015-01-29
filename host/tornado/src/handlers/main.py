@@ -51,6 +51,7 @@ class MainHandler(JBoxHandler):
         if (cont is None) or (not cont.is_running()):
             loading_step = int(self.get_cookie("loading", 0))
             if loading_step > 30:
+                self.log_error("Could not start instance. Session [%s] for user [%s] didn't load.", sessname, user_id)
                 self.write({'code': -1})
                 return
 
@@ -67,6 +68,7 @@ class MainHandler(JBoxHandler):
         if (cont is None) or (not cont.is_running()):
             loading_step = int(self.get_cookie("loading", 0))
             if loading_step > 30:
+                self.log_error("Could not start instance. Session [%s] for user [%s] didn't load.", sessname, user_id)
                 self.clear_container_cookies()
                 self.rendertpl("index.tpl", cfg=self.config(),
                                state=self.state(
@@ -127,6 +129,7 @@ class MainHandler(JBoxHandler):
         self.unset_affinity()
         self.log_debug("at hop %d for user %s", nhops, user_id)
         if max_hop:
+            self.log_error("Server maxed out. Can't launch container at hop %d for user %s", nhops, user_id)
             self.rendertpl("index.tpl", cfg=self.config(), state=self.state(
                 error="Maximum number of JuliaBox instances active. Please try after sometime.", success=''))
         else:
