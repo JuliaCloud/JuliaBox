@@ -73,8 +73,9 @@ class JBox(LoggerMixin):
     def run(self):
         try:
             CloudHost.deregister_instance_dns()
+            CloudHost.log_warn("Prior dns registration was found for the instance")
         except:
-            CloudHost.log_warn("No prior dns registration found for the instance")
+            CloudHost.log_debug("No prior dns registration found for the instance")
         CloudHost.register_instance_dns()
         JBoxContainer.publish_container_stats()
         JBox.do_update_user_home_image()
