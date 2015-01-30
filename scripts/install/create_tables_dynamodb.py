@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 from boto.dynamodb2.table import Table
 from db import JBoxUserV2, JBoxInvite, JBoxDiskState, JBoxAccountingV2, JBoxDynConfig, JBoxSessionProps
 
