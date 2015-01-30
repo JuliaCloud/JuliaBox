@@ -284,7 +284,7 @@ class CloudHost(LoggerMixin):
             if next_token is None:
                 break
         if len(dims) == 0:
-            CloudHost.log_info("invalid metric " + '.'.join([metric_namespace, metric_name]))
+            CloudHost.log_warn("invalid metric " + '.'.join([metric_namespace, metric_name]))
             return None
         return dims
 
@@ -397,7 +397,7 @@ class CloudHost(LoggerMixin):
             CloudHost.log_debug("Average load (excluding old amis): %r", avg_load)
 
             if avg_load >= CloudHost.SCALE_UP_AT_LOAD:
-                CloudHost.log_info("Requesting scale up as cluster average load %r > %r",
+                CloudHost.log_warn("Requesting scale up as cluster average load %r > %r",
                                    avg_load, CloudHost.SCALE_UP_AT_LOAD)
                 CloudHost.add_instance()
         else:
@@ -660,7 +660,7 @@ class CloudHost(LoggerMixin):
                             " mount_point:" + repr(mount_point) +
                             " actual_mount_point:" + repr(actual_mount_point))
         if mount_point != actual_mount_point:
-            CloudHost.log_info("Mount point expected:" + mount_point + ", got:" + repr(actual_mount_point))
+            CloudHost.log_warn("Mount point expected:" + mount_point + ", got:" + repr(actual_mount_point))
             mount_point = actual_mount_point
         res = sh.umount(mount_point)  # the mount point must be mentioned in fstab file
         if res.exit_code != 0:
@@ -726,7 +726,7 @@ class CloudHost(LoggerMixin):
             return True
 
         if force_detach:
-            CloudHost.log_info("Forcing detach of volume " + vol_id)
+            CloudHost.log_warn("Forcing detach of volume " + vol_id)
             conn.detach_volume(vol_id)
             CloudHost._wait_for_status(vol, 'available')
 
@@ -882,7 +882,7 @@ class CloudHost(LoggerMixin):
         if att_instance_id is None:
             return CloudHost._attach_free_volume(vol_id, dev_id, mount_dir)
         else:
-            CloudHost.log_info("Volume " + vol_id + " already attached to " + att_instance_id + " at " + att_device)
+            CloudHost.log_warn("Volume " + vol_id + " already attached to " + att_instance_id + " at " + att_device)
             CloudHost._mount_device(dev_id, mount_dir)
             return att_device, os.path.join(mount_dir, dev_id)
 
@@ -891,7 +891,7 @@ class CloudHost(LoggerMixin):
         if dev_id is not None:
             vol_id = CloudHost.get_volume_id_from_device(dev_id)
         if vol_id is None:
-            CloudHost.log_info("No volume to snapshot. vol_id: " + repr(vol_id) + ", dev_id: " + repr(dev_id))
+            CloudHost.log_warn("No volume to snapshot. vol_id: " + repr(vol_id) + ", dev_id: " + repr(dev_id))
             return
         vol = CloudHost._get_volume(vol_id)
         CloudHost.log_info("Creating snapshot for volume: " + vol_id)

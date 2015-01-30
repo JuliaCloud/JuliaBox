@@ -17,6 +17,20 @@ from jbox_container import JBoxContainer
 from vol import VolMgr, JBoxLoopbackVol
 
 
+def jboxd_method(f):
+    def wrapper(*args, **kwargs):
+        try:
+            f(*args, **kwargs)
+        except:
+            JBoxd.log_exception("Exception in jboxd_method %s", f.func_name)
+            time.sleep(2)
+        finally:
+            JBoxd.finish_thread()
+
+    wrapper.__name__ = 'jboxd_method_' + f.func_name
+    return wrapper
+
+
 class JBoxd(LoggerMixin):
     ACTIVE = {}
     LOCK = threading.Lock()
@@ -94,13 +108,11 @@ class JBoxd(LoggerMixin):
         JBoxd.log_debug("finished " + sign)
 
     @staticmethod
+    @jboxd_method
     def backup_and_cleanup(dockid):
-        try:
-            cont = JBoxContainer(dockid)
-            cont.stop()
-            cont.delete(backup=True)
-        finally:
-            JBoxd.finish_thread()
+        cont = JBoxContainer(dockid)
+        cont.stop()
+        cont.delete(backup=True)
 
     @staticmethod
     def _is_scheduled(cmd, args):
@@ -119,106 +131,94 @@ class JBoxd(LoggerMixin):
         return True
 
     @staticmethod
+    @jboxd_method
     def launch_session(name, email, reuse=True):
-        try:
-            JBoxd._wait_for_session_backup(name)
-            VolMgr.refresh_disk_use_status()
-            JBoxContainer.launch_by_name(name, email, reuse=reuse)
-        finally:
-            JBoxd.finish_thread()
+        JBoxd._wait_for_session_backup(name)
+        VolMgr.refresh_disk_use_status()
+        JBoxContainer.launch_by_name(name, email, reuse=reuse)
 
     @staticmethod
+    @jboxd_method
     def auto_activate():
-        try:
-            num_mails_24h, rate = CloudHost.get_email_rates()
-            rate_per_second = min(JBoxd.MAX_ACTIVATIONS_PER_SEC, rate)
-            num_mails = min(JBoxd.MAX_AUTO_ACTIVATIONS_PER_RUN, num_mails_24h)
+        num_mails_24h, rate = CloudHost.get_email_rates()
+        rate_per_second = min(JBoxd.MAX_ACTIVATIONS_PER_SEC, rate)
+        num_mails = min(JBoxd.MAX_AUTO_ACTIVATIONS_PER_RUN, num_mails_24h)
 
-            JBoxd.log_info("Will activate max %d users at %d per second. AWS limits: %d mails at %d per second",
-                           num_mails, rate_per_second,
-                           num_mails_24h, rate)
-            user_ids = JBoxUserV2.get_pending_activations(num_mails)
-            JBoxd.log_info("Got %d user_ids to be activated", len(user_ids))
+        JBoxd.log_info("Will activate max %d users at %d per second. AWS limits: %d mails at %d per second",
+                       num_mails, rate_per_second,
+                       num_mails_24h, rate)
+        user_ids = JBoxUserV2.get_pending_activations(num_mails)
+        JBoxd.log_info("Got %d user_ids to be activated", len(user_ids))
 
-            for user_id in user_ids:
-                JBoxd.log_info("Activating %s", user_id)
+        for user_id in user_ids:
+            JBoxd.log_info("Activating %s", user_id)
 
-                # send email by SES
-                CloudHost.send_email(user_id, JBoxd.ACTIVATION_SENDER, JBoxd.ACTIVATION_SUBJECT, JBoxd.ACTIVATION_BODY)
+            # send email by SES
+            CloudHost.send_email(user_id, JBoxd.ACTIVATION_SENDER, JBoxd.ACTIVATION_SUBJECT, JBoxd.ACTIVATION_BODY)
 
-                # set user as activated
-                user = JBoxUserV2(user_id)
-                user.set_activation_state(JBoxUserV2.ACTIVATION_CODE_AUTO, JBoxUserV2.ACTIVATION_GRANTED)
-                user.save()
+            # set user as activated
+            user = JBoxUserV2(user_id)
+            user.set_activation_state(JBoxUserV2.ACTIVATION_CODE_AUTO, JBoxUserV2.ACTIVATION_GRANTED)
+            user.save()
 
-                rate_per_second -= 1
-                if rate_per_second <= 0:
-                    time.sleep(1)
-                    rate_per_second = min(JBoxd.MAX_ACTIVATIONS_PER_SEC, rate)
-        finally:
-            JBoxd.finish_thread()
+            rate_per_second -= 1
+            if rate_per_second <= 0:
+                time.sleep(1)
+                rate_per_second = min(JBoxd.MAX_ACTIVATIONS_PER_SEC, rate)
 
     @staticmethod
+    @jboxd_method
     def update_user_home_image():
-        try:
-            VolMgr.update_user_home_image(fetch=True)
-            JBoxLoopbackVol.refresh_all_disks()
-        finally:
-            JBoxd.finish_thread()
+        VolMgr.update_user_home_image(fetch=True)
+        JBoxLoopbackVol.refresh_all_disks()
 
     @staticmethod
+    @jboxd_method
     def update_disk_states():
-        try:
-            detached_disks = JBoxDiskState.get_detached_disks()
-            time_now = datetime.datetime.now(pytz.utc)
-            for disk_key in detached_disks:
-                disk_info = JBoxDiskState(disk_key=disk_key)
-                user_id = disk_info.get_user_id()
-                sess_props = JBoxSessionProps(unique_sessname(user_id))
-                incomplete_snapshots = []
-                modified = False
-                for snap_id in disk_info.get_snapshot_ids():
-                    if not CloudHost.is_snapshot_complete(snap_id):
-                        incomplete_snapshots.push(snap_id)
-                        continue
-                    JBoxd.log_debug("updating latest snapshot of user %s to %s", user_id, snap_id)
-                    old_snap_id = sess_props.get_snapshot_id()
-                    sess_props.set_snapshot_id(snap_id)
-                    modified = True
-                    if old_snap_id is not None:
-                        CloudHost.delete_snapshot(old_snap_id)
-                if modified:
-                    sess_props.save()
-                    disk_info.set_snapshot_ids(incomplete_snapshots)
-                    disk_info.save()
-                if len(incomplete_snapshots) == 0:
-                    if (time_now - disk_info.get_detach_time()).total_seconds() > 24*60*60:
-                        vol_id = disk_info.get_volume_id()
-                        JBoxd.log_debug("volume %s for user %s unused for too long", vol_id, user_id)
-                        disk_info.delete()
-                        CloudHost.detach_volume(vol_id, delete=True)
-                else:
-                    JBoxd.log_debug("ongoing snapshots of user %s: %r", user_id, incomplete_snapshots)
-        finally:
-            JBoxd.finish_thread()
+        detached_disks = JBoxDiskState.get_detached_disks()
+        time_now = datetime.datetime.now(pytz.utc)
+        for disk_key in detached_disks:
+            disk_info = JBoxDiskState(disk_key=disk_key)
+            user_id = disk_info.get_user_id()
+            sess_props = JBoxSessionProps(unique_sessname(user_id))
+            incomplete_snapshots = []
+            modified = False
+            for snap_id in disk_info.get_snapshot_ids():
+                if not CloudHost.is_snapshot_complete(snap_id):
+                    incomplete_snapshots.append(snap_id)
+                    continue
+                JBoxd.log_debug("updating latest snapshot of user %s to %s", user_id, snap_id)
+                old_snap_id = sess_props.get_snapshot_id()
+                sess_props.set_snapshot_id(snap_id)
+                modified = True
+                if old_snap_id is not None:
+                    CloudHost.delete_snapshot(old_snap_id)
+            if modified:
+                sess_props.save()
+                disk_info.set_snapshot_ids(incomplete_snapshots)
+                disk_info.save()
+            if len(incomplete_snapshots) == 0:
+                if (time_now - disk_info.get_detach_time()).total_seconds() > 24*60*60:
+                    vol_id = disk_info.get_volume_id()
+                    JBoxd.log_debug("volume %s for user %s unused for too long", vol_id, user_id)
+                    disk_info.delete()
+                    CloudHost.detach_volume(vol_id, delete=True)
+            else:
+                JBoxd.log_debug("ongoing snapshots of user %s: %r", user_id, incomplete_snapshots)
 
     @staticmethod
+    @jboxd_method
     def refresh_disks():
-        try:
-            if JBoxd._is_scheduled(JBoxAsyncJob.CMD_UPDATE_USER_HOME_IMAGE, ()):
-                return
-            JBoxLoopbackVol.refresh_all_disks()
-        finally:
-            JBoxd.finish_thread()
+        if JBoxd._is_scheduled(JBoxAsyncJob.CMD_UPDATE_USER_HOME_IMAGE, ()):
+            return
+        JBoxLoopbackVol.refresh_all_disks()
 
     @staticmethod
+    @jboxd_method
     def collect_stats():
-        try:
-            VolMgr.publish_stats()
-            db.publish_stats()
-            JBoxDynConfig.set_stat_collected_date(CloudHost.INSTALL_ID)
-        finally:
-            JBoxd.finish_thread()
+        VolMgr.publish_stats()
+        db.publish_stats()
+        JBoxDynConfig.set_stat_collected_date(CloudHost.INSTALL_ID)
 
     def process_offline(self):
         self.log_debug("processing offline...")
@@ -258,6 +258,7 @@ class JBoxd(LoggerMixin):
         return ret
 
     @staticmethod
+    @jboxd_method
     def process_and_respond():
         def _callback(cmd, data):
             try:
@@ -269,10 +270,7 @@ class JBoxd(LoggerMixin):
                 resp = {'code:': -1, 'data': str(ex)}
             return resp
 
-        try:
-            JBoxd.QUEUE.respond(_callback)
-        finally:
-            JBoxd.finish_thread()
+        JBoxd.QUEUE.respond(_callback)
 
     def run(self):
         if VolMgr.has_update_for_user_home_image():

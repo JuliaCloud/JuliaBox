@@ -1,5 +1,5 @@
 # Docker file for JuliaBox
-# Version:25
+# Version:26
 
 FROM tanmaykm/jboxjulia:v0.3.5_13
 
@@ -88,6 +88,9 @@ RUN apt-get install -y \
 RUN apt-get install -y \
     m4 \
     && apt-get clean
+
+# SymPy
+RUN pip install --upgrade sympy
 
 RUN mkdir mpir; cd mpir; wget http://mpir.org/mpir-2.7.0-alpha11.tar.bz2; \
     tar -xvf mpir-2.7.0-alpha11.tar.bz2; cd mpir-2.7.0; \

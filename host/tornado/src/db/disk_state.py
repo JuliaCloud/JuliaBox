@@ -134,5 +134,5 @@ class JBoxDiskState(JBoxDB):
         except:
             # boto bug: https://github.com/boto/boto/issues/2708
             JBoxDiskState.TABLE = None
-            JBoxDiskState.log_info("Exception in getting detached disks. Probably empty table.")
+            JBoxDiskState.log_warn("Exception in getting detached disks. Probably empty table.")
         return disk_keys

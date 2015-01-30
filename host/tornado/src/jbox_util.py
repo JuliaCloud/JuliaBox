@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import errno
 import hashlib
@@ -53,12 +54,6 @@ def retry(tries, delay=1, backoff=2):
 
         return f_retry  # true decorator -> decorated function
     return deco_retry  # @retry(arg[, ...]) -> true decorator
-
-
-# def log_info(s):
-#     ts = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
-#     print (ts + "  " + s)
-#     sys.stdout.flush()
 
 
 def esc_sessname(s):
@@ -165,14 +160,20 @@ class LoggerMixin(object):
     def setup_logger(name=None, level=logging.INFO):
         logger = logging.getLogger(name)
         logger.setLevel(level)
-
-        ch = logging.StreamHandler()
-        ch.setLevel(level)
-
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(name)s - %(message)s')
-        ch.setFormatter(formatter)
 
+        # default channel (stdout)
+        ch = logging.StreamHandler(stream=sys.stdout)
+        ch.setLevel(level)
+        ch.setFormatter(formatter)
         logger.addHandler(ch)
+
+        # add separate channel (stderr) only for errors
+        err_ch = logging.StreamHandler(stream=sys.stderr)
+        err_ch.setLevel(logging.WARNING)
+        err_ch.setFormatter(formatter)
+        logger.addHandler(err_ch)
+
         return logger
 
     @classmethod
@@ -189,12 +190,20 @@ class LoggerMixin(object):
         cls._get_logger().info(msg, *args, **kwargs)
 
     @classmethod
+    def log_warn(cls, msg, *args, **kwargs):
+        cls._get_logger().warning(msg, *args, **kwargs)
+
+    @classmethod
     def log_error(cls, msg, *args, **kwargs):
         cls._get_logger().error(msg, *args, **kwargs)
 
     @classmethod
     def log_exception(cls, msg, *args, **kwargs):
         cls._get_logger().exception(msg, *args, **kwargs)
+
+    @classmethod
+    def log_critical(cls, msg, *args, **kwargs):
+        cls._get_logger().critical(msg, *args, **kwargs)
 
     @classmethod
     def log_debug(cls, msg, *args, **kwargs):

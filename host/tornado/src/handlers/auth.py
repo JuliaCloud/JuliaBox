@@ -133,27 +133,3 @@ class AuthHandler(JBoxHandler, GoogleOAuth2Mixin):
             id_token=id_token,
             token_response=user)
         return credential
-
-    @staticmethod
-    def fetch_auth_results(req):
-        try:
-            jbox_cookie = req.get_cookie(JBoxHandler.AUTH_COOKIE)
-            if jbox_cookie is None:
-                return None
-            jbox_cookie = json.loads(base64.b64decode(jbox_cookie))
-            sign = signstr(jbox_cookie['s'] + jbox_cookie['t'], AuthHandler._config['sesskey'])
-            if sign != jbox_cookie['x']:
-                AuthHandler.log_info("signature mismatch for " + jbox_cookie['s'])
-
-            d = isodate.parse_datetime(jbox_cookie['t'])
-            age = (datetime.datetime.now(pytz.utc) - d).total_seconds()
-            if age > JBoxHandler.AUTH_VALID_SECS:
-                AuthHandler.log_info("cookie older than allowed days: " + jbox_cookie['t'])
-                return None
-
-            jbox_cookie['creds'] = AuthHandler.CRED_STORE[jbox_cookie['s']].to_json()
-            return jbox_cookie
-        except:
-            AuthHandler.log_error("exception while converting cookie to auth results")
-            traceback.print_exc()
-            return None
