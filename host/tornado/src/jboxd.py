@@ -127,6 +127,7 @@ class JBoxd(LoggerMixin):
     def _wait_for_session_backup(sessname):
         cont = JBoxContainer.get_by_name(sessname)
         if (cont is not None) and JBoxd._is_scheduled(JBoxAsyncJob.CMD_BACKUP_CLEANUP, (cont.dockid,)):
+            JBoxd.log_debug("Waiting for backup of session %s", sessname)
             return False
         return True
 

@@ -15,3 +15,4 @@
 ## Scripts for Maintenance / Troubleshooting
 - `maintain/upload_user_home.py`: Upload the JuliaBox user home image from local (build) system on to S3 and update relevant table. Used to apply updated Julia packages on to a running cluster.
 - `maintain/log_tools.py`: Search archived CloudWatch logs for troubleshooting issues.
+- `maintain/disk_tools.py`: Manage user home foledr backups.

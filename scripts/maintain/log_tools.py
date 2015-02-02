@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 __author__ = 'tan'
 import sys
 import time
@@ -105,7 +107,7 @@ def filter_event_message(events, filter_string):
     for event in events:
         msg = event['message']
         ts = event['timestamp']
-        if filter_string is None or (re.search(filter_string, msg) is not None):
+        if (filter_string is None) or (re.search(filter_string, msg) is not None):
             yield (ts, msg)
 
 
