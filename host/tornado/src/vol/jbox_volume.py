@@ -1,6 +1,7 @@
 import os
 import tarfile
 import time
+import stat
 import datetime
 import errno
 import json
@@ -296,6 +297,10 @@ class JBoxVol(LoggerMixin):
                 if len(info.name) == 0:
                     continue
                 src_tar.extract(info, self.disk_path)
+                extracted_path = os.path.join(self.disk_path, extract_name)
+                if os.path.isdir(extracted_path) and not os.access(extracted_path, os.W_OK):
+                    st = os.stat(extracted_path)
+                    os.chmod(extracted_path, st.st_mode | stat.S_IWRITE)
             JBoxVol.log_info("Restored backup at " + self.disk_path)
         except IOError, ioe:
             if ioe.errno == errno.ENOSPC:
