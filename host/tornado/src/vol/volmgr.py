@@ -1,5 +1,6 @@
 import os
 import datetime
+import errno
 import pytz
 
 from jbox_util import make_sure_path_exists, LoggerMixin, unique_sessname
@@ -113,8 +114,16 @@ class VolMgr(LoggerMixin):
             disk = JBoxEBSVol.get_disk_for_user(email)
         else:
             disk = JBoxLoopbackVol.get_disk_for_user(email)
-        disk.setup_julia_image(ipython_profile, custom_jimg)
-        disk.setup_tutorial_link()
+        try:
+            disk.setup_julia_image(ipython_profile, custom_jimg)
+            disk.setup_tutorial_link()
+        except IOError, ioe:
+            if ioe.errno == errno.ENOSPC:
+                # continue login on ENOSPC to allow user to delete files
+                JBoxVol.log_exception("No space left to configure JuliaBox for %s", email)
+            else:
+                raise
+
         return disk
 
     @staticmethod
