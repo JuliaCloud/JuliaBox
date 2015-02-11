@@ -147,7 +147,8 @@ class JBoxEBSVol(JBoxVol):
         try:
             existing_disk = JBoxDiskState(cluster_id=CloudHost.INSTALL_ID, region_id=CloudHost.REGION,
                                           user_id=user_email)
-        except:
+        except Exception, ex:
+            JBoxEBSVol.log_debug("No existing disk for %s. Exception %r", user_email, ex)
             existing_disk = None
 
         if existing_disk is None:

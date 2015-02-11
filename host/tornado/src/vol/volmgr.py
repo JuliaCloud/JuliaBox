@@ -117,6 +117,8 @@ class VolMgr(LoggerMixin):
         try:
             disk.setup_julia_image(ipython_profile, custom_jimg)
             disk.setup_tutorial_link()
+            disk.gen_ssh_key()
+            disk.gen_gitconfig()
         except IOError, ioe:
             if ioe.errno == errno.ENOSPC:
                 # continue login on ENOSPC to allow user to delete files

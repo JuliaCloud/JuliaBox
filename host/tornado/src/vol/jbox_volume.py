@@ -95,7 +95,7 @@ class JBoxVol(LoggerMixin):
         if os.path.exists(ssh_key_path) and not os.access(ssh_key_path, os.W_OK):
             os.chmod(ssh_key_path, 0600)
         if os.path.exists(ssh_pub_key_path) and not os.access(ssh_pub_key_path, os.W_OK):
-            os.chmod(ssh_key_path, 0644)
+            os.chmod(ssh_pub_key_path, 0644)
 
         public_key, private_key = ssh_keygen()
         public_key += " juliabox\n"
