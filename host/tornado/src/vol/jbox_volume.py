@@ -1,6 +1,7 @@
 import os
 import tarfile
 import time
+import stat
 import datetime
 import errno
 import json
@@ -94,7 +95,7 @@ class JBoxVol(LoggerMixin):
         if os.path.exists(ssh_key_path) and not os.access(ssh_key_path, os.W_OK):
             os.chmod(ssh_key_path, 0600)
         if os.path.exists(ssh_pub_key_path) and not os.access(ssh_pub_key_path, os.W_OK):
-            os.chmod(ssh_key_path, 0644)
+            os.chmod(ssh_pub_key_path, 0644)
 
         public_key, private_key = ssh_keygen()
         public_key += " juliabox\n"
@@ -284,6 +285,7 @@ class JBoxVol(LoggerMixin):
 
         src_tar = tarfile.open(src, 'r:gz')
         try:
+            perms = {}
             for info in src_tar.getmembers():
                 if not info.name.startswith('juser/'):
                     continue
@@ -296,6 +298,15 @@ class JBoxVol(LoggerMixin):
                 if len(info.name) == 0:
                     continue
                 src_tar.extract(info, self.disk_path)
+                extracted_path = os.path.join(self.disk_path, extract_name)
+                if os.path.isdir(extracted_path) and not os.access(extracted_path, os.W_OK):
+                    st = os.stat(extracted_path)
+                    perms[extracted_path] = st
+                    os.chmod(extracted_path, st.st_mode | stat.S_IWRITE)
+            if len(perms) > 0:
+                JBoxVol.log_debug("resetting permissions on %d folders", len(perms))
+                for extracted_path, perm in perms.iteritems():
+                    os.chmod(extracted_path, perm)
             JBoxVol.log_info("Restored backup at " + self.disk_path)
         except IOError, ioe:
             if ioe.errno == errno.ENOSPC:

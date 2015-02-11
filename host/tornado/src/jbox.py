@@ -71,12 +71,13 @@ class JBox(LoggerMixin):
         self.ct = tornado.ioloop.PeriodicCallback(JBox.do_housekeeping, run_interval, self.ioloop)
 
     def run(self):
-        try:
-            CloudHost.deregister_instance_dns()
-            CloudHost.log_warn("Prior dns registration was found for the instance")
-        except:
-            CloudHost.log_debug("No prior dns registration found for the instance")
-        CloudHost.register_instance_dns()
+        if CloudHost.ENABLED['route53']:
+            try:
+                CloudHost.deregister_instance_dns()
+                CloudHost.log_warn("Prior dns registration was found for the instance")
+            except:
+                CloudHost.log_debug("No prior dns registration found for the instance")
+            CloudHost.register_instance_dns()
         JBoxContainer.publish_container_stats()
         JBox.do_update_user_home_image()
         JBoxContainer.async_refresh_disks()

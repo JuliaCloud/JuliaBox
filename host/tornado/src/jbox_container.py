@@ -176,10 +176,14 @@ class JBoxContainer(LoggerMixin):
         if cont is None:
             cont = JBoxContainer._create_new(name)
 
-        if not (cont.is_running() or cont.is_restarting()):
-            cont.start(email)
-        #else:
-        #    cont.restart()
+        try:
+            if not (cont.is_running() or cont.is_restarting()):
+                cont.start(email)
+            #else:
+            #    cont.restart()
+        except:
+            cont.delete()
+            raise
 
         JBoxContainer.publish_container_stats()
         return cont

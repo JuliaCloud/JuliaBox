@@ -1,5 +1,6 @@
 import os
 import datetime
+import errno
 import pytz
 
 from jbox_util import make_sure_path_exists, LoggerMixin, unique_sessname
@@ -70,12 +71,16 @@ class VolMgr(LoggerMixin):
     @staticmethod
     def get_disk_from_container(cid):
         props = JBoxVol.dckr().inspect_container(cid)
-        vols = props['Volumes']
-        for _cpath, hpath in vols.iteritems():
-            if hpath.startswith(JBoxLoopbackVol.FS_LOC):
-                return JBoxLoopbackVol.get_disk_from_container(cid)
-            elif VolMgr.HAS_EBS and hpath.startswith(JBoxEBSVol.FS_LOC):
-                return JBoxEBSVol.get_disk_from_container(cid)
+        try:
+            vols = props['Volumes']
+            for _cpath, hpath in vols.iteritems():
+                if hpath.startswith(JBoxLoopbackVol.FS_LOC):
+                    return JBoxLoopbackVol.get_disk_from_container(cid)
+                elif VolMgr.HAS_EBS and hpath.startswith(JBoxEBSVol.FS_LOC):
+                    return JBoxEBSVol.get_disk_from_container(cid)
+        except:
+            VolMgr.log_error("error finding disk ids used in " + cid)
+
         return None
 
     @staticmethod
@@ -109,8 +114,18 @@ class VolMgr(LoggerMixin):
             disk = JBoxEBSVol.get_disk_for_user(email)
         else:
             disk = JBoxLoopbackVol.get_disk_for_user(email)
-        disk.setup_julia_image(ipython_profile, custom_jimg)
-        disk.setup_tutorial_link()
+        try:
+            disk.setup_julia_image(ipython_profile, custom_jimg)
+            disk.setup_tutorial_link()
+            disk.gen_ssh_key()
+            disk.gen_gitconfig()
+        except IOError, ioe:
+            if ioe.errno == errno.ENOSPC:
+                # continue login on ENOSPC to allow user to delete files
+                JBoxVol.log_exception("No space left to configure JuliaBox for %s", email)
+            else:
+                raise
+
         return disk
 
     @staticmethod
