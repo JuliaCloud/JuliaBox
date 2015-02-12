@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 
 from boto.dynamodb2.table import Table
-from db import JBoxUserV2, JBoxInvite, JBoxDiskState, JBoxAccountingV2, JBoxDynConfig, JBoxSessionProps
+from db import JBoxUserV2, JBoxInvite, JBoxDiskState, JBoxAccountingV2, JBoxDynConfig, \
+    JBoxSessionProps, JBoxCourseHomework
 
 
 def table_exists(name):
@@ -12,7 +13,8 @@ def table_exists(name):
     except:
         return False
 
-for cls in [JBoxUserV2, JBoxInvite, JBoxDiskState, JBoxAccountingV2, JBoxDynConfig, JBoxSessionProps]:
+for cls in [JBoxUserV2, JBoxInvite, JBoxDiskState, JBoxAccountingV2, JBoxDynConfig,
+            JBoxSessionProps, JBoxCourseHomework]:
     print("Creating %s..." % (cls.NAME,))
     if table_exists(cls.NAME):
         print("\texists already!")

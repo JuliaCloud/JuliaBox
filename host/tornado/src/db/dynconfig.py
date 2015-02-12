@@ -206,3 +206,21 @@ class JBoxDynConfig(JBoxDB):
         except boto.dynamodb2.exceptions.ItemNotFound:
             return None
         return json.loads(record.get_value())
+
+    @staticmethod
+    def get_course(cluster, course_id):
+        try:
+            course_key = '|'.join(['course', course_id])
+            record = JBoxDynConfig(JBoxDynConfig._n(cluster, course_key))
+        except boto.dynamodb2.exceptions.ItemNotFound:
+            return None
+        return json.loads(record.get_value())
+
+    @staticmethod
+    def set_course(cluster, course_id, course_details):
+        val = json.dumps(course_details)
+        course_key = '|'.join(['course', course_id])
+        record = JBoxDynConfig(JBoxDynConfig._n(cluster, course_key), create=True, value=val)
+        if not record.is_new:
+            record.set_value(val)
+            record.save()

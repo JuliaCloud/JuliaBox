@@ -5,6 +5,7 @@ from db.accounting_v2 import JBoxAccountingV2
 from db.container import JBoxSessionProps
 from db.dynconfig import JBoxDynConfig
 from db.disk_state import JBoxDiskState
+from db.course_homework import JBoxCourseHomework
 from cloud.aws import CloudHost
 
 
@@ -24,6 +25,8 @@ def configure_db(cfg):
         JBoxDynConfig.NAME = cloud_cfg['jbox_dynconfig']
     if 'jbox_diskstate' in cloud_cfg:
         JBoxDiskState.NAME = cloud_cfg['jbox_diskstate']
+    if 'jbox_coursehomework' in cloud_cfg:
+        JBoxCourseHomework.NAME = cloud_cfg['jbox_coursehomework']
 
 
 def is_proposed_cluster_leader():
