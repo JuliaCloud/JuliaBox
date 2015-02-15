@@ -68,7 +68,7 @@ http {
             proxy_set_header    X-Forwarded-for $remote_addr;        
         }        
 
-        location ~ \/(hostlaunchipnb|hostadmin|ping|cors)+\/  {
+        location ~ \/(hostlaunchipnb|hostadmin|ping|cors|hw)+\/  {
             proxy_pass          http://localhost:8888;
             proxy_set_header    Host            $host;
             proxy_set_header    X-Real-IP       $remote_addr;

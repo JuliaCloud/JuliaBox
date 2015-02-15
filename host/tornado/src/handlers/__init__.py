@@ -4,3 +4,4 @@ from handlers.main import MainHandler
 from handlers.auth import AuthHandler
 from handlers.ping import PingHandler
 from handlers.cors import CorsHandler
+from handlers.course_homework import HomeworkHandler

@@ -4,6 +4,7 @@ from boto.dynamodb2.types import NUMBER, STRING
 import boto.dynamodb2.exceptions
 import datetime
 import pytz
+import json
 from jbox_crypto import encrypt, decrypt
 
 from db.db_base import JBoxDB
@@ -29,6 +30,8 @@ class JBoxUserV2(JBoxDB):
         - organization
         - role
         - gtok
+
+        - courses_owned
     """
     NAME = 'jbox_users_v2'
 
@@ -60,6 +63,7 @@ class JBoxUserV2(JBoxDB):
     ROLE_ACCESS_STATS = 1 << 0
     ROLE_MANAGE_INVITES = 1 << 1
     ROLE_MANAGE_CONTAINERS = 1 << 2
+    ROLE_OFFER_COURSES = 1 << 3
 
     ROLE_SUPER = (1 << 33) - 1
 
@@ -211,6 +215,15 @@ class JBoxUserV2(JBoxDB):
         if mask == 0:
             return resource_profile == 0
         return (resource_profile & mask) == mask
+
+    def get_courses_offered(self):
+        if self.item is None:
+            return []
+        return json.loads(self.get_attrib('courses_offered', '[]'))
+
+    def set_courses_offered(self, courses_offered):
+        if self.item is not None:
+            self.item['courses_offered'] = json.dumps(courses_offered)
 
     @staticmethod
     def get_pending_activations(max_count):

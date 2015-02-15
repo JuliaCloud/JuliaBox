@@ -109,6 +109,18 @@ var JuliaBox = (function($, _, undefined){
 	    	self.comm('/hostadmin/', 'GET', {'show_cfg': true}, s, f);
         },
 
+        hw_check: function(course, problemset, question, answer, record, s, f) {
+            mode = record ? "submit" : "check";
+            self.comm('/hw/', 'GET', {
+                'mode': mode,
+                'course': course,
+                'problemset': problemset,
+                'question': question,
+                'answer': answer,
+            },
+            s, f)
+        },
+
         show_stats: function(stat_name, title) {
 	    	s = function(stats){
 	    	    if(stats.code == 0) {
