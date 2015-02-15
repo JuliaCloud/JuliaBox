@@ -27,5 +27,9 @@ do
     julia -e "Pkg.clone(\"$pkg\")"
 done
 
+echo ""
+echo "Creating package list..."
 julia -e "Pkg.status()" > /home/juser/.juliabox/packages.txt
-julia -e "Pkg.test()" > /home/juser/.juliabox/packages_test_result.txt
+#echo ""
+#echo "Running package tests..."
+#julia -e "Pkg.test()" > /home/juser/.juliabox/packages_test_result.txt
