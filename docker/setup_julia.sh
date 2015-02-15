@@ -12,6 +12,20 @@ Patchwork Quandl Lazy QuantEcon"
 
 for pkg in ${DEFAULT_PACKAGES}
 do
+    echo ""
     echo "Adding default package $pkg"
     julia -e "Pkg.add(\"$pkg\")"
 done
+
+INTERNAL_PACKAGES="https://github.com/shashi/Homework.jl.git \
+https://github.com/tanmaykm/JuliaBox.jl.git"
+
+for pkg in ${INTERNAL_PACKAGES}
+do
+    echo ""
+    echo "Adding internal package $pkg"
+    julia -e "Pkg.clone(\"$pkg\")"
+done
+
+julia -e "Pkg.status()" > /home/juser/.juliabox/packages.txt
+julia -e "Pkg.test()" > /home/juser/.juliabox/packages_test_result.txt
