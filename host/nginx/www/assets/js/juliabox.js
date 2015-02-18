@@ -110,15 +110,113 @@ var JuliaBox = (function($, _, undefined){
         },
 
         hw_check: function(course, problemset, question, answer, record, s, f) {
+            if(!s) {
+                s = function(status){
+                    if(status.code == 0) {
+                        bootbox.dialog({
+                            message: self._json_to_table(status.data),
+                            title: 'Evaluation'
+                        }).find("div.modal-dialog").addClass("bootbox70");
+                    }
+                    else {
+                        bootbox.alert('<pre>' + status.data + '</pre>');
+                    }
+                };
+            };
+            if(!f) {
+	    	    f = function() { bootbox.alert("Oops. Unexpected error while verifying answer.<br/><br/>Please try again later."); };
+            };
             mode = record ? "submit" : "check";
-            self.comm('/hw/', 'GET', {
+            self.comm('/hw/', 'POST', {
                 'mode': mode,
-                'course': course,
-                'problemset': problemset,
-                'question': question,
-                'answer': answer,
+                'params': JSON.stringify({
+                    'course': course,
+                    'problemset': problemset,
+                    'question': question,
+                    'answer': answer
+                })
             },
-            s, f)
+            s, f);
+        },
+
+        hw_report: function(course, problemset, questions, s, f) {
+            if(!s) {
+                s = function(report){
+                    if(report.code == 0) {
+                        bootbox.dialog({
+                            message: self._json_to_table(report.data),
+                            title: 'Evaluations'
+                        }).find("div.modal-dialog").addClass("bootbox70");
+                    }
+                    else {
+                        bootbox.alert('<pre>' + report.data + '</pre>');
+                    }
+                };
+            };
+            if(!f) {
+	    	    f = function() { bootbox.alert("Oops. Unexpected error while retrieving evaluations.<br/><br/>Please try again later."); };
+            };
+            self.comm('/hw/', 'POST', {
+                'mode': 'report',
+                'params': JSON.stringify({
+                    'course': course,
+                    'problemset': problemset,
+                    'questions': questions
+                })
+            },
+            s, f);
+        },
+
+        hw_answers: function(course, problemset, questions, s, f) {
+            if(!s) {
+                s = function(ans){
+                    if(ans.code == 0) {
+                        bootbox.dialog({
+                            message: self._json_to_table(ans.data),
+                            title: 'Answers'
+                        }).find("div.modal-dialog").addClass("bootbox70");
+                    }
+                    else {
+                        bootbox.alert('<pre>' + ans.data + '</pre>');
+                    }
+                };
+            };
+            if(!f) {
+	    	    f = function() { bootbox.alert("Oops. Unexpected error while retrieving answers.<br/><br/>Please try again later."); };
+            };
+            self.comm('/hw/', 'POST', {
+                'mode': 'answers',
+                'params': JSON.stringify({
+                    'course': course,
+                    'problemset': problemset,
+                    'questions': questions
+                })
+            },
+            s, f);
+        },
+
+        hw_create: function(course, s, f) {
+            if(!s) {
+                s = function(result){
+                    if(result.code == 0) {
+                        bootbox.dialog({
+                            message: self._json_to_table(result.data),
+                            title: 'Create Course'
+                        }).find("div.modal-dialog").addClass("bootbox70");
+                    }
+                    else {
+                        bootbox.alert('<pre>' + result.data + '</pre>');
+                    }
+                };
+            };
+            if(!f) {
+	    	    f = function() { bootbox.alert("Oops. Unexpected error while creating course.<br/><br/>Please try again later."); };
+            };
+            self.comm('/hw/', 'POST', {
+                'mode': 'create',
+                'params': JSON.stringify(course)
+            },
+            s, f);
         },
 
         show_stats: function(stat_name, title) {
