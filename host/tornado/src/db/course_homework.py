@@ -91,6 +91,7 @@ class JBoxCourseHomework(JBoxDB):
     @staticmethod
     def check_answer(course_id, problemset_id, question_id, student_id, answer, record=True):
         ans, score, attempts = JBoxCourseHomework.get_answer(course_id, problemset_id, question_id)
+        max_score = score
         JBoxCourseHomework.log_debug("comparing [%r] with answer [%r] for course[%s], pset[%s], q[%s], student[%s]",
                                      answer, ans, course_id, problemset_id, question_id, student_id)
         correct = (ans == answer)
@@ -117,7 +118,7 @@ class JBoxCourseHomework(JBoxDB):
             rec.set_score(score)
             rec.save()
 
-        return state, score, used_attempts, attempts
+        return state, score, used_attempts, max_score, attempts
 
     @staticmethod
     def get_report(course_id, problemset_id, question_ids, student_id=None):

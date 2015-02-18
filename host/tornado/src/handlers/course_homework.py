@@ -75,14 +75,15 @@ class HomeworkHandler(JBoxHandler):
 
         record = (mode == "submit")
 
-        status, score, used_attempts, max_attempts = JBoxCourseHomework.check_answer(course, problemset, question,
-                                                                                     user_id, answer, record)
+        status, score, used_attempts, max_score, max_attempts = \
+            JBoxCourseHomework.check_answer(course, problemset, question, user_id, answer, record)
         response = {
             'code': 0,
             'data': {
                 'status': int(status),
-                'score': int(score),
+                'score': float(score),
                 'attempts': int(used_attempts),
+                'max_score': float(max_score),
                 'max_attempts': int(max_attempts)
             }
         }

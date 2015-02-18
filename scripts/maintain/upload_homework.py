@@ -22,55 +22,14 @@
 #}
 #
 
-import datetime
-import pytz
 import sys
 import json
 
 from cloud.aws import CloudHost
 from jbox_util import read_config, LoggerMixin
 import db
-from db import JBoxUserV2, JBoxDynConfig, JBoxCourseHomework
+from db import JBoxCourseHomework
 from handlers import HomeworkHandler
-
-
-# def upload_course(course):
-#     course_id = course['id']
-#     problemsets = []
-#
-#     for problemset in course['problemsets']:
-#         problemset_id = problemset['id']
-#         problemsets.append(problemset_id)
-#         questions = problemset['questions']
-#         #answers = problemset['answers']
-#         for question in questions:
-#             question_id = question['id']
-#             answer = question['ans']
-#             score = question['score'] if 'score' in question else 0
-#             #nscore = question['nscore'] if 'nscore' in question else 0
-#             try:
-#                 ans = JBoxCourseHomework(course_id, problemset_id, question_id, JBoxCourseHomework.ANSWER_KEY,
-#                                          answer=answer, state=JBoxCourseHomework.STATE_CORRECT, create=True)
-#             except:
-#                 ans = JBoxCourseHomework(course_id, problemset_id, question_id, JBoxCourseHomework.ANSWER_KEY)
-#                 ans.set_answer(answer, JBoxCourseHomework.STATE_CORRECT)
-#             ans.set_score(score)
-#             ans.save()
-#
-#     for uid in course['admins']:
-#         user = JBoxUserV2(uid)
-#         courses_offered = user.get_courses_offered()
-#         if course['id'] not in courses_offered:
-#             courses_offered.append(course['id'])
-#         user.set_courses_offered(courses_offered)
-#         user.set_role(JBoxUserV2.ROLE_OFFER_COURSES)
-#         user.save()
-#
-#     dt = datetime.datetime.now(pytz.utc)
-#     JBoxDynConfig.set_course(CloudHost.INSTALL_ID, course_id, {
-#         'problemsets': problemsets,
-#         'create_time': JBoxUserV2.datetime_to_yyyymmdd(dt)
-#     })
 
 
 def report_as_csv(wfile, perq):
