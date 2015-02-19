@@ -43,7 +43,7 @@ class HomeworkHandler(JBoxHandler):
             return
         if self.handle_get_answers(is_admin, courses_offered):
             return
-        if course_owner and self.handle_if_report(is_admin, courses_offered):
+        if course_owner and self.handle_if_report(user_id, is_admin, courses_offered):
             return
 
         self.log_error("no handlers found")
@@ -90,7 +90,7 @@ class HomeworkHandler(JBoxHandler):
         self.write(response)
         return True
 
-    def handle_if_report(self, is_admin, courses_offered):
+    def handle_if_report(self, user_id, is_admin, courses_offered):
         mode = self.get_argument('mode', None)
         if (mode is None) or (mode != "report"):
             return False
@@ -105,7 +105,10 @@ class HomeworkHandler(JBoxHandler):
 
         err = None
         if (not is_admin) and (course_id not in courses_offered):
-            err = "Course %s not found!" % (course_id,)
+            if student_id is None:
+                student_id = user_id
+            elif student_id != user_id:
+                err = "Course %s not found!" % (course_id,)
 
         if err is None:
             course = JBoxDynConfig.get_course(CloudHost.INSTALL_ID, course_id)

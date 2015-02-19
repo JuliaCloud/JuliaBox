@@ -123,6 +123,7 @@ class JBoxCourseHomework(JBoxDB):
     @staticmethod
     def get_report(course_id, problemset_id, question_ids, student_id=None):
         questions = []
+        pset_max_score = 0.0
         for question_id in question_ids:
             students = []
             question_gid = JBoxCourseHomework.question_gid(course_id, problemset_id, question_id)
@@ -133,36 +134,69 @@ class JBoxCourseHomework(JBoxDB):
                 records = JBoxCourseHomework.table().query_2(question_gid__eq=question_gid,
                                                              student_id__eq=student_id)
 
+            qmax_score = 0.0
+            qmax_attempts = 0
             for rec in records:
                 if rec['student_id'] == JBoxCourseHomework.ANSWER_KEY:
+                    qmax_score = float(rec['score'] if 'score' in rec else 0)
+                    qmax_attempts = rec['attempts'] if 'attempts' in rec else 0
                     continue
                 score = rec['score'] if 'score' in rec else 0
                 attempts = rec['attempts'] if 'attempts' in rec else 0
                 students.append({
                     'id': rec['student_id'],
                     'evaluation': int(rec['state']),
-                    'score': int(score),
+                    'score': float(score),
                     'attempts': int(attempts)
                 })
 
             questions.append({
                 'id': question_id,
-                'students': students
+                'students': students,
+                'max_score': qmax_score,
+                'max_attempts': qmax_attempts
             })
+
+        cum_scores = {}
+        for question in questions:
+            for student in question['students']:
+                student_id = student['id']
+                score = student['score']
+                if student_id in cum_scores:
+                    score += cum_scores[student_id]
+                cum_scores[student_id] = score
+
         return {
             'course_id': course_id,
             'problemset_id': problemset_id,
-            'questions': questions
+            'max_score': pset_max_score,
+            'questions': questions,
+            'scores': cum_scores
         }
 
     @staticmethod
     def get_answers(course_id, problemset_id, question_ids):
-        answers = []
+        questions = []
+        max_score = 0.0
+
         for question_id in question_ids:
             question_gid = JBoxCourseHomework.question_gid(course_id, problemset_id, question_id)
             records = JBoxCourseHomework.table().query_2(question_gid__eq=question_gid,
                                                          student_id__eq=JBoxCourseHomework.ANSWER_KEY)
 
             for rec in records:
-                answers.append(rec['answer'])
-        return answers
+                score = float(rec['score'] if 'score' in rec else 0)
+                attempts = rec['attempts'] if 'attempts' in rec else 0
+                questions.append({
+                    'id': rec['question_id'],
+                    'answer': rec['answer'],
+                    'score': score,
+                    'attempts': attempts
+                })
+                max_score += score
+        return {
+            'course_id': course_id,
+            'problemset_id': problemset_id,
+            'questions': questions,
+            'max_score': max_score
+        }
