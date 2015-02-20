@@ -148,7 +148,7 @@ class HomeworkHandler(JBoxHandler):
                 err = "Problem set %s not found!" % (problemset_id,)
 
         if err is None:
-            report = JBoxCourseHomework.get_answers(course_id, problemset_id, question_ids)
+            report = JBoxCourseHomework.get_problemset_metadata(course_id, problemset_id, question_ids)
             code = 0
         else:
             report = err
@@ -167,20 +167,24 @@ class HomeworkHandler(JBoxHandler):
 
         existing_course = JBoxDynConfig.get_course(CloudHost.INSTALL_ID, course_id)
         existing_admins = existing_course['admins'] if existing_course is not None else []
+        existing_psets = existing_course['problemsets'] if existing_course is not None else []
         if (existing_course is not None) and (user_id is not None) and (user_id not in existing_admins):
             return -1
+
+        for p in course['problemsets']:
+            if p['id'] not in existing_psets:
+                existing_psets.append(p['id'])
 
         dt = datetime.datetime.now(pytz.utc)
         JBoxDynConfig.set_course(CloudHost.INSTALL_ID, course_id, {
             'admins': course['admins'],
-            'problemsets': [p['id'] for p in course['problemsets']],
+            'problemsets': existing_psets,
             'create_time': JBoxUserV2.datetime_to_yyyymmdd(dt)
         })
 
         for problemset in course['problemsets']:
             problemset_id = problemset['id']
             questions = problemset['questions']
-            #answers = problemset['answers']
             for question in questions:
                 question_id = question['id']
                 answer = question['ans']

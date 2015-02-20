@@ -145,6 +145,7 @@ class JBoxCourseHomework(JBoxDB):
                 attempts = rec['attempts'] if 'attempts' in rec else 0
                 students.append({
                     'id': rec['student_id'],
+                    'answer': rec['answer'],
                     'evaluation': int(rec['state']),
                     'score': float(score),
                     'attempts': int(attempts)
@@ -175,7 +176,7 @@ class JBoxCourseHomework(JBoxDB):
         }
 
     @staticmethod
-    def get_answers(course_id, problemset_id, question_ids):
+    def get_problemset_metadata(course_id, problemset_id, question_ids):
         questions = []
         max_score = 0.0
 

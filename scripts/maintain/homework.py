@@ -24,6 +24,7 @@
 
 import sys
 import json
+import csv
 
 from cloud.aws import CloudHost
 from jbox_util import read_config, LoggerMixin
@@ -33,14 +34,21 @@ from handlers import HomeworkHandler
 
 
 def report_as_csv(wfile, perq):
-    wfile.write("student,question,evaluation,score,attempts\n")
+    repwriter = csv.writer(wfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    repwriter.writerow(["student", "question", "answer", "evaluation", "score", "attempts"])
     questions = perq['questions']
     for question in questions:
         question_id = question['id']
         students = question['students']
         for student in students:
-            wfile.write("%s,%s,%d,%d,%d\n" %
-                        (student['id'], question_id, student['evaluation'], student['score'], student['attempts']))
+            repwriter.writerow([student['id'], question_id, student['answer'], student['evaluation'],
+                               student['score'], student['attempts']])
+
+    repwriter.writerow([])
+    repwriter.writerow(["student", "score"])
+    scores = perq['scores']
+    for (student_id, score) in scores.iteritems():
+        repwriter.writerow([student_id, score])
 
 
 def get_report(course, ascsv=False):
@@ -67,7 +75,7 @@ def get_answers(course):
         problemset_id = problemset['id']
         question_set = problemset['questions']
         questions = [q['id'] for q in question_set]
-        answers = JBoxCourseHomework.get_answers(course_id, problemset_id, questions)
+        answers = JBoxCourseHomework.get_problemset_metadata(course_id, problemset_id, questions)
         answers_file = '_'.join([course_id, problemset_id, 'answers'])
         with open(answers_file, 'w') as f:
             f.write(json.dumps(answers, indent=4))
