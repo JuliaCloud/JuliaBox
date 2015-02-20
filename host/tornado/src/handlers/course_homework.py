@@ -41,7 +41,7 @@ class HomeworkHandler(JBoxHandler):
             return
         if self.handle_create_course(user_id):
             return
-        if self.handle_get_answers(is_admin, courses_offered):
+        if self.handle_get_metadata(is_admin, courses_offered):
             return
         if course_owner and self.handle_if_report(user_id, is_admin, courses_offered):
             return
@@ -100,7 +100,7 @@ class HomeworkHandler(JBoxHandler):
         params = json.loads(params)
         course_id = params['course']
         problemset_id = params['problemset']
-        question_ids = params['questions']
+        question_ids = params['questions'] if 'questions' in params else None
         student_id = params['student'] if 'student' in params else None
 
         err = None
@@ -114,6 +114,8 @@ class HomeworkHandler(JBoxHandler):
             course = JBoxDynConfig.get_course(CloudHost.INSTALL_ID, course_id)
             if problemset_id not in course['problemsets']:
                 err = "Problem set %s not found!" % (problemset_id,)
+            if question_ids is None:
+                question_ids = course['questions'][problemset_id]
 
         if err is None:
             report = JBoxCourseHomework.get_report(course_id, problemset_id, question_ids, student_id=student_id)
@@ -126,9 +128,9 @@ class HomeworkHandler(JBoxHandler):
         self.write(response)
         return True
 
-    def handle_get_answers(self, is_admin, courses_offered):
+    def handle_get_metadata(self, is_admin, courses_offered):
         mode = self.get_argument('mode', None)
-        if (mode is None) or (mode != "answers"):
+        if (mode is None) or (mode != "metadata"):
             return False
 
         self.log_debug("handling answers")
@@ -136,19 +138,21 @@ class HomeworkHandler(JBoxHandler):
         params = json.loads(params)
         course_id = params['course']
         problemset_id = params['problemset']
-        question_ids = params['questions']
+        question_ids = params['questions'] if 'questions' in params else None
+        send_answers = True
+
+        if (not is_admin) and (course_id not in courses_offered):
+            send_answers = False
 
         err = None
-        if (not is_admin) and (course_id not in courses_offered):
-            err = "Course %s not found!" % (course_id,)
+        course = JBoxDynConfig.get_course(CloudHost.INSTALL_ID, course_id)
+        if problemset_id not in course['problemsets']:
+            err = "Problem set %s not found!" % (problemset_id,)
+        if question_ids is None:
+            question_ids = course['questions'][problemset_id]
 
         if err is None:
-            course = JBoxDynConfig.get_course(CloudHost.INSTALL_ID, course_id)
-            if problemset_id not in course['problemsets']:
-                err = "Problem set %s not found!" % (problemset_id,)
-
-        if err is None:
-            report = JBoxCourseHomework.get_problemset_metadata(course_id, problemset_id, question_ids)
+            report = JBoxCourseHomework.get_problemset_metadata(course_id, problemset_id, question_ids, send_answers)
             code = 0
         else:
             report = err
@@ -168,17 +172,26 @@ class HomeworkHandler(JBoxHandler):
         existing_course = JBoxDynConfig.get_course(CloudHost.INSTALL_ID, course_id)
         existing_admins = existing_course['admins'] if existing_course is not None else []
         existing_psets = existing_course['problemsets'] if existing_course is not None else []
+
+        question_list = {}
+        if (existing_course is not None) and ('questions' in existing_course):
+            question_list = existing_course['questions']
+
         if (existing_course is not None) and (user_id is not None) and (user_id not in existing_admins):
             return -1
 
-        for p in course['problemsets']:
-            if p['id'] not in existing_psets:
-                existing_psets.append(p['id'])
+        for pset in course['problemsets']:
+            pset_id = pset['id']
+            if pset_id not in existing_psets:
+                existing_psets.append(pset_id)
+            question_ids = [q['id'] for q in course['problemsets']['pset_id']['questions']]
+            question_list[pset_id] = question_ids
 
         dt = datetime.datetime.now(pytz.utc)
         JBoxDynConfig.set_course(CloudHost.INSTALL_ID, course_id, {
             'admins': course['admins'],
             'problemsets': existing_psets,
+            'questions': question_list,
             'create_time': JBoxUserV2.datetime_to_yyyymmdd(dt)
         })
 

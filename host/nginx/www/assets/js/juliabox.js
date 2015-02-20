@@ -156,18 +156,22 @@ var JuliaBox = (function($, _, undefined){
             if(!f) {
 	    	    f = function() { bootbox.alert("Oops. Unexpected error while retrieving evaluations.<br/><br/>Please try again later."); };
             };
+            params = {
+                'course': course,
+                'problemset': problemset
+            }
+            if(questions) {
+                params['questions'] = questions;
+            }
+
             self.comm('/hw/', 'POST', {
                 'mode': 'report',
-                'params': JSON.stringify({
-                    'course': course,
-                    'problemset': problemset,
-                    'questions': questions
-                })
+                'params': JSON.stringify(params)
             },
             s, f);
         },
 
-        hw_answers: function(course, problemset, questions, s, f) {
+        hw_metadata: function(course, problemset, questions, s, f) {
             if(!s) {
                 s = function(ans){
                     if(ans.code == 0) {
@@ -184,13 +188,16 @@ var JuliaBox = (function($, _, undefined){
             if(!f) {
 	    	    f = function() { bootbox.alert("Oops. Unexpected error while retrieving answers.<br/><br/>Please try again later."); };
             };
+            params = {
+                'course': course,
+                'problemset': problemset
+            }
+            if(questions) {
+                params['questions'] = questions;
+            }
             self.comm('/hw/', 'POST', {
-                'mode': 'answers',
-                'params': JSON.stringify({
-                    'course': course,
-                    'problemset': problemset,
-                    'questions': questions
-                })
+                'mode': 'metadata',
+                'params': JSON.stringify(params)
             },
             s, f);
         },

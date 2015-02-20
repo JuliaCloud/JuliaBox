@@ -75,7 +75,7 @@ def get_answers(course):
         problemset_id = problemset['id']
         question_set = problemset['questions']
         questions = [q['id'] for q in question_set]
-        answers = JBoxCourseHomework.get_problemset_metadata(course_id, problemset_id, questions)
+        answers = JBoxCourseHomework.get_problemset_metadata(course_id, problemset_id, questions, True)
         answers_file = '_'.join([course_id, problemset_id, 'answers'])
         with open(answers_file, 'w') as f:
             f.write(json.dumps(answers, indent=4))

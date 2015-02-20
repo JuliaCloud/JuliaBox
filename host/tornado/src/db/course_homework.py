@@ -176,7 +176,7 @@ class JBoxCourseHomework(JBoxDB):
         }
 
     @staticmethod
-    def get_problemset_metadata(course_id, problemset_id, question_ids):
+    def get_problemset_metadata(course_id, problemset_id, question_ids, send_answers):
         questions = []
         max_score = 0.0
 
@@ -188,12 +188,14 @@ class JBoxCourseHomework(JBoxDB):
             for rec in records:
                 score = float(rec['score'] if 'score' in rec else 0)
                 attempts = rec['attempts'] if 'attempts' in rec else 0
-                questions.append({
+                q = {
                     'id': rec['question_id'],
-                    'answer': rec['answer'],
                     'score': score,
                     'attempts': attempts
-                })
+                }
+                if send_answers:
+                    q['answer'] = rec['answer']
+                questions.append(q)
                 max_score += score
         return {
             'course_id': course_id,
