@@ -146,6 +146,7 @@ class HomeworkHandler(JBoxHandler):
 
         err = None
         course = JBoxDynConfig.get_course(CloudHost.INSTALL_ID, course_id)
+        self.log_debug("got course %r", course)
         if problemset_id not in course['problemsets']:
             err = "Problem set %s not found!" % (problemset_id,)
         if question_ids is None:
@@ -184,7 +185,7 @@ class HomeworkHandler(JBoxHandler):
             pset_id = pset['id']
             if pset_id not in existing_psets:
                 existing_psets.append(pset_id)
-            question_ids = [q['id'] for q in course['problemsets']['pset_id']['questions']]
+            question_ids = [q['id'] for q in pset['questions']]
             question_list[pset_id] = question_ids
 
         dt = datetime.datetime.now(pytz.utc)
