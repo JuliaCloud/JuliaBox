@@ -203,6 +203,7 @@ class HomeworkHandler(JBoxHandler):
                 question_id = question['id']
                 answer = question['ans']
                 score = question['score'] if 'score' in question else 0
+                attempts = question['attempts'] if 'attempts' in question else 0
                 #nscore = question['nscore'] if 'nscore' in question else 0
                 try:
                     ans = JBoxCourseHomework(course_id, problemset_id, question_id, JBoxCourseHomework.ANSWER_KEY,
@@ -211,6 +212,7 @@ class HomeworkHandler(JBoxHandler):
                     ans = JBoxCourseHomework(course_id, problemset_id, question_id, JBoxCourseHomework.ANSWER_KEY)
                     ans.set_answer(answer, JBoxCourseHomework.STATE_CORRECT)
                 ans.set_score(score)
+                ans.set_attempts(attempts)
                 ans.save()
 
         for uid in course['admins']:

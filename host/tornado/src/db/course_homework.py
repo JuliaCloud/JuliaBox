@@ -79,6 +79,9 @@ class JBoxCourseHomework(JBoxDB):
     def set_score(self, score):
         self.set_attrib('score', score)
 
+    def set_attempts(self, attempts):
+        self.set_attrib('attempts', attempts)
+
     @staticmethod
     def get_answer(course_id, problemset_id, question_id, student_id=ANSWER_KEY):
         try:
