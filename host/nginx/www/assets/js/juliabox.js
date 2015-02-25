@@ -139,7 +139,15 @@ var JuliaBox = (function($, _, undefined){
             s, f);
         },
 
+        hw_myreport: function(course, problemset, questions, s, f) {
+            self.hw_report_base("myreport", course, problemset, questions, s, f);
+        },
+
         hw_report: function(course, problemset, questions, s, f) {
+            self.hw_report_base("report", course, problemset, questions, s, f);
+        },
+
+        hw_report_base: function(apiname, course, problemset, questions, s, f) {
             if(!s) {
                 s = function(report){
                     if(report.code == 0) {
@@ -165,7 +173,7 @@ var JuliaBox = (function($, _, undefined){
             }
 
             self.comm('/hw/', 'POST', {
-                'mode': 'report',
+                'mode': apiname,
                 'params': JSON.stringify(params)
             },
             s, f);
