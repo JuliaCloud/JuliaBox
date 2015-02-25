@@ -92,7 +92,7 @@ class HomeworkHandler(JBoxHandler):
 
     def handle_if_report(self, user_id, is_admin, courses_offered):
         mode = self.get_argument('mode', None)
-        if (mode is None) or (mode != "report"):
+        if (mode is None) or ((mode != "report") and (mode != "myreport")):
             return False
 
         self.log_debug("handling report")
@@ -101,7 +101,11 @@ class HomeworkHandler(JBoxHandler):
         course_id = params['course']
         problemset_id = params['problemset']
         question_ids = params['questions'] if 'questions' in params else None
-        student_id = params['student'] if 'student' in params else None
+
+        if mode == "myreport":
+            student_id = user_id
+        else:
+            student_id = params['student'] if 'student' in params else None
 
         err = None
         if (not is_admin) and (course_id not in courses_offered):
@@ -114,7 +118,7 @@ class HomeworkHandler(JBoxHandler):
             course = JBoxDynConfig.get_course(CloudHost.INSTALL_ID, course_id)
             if problemset_id not in course['problemsets']:
                 err = "Problem set %s not found!" % (problemset_id,)
-            if question_ids is None:
+            elif question_ids is None:
                 question_ids = course['questions'][problemset_id]
 
         if err is None:

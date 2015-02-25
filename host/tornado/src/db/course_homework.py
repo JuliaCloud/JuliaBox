@@ -142,7 +142,8 @@ class JBoxCourseHomework(JBoxDB):
             for rec in records:
                 if rec['student_id'] == JBoxCourseHomework.ANSWER_KEY:
                     qmax_score = float(rec['score'] if 'score' in rec else 0)
-                    qmax_attempts = rec['attempts'] if 'attempts' in rec else 0
+                    pset_max_score += qmax_score
+                    qmax_attempts = int(rec['attempts'] if 'attempts' in rec else 0)
                     continue
                 score = rec['score'] if 'score' in rec else 0
                 attempts = rec['attempts'] if 'attempts' in rec else 0
@@ -168,12 +169,12 @@ class JBoxCourseHomework(JBoxDB):
                 score = student['score']
                 if student_id in cum_scores:
                     score += cum_scores[student_id]
-                cum_scores[student_id] = score
+                cum_scores[student_id] = float(score)
 
         return {
             'course_id': course_id,
             'problemset_id': problemset_id,
-            'max_score': pset_max_score,
+            'max_score': float(pset_max_score),
             'questions': questions,
             'scores': cum_scores
         }
