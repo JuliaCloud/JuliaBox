@@ -31,7 +31,7 @@ ${SUDO_JUSER} mkdir -p ${JUSER_HOME}/.ipython/kernels/julia\ 0.3
 ${SUDO_JUSER} cat > ${JUSER_HOME}/.ipython/kernels/julia\ 0.3/kernel.json <<EOF
 {
         "argv": ["/usr/bin/julia", "-F", "/home/juser/.julia/v0.3/IJulia/src/kernel.jl", "{connection_file}"],
-        "display_name": "Julia 0.3",
+        "display_name": "Julia 0.3.6",
         "language": "julia"
 }
 EOF
@@ -52,6 +52,7 @@ do
     echo "c.NotebookApp.ip = \"*\"" | ${SUDO_JUSER} tee --append ${JUSER_HOME}/.ipython/profile_${prof}/ipython_notebook_config.py
     echo "c.NotebookApp.allow_origin = \"*\"" | ${SUDO_JUSER} tee --append ${JUSER_HOME}/.ipython/profile_${prof}/ipython_notebook_config.py
     ${SUDO_JUSER} cp ${DIR}/IJulia/custom.css ${JUSER_HOME}/.ipython/profile_${prof}/static/custom/custom.css
+    ${SUDO_JUSER} cp ${DIR}/IJulia/custom.js ${JUSER_HOME}/.ipython/profile_${prof}/static/custom/custom.js
 done
 
 ${SUDO_JUSER} cp -R ${DIR}/IJulia/tornado ${JUSER_HOME}/.juliabox/tornado

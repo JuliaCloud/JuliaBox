@@ -195,7 +195,7 @@ class JBoxVol(LoggerMixin):
         kernel_path = os.path.join(self.disk_path, ".ipython", "kernels", "julia 0.3", "kernel.json")
         kernel_cfg = {
             "argv": ["/usr/bin/julia"],
-            "display_name": "Julia 0.3",
+            "display_name": "Julia 0.3.6",
             "language": "julia"
         }
 
