@@ -534,9 +534,16 @@ var JuliaBox = (function($, _, undefined){
 		unlock_activity: function() {
 			_locked -= 1;
 			if(_locked == 0) {
-				$("#modal-overlay").hide();				
+				$("#modal-overlay").hide();
 			}
 		},
+
+		websocktest: function() {
+		    bootbox.dialog({
+                message: '<iframe src="/assets/html/wsocktest.html" frameborder="0" width="100%" height="40%"></iframe>',
+                title: "Testing WekSocket Connectivity..."
+            }).find("div.modal-dialog").addClass("bootbox50");
+		}
 	};
 	
 	return self;

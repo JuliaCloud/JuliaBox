@@ -79,6 +79,11 @@
 	    		parent.JuliaBox.switch_julia_image($('#jimg_curr'), $('#jimg_new'));
 	    	});
 
+	    	$('#websocktest').click(function(event){
+	    	    event.preventDefault();
+	    	    parent.JuliaBox.websocktest();
+	    	});
+
 {% if (d["manage_containers"] or d["show_report"]) %}
 	    	$('#showuserstats').click(function(event){
 	    		event.preventDefault();
@@ -141,6 +146,7 @@
 	<tr><td>Allocated CPUs:</td><td>{{d["cpu"]}}</td></tr>
 	<tr><td>SSH Public Key:</td><td><a href="#" id="showsshkey">View</a></td></tr>
 	<tr><td>Julia Image:</td><td><span id='jimg_curr'>precompiled packages</span> (<a href="#" id="jimg_switch"><small>switch to: <span id='jimg_new'>standard</span></small></a>)</td></tr>
+	<tr><td>Network Connectivity Test:</td><td><a href="#" id="websocktest">Start</a></td></tr>
 </table>
 
 <h3>JuliaBox version:</h3>
