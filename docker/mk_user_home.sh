@@ -27,12 +27,11 @@ sudo chown -R 1000:1000 ${JUSER_HOME}
 ${SUDO_JUSER} rm ${JUSER_HOME}/setup_julia.sh ${JUSER_HOME}/build_sysimg.jl ${JUSER_HOME}/jimg.jl ${JUSER_HOME}/mkjimg.jl
 
 # create julia kernels
-${SUDO_JUSER} mkdir -p ${JUSER_HOME}/.ipython/kernels/julia
-${SUDO_JUSER} cat > ${JUSER_HOME}/.ipython/kernels/julia/kernel.json <<EOF
+${SUDO_JUSER} mkdir -p ${JUSER_HOME}/.ipython/kernels/julia\ 0.3
+${SUDO_JUSER} cat > ${JUSER_HOME}/.ipython/kernels/julia\ 0.3/kernel.json <<EOF
 {
         "argv": ["/usr/bin/julia", "-F", "/home/juser/.julia/v0.3/IJulia/src/kernel.jl", "{connection_file}"],
-        "codemirror_mode": "julia",
-        "display_name": "Julia",
+        "display_name": "Julia 0.3.6",
         "language": "julia"
 }
 EOF
@@ -53,6 +52,7 @@ do
     echo "c.NotebookApp.ip = \"*\"" | ${SUDO_JUSER} tee --append ${JUSER_HOME}/.ipython/profile_${prof}/ipython_notebook_config.py
     echo "c.NotebookApp.allow_origin = \"*\"" | ${SUDO_JUSER} tee --append ${JUSER_HOME}/.ipython/profile_${prof}/ipython_notebook_config.py
     ${SUDO_JUSER} cp ${DIR}/IJulia/custom.css ${JUSER_HOME}/.ipython/profile_${prof}/static/custom/custom.css
+    ${SUDO_JUSER} cp ${DIR}/IJulia/custom.js ${JUSER_HOME}/.ipython/profile_${prof}/static/custom/custom.js
 done
 
 ${SUDO_JUSER} cp -R ${DIR}/IJulia/tornado ${JUSER_HOME}/.juliabox/tornado

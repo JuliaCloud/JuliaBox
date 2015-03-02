@@ -4,7 +4,7 @@ var JuliaBox = (function($, _, undefined){
 	var _gauth = null;
 	var _locked = 0;
 	var _ping_fails = 0;
-	var _max_ping_fails = 1;
+	var _max_ping_fails = 4;
 	var _loggedout = false;
 	
 	var self = {
@@ -13,13 +13,14 @@ var JuliaBox = (function($, _, undefined){
 	        $.ajax({
 	        	url: '/ping/',
 	        	type: 'GET',
+	        	timeout: 5000,
 	        	success: function(res) {
 	        		_ping_fails = 0;
 	        	},
 	        	error: function(res) {
 	        		_ping_fails += 1;
 	        		if (_ping_fails > _max_ping_fails) {
-	        			self.inform_logged_out();
+	        			self.inform_logged_out(true);
 	        		}
 	        	}
 	        });
@@ -508,10 +509,18 @@ var JuliaBox = (function($, _, undefined){
     		});
     	},
     	
-    	inform_logged_out: function () {
+    	inform_logged_out: function (pingfail) {
     		if(!_loggedout) {
 	    		_loggedout = true;
-	    		self.popup_alert("Your session has terminated / timed out. Please log in again.", function() { self.logout_at_browser(); });
+	    		msg = "Your session has terminated / timed out. Please log in again.";
+	    		if(pingfail) {
+	    		    msg += "<br/><br/>You may also get logged out if JuliaBox servers are not reachable from your browser <br/>" +
+	    		           "or you have too many JuliaBox windows open."
+	    		}
+	    		else {
+	    		    self.do_logout();
+	    		}
+	    		self.popup_alert(msg, function() { self.logout_at_browser(); });
     		}
     	},
 
@@ -534,9 +543,16 @@ var JuliaBox = (function($, _, undefined){
 		unlock_activity: function() {
 			_locked -= 1;
 			if(_locked == 0) {
-				$("#modal-overlay").hide();				
+				$("#modal-overlay").hide();
 			}
 		},
+
+		websocktest: function() {
+		    bootbox.dialog({
+                message: '<iframe src="/assets/html/wsocktest.html" frameborder="0" width="100%" height="40%"></iframe>',
+                title: "Testing WekSocket Connectivity..."
+            }).find("div.modal-dialog").addClass("bootbox50");
+		}
 	};
 	
 	return self;

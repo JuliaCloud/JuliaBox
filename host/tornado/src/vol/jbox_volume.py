@@ -192,11 +192,10 @@ class JBoxVol(LoggerMixin):
         JBoxVol.replace_in_file(supervisordconf_path, "command=ipython notebook", new_cmd)
 
         # switch profile in kernel.json
-        kernel_path = os.path.join(self.disk_path, ".ipython", "kernels", "julia", "kernel.json")
+        kernel_path = os.path.join(self.disk_path, ".ipython", "kernels", "julia 0.3", "kernel.json")
         kernel_cfg = {
             "argv": ["/usr/bin/julia"],
-            "codemirror_mode": "julia",
-            "display_name": "Julia",
+            "display_name": "Julia 0.3.6",
             "language": "julia"
         }
 

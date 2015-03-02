@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <title>WebSocket Test</title>
+        <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="/assets/css/index.css" />
+        <script type="text/javascript" src="//use.typekit.net/cpz5ogz.js"></script>
+        <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+        <script language="javascript" type="text/javascript">
+            var wsUriList = [
+                {
+                    'uri': "ws://echo.websocket.org/",
+                    'name': "websocket (port 80)"
+                },
+                {
+                    'uri': "wss://echo.websocket.org/",
+                    'name': "secure websocket (port 443)"
+                }
+            ];
+            var output;
+            var numFailures = 0;
+
+            function doNext() {
+                if(wsUriList.length == 0) {
+                    if(numFailures == 0) {
+                        writeToScreen("<b>All tests passed.</b>", false);
+                    }
+                    else {
+                        writeToScreen("<b>" + numFailures + " tests failed.</b>", false);
+                    }
+                    return;
+                }
+
+                output = document.getElementById("output");
+                urispec = wsUriList.shift();
+                writeToScreen("<b>Testing " + urispec.name + " connectivity...</b>", false);
+                testWebSocket(urispec.uri);
+            };
+
+            function testWebSocket(wsUri) {
+                writeToScreen("connecting...", true);
+                websocket = new WebSocket(wsUri);
+                websocket.onopen = onOpen;
+                websocket.onclose = onClose;
+                websocket.onmessage = onMessage;
+                websocket.onerror = onError;
+            }
+
+            function onOpen(evt) {
+                writeToScreen("connected...", true);
+                doSend("test successful");
+            }
+
+            function onClose(evt) {
+                writeToScreen("disconnected.", true);
+                doNext();
+            }
+
+            function onMessage(evt) {
+                writeToScreen("received response. " + evt.data, true);
+                websocket.close();
+            }
+
+            function onError(evt) {
+                numFailures += 1;
+                writeToScreen('error: ' + evt.data, true);
+            }
+
+            function doSend(message) {
+                writeToScreen("sent message...", true);
+                websocket.send(message);
+            }
+
+            function writeToScreen(message, indent) {
+                var pre = document.createElement("p");
+                pre.style.wordWrap = "break-word";
+                if(indent) {
+                    message = "&nbsp;&nbsp;&nbsp;&nbsp;" + message;
+                }
+                pre.innerHTML = message;
+                output.appendChild(pre);
+            }
+
+            window.addEventListener("load", doNext, false);
+        </script>
+    </head>
+    <body>
+        <div id="output"></div>
+    </body>
+</html>

@@ -1,7 +1,7 @@
 # Docker file for JuliaBox
-# Version:26
+# Version:27
 
-FROM tanmaykm/jboxjulia:v0.3.5_13
+FROM tanmaykm/jboxjulia:v0.3.6_14
 
 MAINTAINER Tanmay Mohapatra
 

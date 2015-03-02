@@ -73,7 +73,7 @@
                	'user': '{{user_id}}'
             });
 	    	{% end %}
-	    	ping_timer = setInterval(do_ping, 60000);
+	    	ping_timer = setInterval(do_ping, 15000);
         });
     </script>
     <style>

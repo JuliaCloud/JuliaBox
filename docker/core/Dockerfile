@@ -1,5 +1,5 @@
 # Base Ubuntu Docker file for JuliaBox
-# Version:10
+# Version:11
 
 FROM stackbrew/ubuntu:trusty
 
@@ -51,7 +51,7 @@ RUN apt-get update \
 
 ADD texlive.profile /tmp/tl/texlive.profile
 RUN cd /tmp/tl; wget http://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz; \
-    tar -xzf install-tl-unx.tar.gz; cd install-tl-2014*; \
+    tar -xzf install-tl-unx.tar.gz; cd install-tl-*; \
     ./install-tl --profile=../texlive.profile; cd /; rm -rf /tmp/tl; \
     echo "export PATH=/usr/local/texlive/2014/bin/x86_64-linux:\$PATH" > /etc/profile.d/texlive.sh; \
     echo "export INFOPATH=/usr/local/texlive/2014/texmf-dist/doc/info:\$INFOPATH" >> /etc/profile.d/texlive.sh; \
@@ -71,4 +71,3 @@ RUN pip install --upgrade PyDrive google-api-python-client jsonpointer jsonschem
 RUN git clone --recursive https://github.com/tanmaykm/ipython.git; cd ipython; git checkout juliabox; python setup.py install; cd ..; rm -rf ipython
 
 RUN git clone https://github.com/tanmaykm/shellinabox_fork.git; cd shellinabox_fork; ./configure; make install; cd ..; rm -rf shellinabox_fork
-
