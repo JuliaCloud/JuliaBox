@@ -27,6 +27,8 @@ do
     julia -e "Pkg.clone(\"$pkg\")"
 done
 
+julia -e "Pkg.checkout(\"Interact\")"
+
 echo ""
 echo "Creating package list..."
 julia -e "Pkg.status()" > /home/juser/.juliabox/packages.txt
