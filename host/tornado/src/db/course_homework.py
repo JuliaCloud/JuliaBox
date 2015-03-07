@@ -3,6 +3,7 @@ from boto.dynamodb2.types import STRING
 
 import datetime
 import pytz
+from decimal import Decimal
 
 import boto.dynamodb2.exceptions
 
@@ -77,16 +78,16 @@ class JBoxCourseHomework(JBoxDB):
         self.set_attrib('attempts', int(self.get_attrib('attempts', 0))+1)
 
     def set_score(self, score):
-        self.set_attrib('score', score)
+        self.set_attrib('score', Decimal(str(score)))
 
     def set_attempts(self, attempts):
-        self.set_attrib('attempts', attempts)
+        self.set_attrib('attempts', int(attempts))
 
     @staticmethod
     def get_answer(course_id, problemset_id, question_id, student_id=ANSWER_KEY):
         try:
             rec = JBoxCourseHomework(course_id, problemset_id, question_id, student_id)
-            return rec.get_attrib('answer', None), int(rec.get_attrib('score', 0)), int(rec.get_attrib('attempts', 0))
+            return rec.get_attrib('answer', None), float(rec.get_attrib('score', 0)), int(rec.get_attrib('attempts', 0))
         except:
             JBoxCourseHomework.log_exception("exception while getting answer")
             return None, int(0), int(0)
@@ -133,27 +134,33 @@ class JBoxCourseHomework(JBoxDB):
             if student_id is None:
                 records = JBoxCourseHomework.table().query_2(question_gid__eq=question_gid,
                                                              student_id__gt=' ')
+                answers = None
             else:
                 records = JBoxCourseHomework.table().query_2(question_gid__eq=question_gid,
                                                              student_id__eq=student_id)
+                answers = JBoxCourseHomework.table().query_2(question_gid__eq=question_gid,
+                                                             student_id__eq=JBoxCourseHomework.ANSWER_KEY)
 
             qmax_score = 0.0
             qmax_attempts = 0
-            for rec in records:
-                if rec['student_id'] == JBoxCourseHomework.ANSWER_KEY:
-                    qmax_score = float(rec['score'] if 'score' in rec else 0)
-                    pset_max_score += qmax_score
-                    qmax_attempts = int(rec['attempts'] if 'attempts' in rec else 0)
+            for recset in (records, answers):
+                if recset is None:
                     continue
-                score = rec['score'] if 'score' in rec else 0
-                attempts = rec['attempts'] if 'attempts' in rec else 0
-                students.append({
-                    'id': rec['student_id'],
-                    'answer': rec['answer'],
-                    'evaluation': int(rec['state']),
-                    'score': float(score),
-                    'attempts': int(attempts)
-                })
+                for rec in recset:
+                    if rec['student_id'] == JBoxCourseHomework.ANSWER_KEY:
+                        qmax_score = float(rec['score'] if 'score' in rec else 0)
+                        pset_max_score += qmax_score
+                        qmax_attempts = int(rec['attempts'] if 'attempts' in rec else 0)
+                        continue
+                    score = rec['score'] if 'score' in rec else 0
+                    attempts = rec['attempts'] if 'attempts' in rec else 0
+                    students.append({
+                        'id': rec['student_id'],
+                        'answer': rec['answer'],
+                        'evaluation': int(rec['state']),
+                        'score': float(score),
+                        'attempts': int(attempts)
+                    })
 
             questions.append({
                 'id': question_id,
