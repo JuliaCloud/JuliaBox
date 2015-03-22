@@ -10,14 +10,14 @@ DOCKER_IMAGE_VER=$(grep "^# Version:" ${JBOX_DIR}/docker/IJulia/Dockerfile | cut
 function build_docker_image {
     echo "Building docker image ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ..."
     sudo docker build --rm=true -t ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} docker/IJulia/
-    sudo docker tag ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:latest
+    sudo docker tag -f ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:latest
 }
 
 function pull_docker_image {
     echo "Pulling docker image ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ..."
     sudo docker pull tanmaykm/juliabox:${DOCKER_IMAGE_VER}
-    sudo docker tag tanmaykm/juliabox:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER}
-    sudo docker tag tanmaykm/juliabox:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:latest
+    sudo docker tag -f tanmaykm/juliabox:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER}
+    sudo docker tag -f tanmaykm/juliabox:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:latest
 }
 
 function make_user_home {

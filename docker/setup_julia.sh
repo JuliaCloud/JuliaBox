@@ -7,8 +7,7 @@ Optim JuMP GLPKMathProgInterface Clp NLopt Ipopt \
 Cairo GraphViz \
 Images ImageView WAV ODE Sundials LinearLeastSquares \
 BayesNets PGFPlots GraphLayout \
-Stan \
-Patchwork Quandl Lazy QuantEcon"
+Stan Patchwork Quandl Lazy QuantEcon MixedModels"
 
 for pkg in ${DEFAULT_PACKAGES}
 do

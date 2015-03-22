@@ -43,7 +43,7 @@ class HomeworkHandler(JBoxHandler):
             return
         if self.handle_get_metadata(is_admin, courses_offered):
             return
-        if course_owner and self.handle_if_report(user_id, is_admin, courses_offered):
+        if self.handle_if_report(user_id, is_admin, courses_offered):
             return
 
         self.log_error("no handlers found")

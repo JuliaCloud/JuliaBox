@@ -151,7 +151,7 @@
 
 <h3>JuliaBox version:</h3>
 JuliaBox version: {{d["juliaboxver"]}} <br/>
-Julia version: 0.3.5 <br/>
+Julia version: 0.3.6 <br/>
 <br/>
 {% if (d["manage_containers"] or d["show_report"]) %}
     <hr/>
