@@ -662,7 +662,7 @@ class CloudHost(LoggerMixin):
         if mount_point != actual_mount_point:
             CloudHost.log_warn("Mount point expected:" + mount_point + ", got:" + repr(actual_mount_point))
             mount_point = actual_mount_point
-        res = sh.umount(mount_point)  # the mount point must be mentioned in fstab file
+        res = sh.sudo.umount(mount_point)  # the mount point must be mentioned in fstab file
         if res.exit_code != 0:
             raise Exception("Device could not be unmounted from " + mount_point)
         tdiff = int(time.time() - t1)

@@ -478,4 +478,5 @@ $(document).ready(function() {
         window.close();
         return false;
     });
+    $('#ipython_notebook > a > img').attr('src', '/assets/img/ipynblogo.png');
 });
