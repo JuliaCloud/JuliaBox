@@ -8,6 +8,7 @@ from jbox_util import unquote
 from handlers.handler_base import JBoxHandler
 from jbox_container import JBoxContainer
 from db import JBoxUserV2, JBoxDynConfig, JBoxAccountingV2, JBoxInvite
+from vol import JBoxLoopbackVol
 
 
 class AdminHandler(JBoxHandler):
@@ -105,21 +106,27 @@ class AdminHandler(JBoxHandler):
 
     def handle_if_addcluster(self, cont):
         clustername = self.get_argument('addcluster', False)
+
+        if clustername is False:
+            return False
+
+        AdminHandler.log_debug("addcluster %s", clustername)
         clustername = clustername.strip()
-        
-        if (addcluster == false) or (clustername == "")
+
+        if clustername == "":
             return False
     
-        cluster_hosts = get_public_addresses_by_tag("clustername", clustername)
+        cluster_hosts = CloudHost.get_public_addresses_by_tag("clustername", clustername)
+        AdminHandler.log_debug("addcluster got hosts: %r", cluster_hosts)
         
         # write out the machinefile on the docker's filesystem
         vol = JBoxLoopbackVol.get_disk_from_container(cont.dockid)
         path = vol.disk_path
+        AdminHandler.log_debug("addcluster got diskpath: %s", path)
         
         f = open(path + '/.juliabox/machinefile', 'w')
         for host in cluster_hosts:
             f.write(host+'\n')
-        
         f.close()
         
         return True

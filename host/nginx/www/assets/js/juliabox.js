@@ -510,9 +510,9 @@ var JuliaBox = (function($, _, undefined){
     	},
 
     	addcluster: function (clustername) {
-			s = function(res) { self.popup_alert("SUCCESS!"); };
-			f = function() { self.popup_alert("ERROR!"); };
-                        self.comm('/hostadmin/', 'GET', { 'addcluster' : clustername }, s, f);
+            s = function(res) { self.popup_alert("SUCCESS!"); };
+            f = function() { self.popup_alert("ERROR!"); };
+            self.comm('/hostadmin/', 'GET', { 'addcluster' : clustername }, s, f);
     	},
     	
         

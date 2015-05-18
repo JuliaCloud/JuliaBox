@@ -83,6 +83,11 @@
 	    	    event.preventDefault();
 	    	    parent.JuliaBox.websocktest();
 	    	});
+	    
+            $('#addcluster').click(function(event){
+                event.preventDefault();
+                parent.JuliaBox.addcluster($('#clustername').val());
+            });
 
 {% if (d["manage_containers"] or d["show_report"]) %}
 	    	$('#showuserstats').click(function(event){
@@ -130,11 +135,6 @@
 	    	show_time_remaining();
 	    	disp_timer = setInterval(show_time_remaining, 60000);
 	    });
-	    
-            $('#addcluster').click(function(event){
-	    		event.preventDefault();
-	    		parent.JuliaBox.addcluster($('#clustername').val());
-	    	});
 	</script>
 </head>
 <body>
