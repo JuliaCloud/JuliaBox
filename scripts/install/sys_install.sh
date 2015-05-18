@@ -4,7 +4,8 @@
 # ami-80778be8
 
 # configure docker to use either AUFS or DEVICEMAPPER
-DOCKER_FS=AUFS
+#DOCKER_FS=AUFS
+DOCKER_FS=DEVICEMAPPER
 
 # configure nginx version and install location
 NGINX_VER=1.7.7.2
@@ -80,9 +81,9 @@ function configure_docker {
         LOOPDATASZ=$(((NUM_LOCALMAX+5)*6))
         echo "Configuring docker to use"
         echo "    - devicemapper fs"
-        echo "    - base image size 6GB"
+        echo "    - base image size 7GB"
         echo "    - loopdatasize ${LOOPDATASZ}GB"
-        sudo sh -c "echo 'DOCKER_OPTS=\"--storage-driver=devicemapper --storage-opt dm.basesize=6G --storage-opt dm.loopdatasize=${LOOPDATASZ}G\"' >> /etc/default/docker"
+        sudo sh -c "echo 'DOCKER_OPTS=\"--storage-driver=devicemapper --storage-opt dm.basesize=7G --storage-opt dm.loopdatasize=${LOOPDATASZ}G\"' >> /etc/default/docker"
     else
         echo "Configuring docker to use aufs"
         sudo sh -c "echo 'DOCKER_OPTS=\"--storage-driver=aufs\"' >> /etc/default/docker"
