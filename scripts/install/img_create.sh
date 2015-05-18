@@ -5,11 +5,11 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 JBOX_DIR=`readlink -e ${DIR}/../..`
 
 DOCKER_IMAGE=juliabox/juliabox
-DOCKER_IMAGE_VER=$(grep "^# Version:" ${JBOX_DIR}/docker/IJulia/Dockerfile | cut -d":" -f2)
+DOCKER_IMAGE_VER=$(grep "^# Version:" ${JBOX_DIR}/docker/Dockerfile | cut -d":" -f2)
 
 function build_docker_image {
     echo "Building docker image ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ..."
-    sudo docker build --rm=true -t ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} docker/IJulia/
+    sudo docker build --rm=true -t ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} docker/
     sudo docker tag -f ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:latest
 }
 

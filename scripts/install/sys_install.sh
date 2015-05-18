@@ -7,7 +7,8 @@
 DOCKER_FS=AUFS
 
 # configure nginx version and install location
-NGINX_VER=1.7.2.1
+NGINX_VER=1.7.7.2
+# for dev setup, NGINX_INSTALL_DIR may be changed to <install dir>/JuliaBox/host/install/openresty
 NGINX_INSTALL_DIR=/usr/local/openresty
 NGINX_SUDO=sudo
 mkdir -p $NGINX_INSTALL_DIR
