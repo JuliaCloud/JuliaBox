@@ -130,6 +130,11 @@
 	    	show_time_remaining();
 	    	disp_timer = setInterval(show_time_remaining, 60000);
 	    });
+	    
+            $('#addcluster').click(function(event){
+	    		event.preventDefault();
+	    		parent.JuliaBox.addcluster($('#clustername').val());
+	    	});
 	</script>
 </head>
 <body>
@@ -147,6 +152,7 @@
 	<tr><td>SSH Public Key:</td><td><a href="#" id="showsshkey">View</a></td></tr>
 	<tr><td>Julia Image:</td><td><span id='jimg_curr'>precompiled packages</span> (<a href="#" id="jimg_switch"><small>switch to: <span id='jimg_new'>standard</span></small></a>)</td></tr>
 	<tr><td>Network Connectivity Test:</td><td><a href="#" id="websocktest">Start</a></td></tr>
+	<tr><td>Cluster Name:</td><td> <input id="clustername" type="text">  <input type="submit" value="Add" id="addcluster"> </td></tr>
 </table>
 
 <h3>JuliaBox version:</h3>

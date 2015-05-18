@@ -381,6 +381,19 @@ class CloudHost(LoggerMixin):
         return True
 
     @staticmethod
+    def get_public_addresses_by_tag(tag, value)
+        conn = CloudHost.connect_ec2()
+        reservations = conn.get_all_instances(filters={"tag:"+tag : value})
+        return [i.public_dns_name for r in reservations for i in r.instances]
+        
+    @staticmethod
+    def get_private_addresses_by_tag(tag, value)
+        conn = CloudHost.connect_ec2()
+        reservations = conn.get_all_instances(filters={"tag:"+tag : value})
+        return [i.private_dns_name for r in reservations for i in r.instances]
+        
+
+    @staticmethod
     def should_accept_session(is_leader):
         self_load = CloudHost.get_instance_stats(CloudHost.instance_id(), 'Load')
         CloudHost.log_debug("Self load: " + repr(self_load))

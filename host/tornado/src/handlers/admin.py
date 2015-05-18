@@ -29,7 +29,9 @@ class AdminHandler(JBoxHandler):
         if cont is None:
             self.send_error()
             return
-
+ 
+        if self.handle_if_addcluster(cont):
+            return
         if self.handle_if_logout(cont):
             return
         if self.handle_if_stats(is_admin or show_report):
@@ -100,6 +102,27 @@ class AdminHandler(JBoxHandler):
             self.write(response)
             return True
         return False
+
+    def handle_if_addcluster(self, cont):
+        clustername = self.get_argument('addcluster', False)
+        clustername = clustername.strip()
+        
+        if (addcluster == false) or (clustername == "")
+            return False
+    
+        cluster_hosts = get_public_addresses_by_tag("clustername", clustername)
+        
+        # write out the machinefile on the docker's filesystem
+        vol = JBoxLoopbackVol.get_disk_from_container(cont.dockid)
+        path = vol.disk_path
+        
+        f = open(path + '/.juliabox/machinefile', 'w')
+        for host in cluster_hosts:
+            f.write(host+'\n')
+        
+        f.close()
+        
+        return True
 
     def handle_if_instance_info(self, is_allowed):
         stats = self.get_argument('instance_info', None)
