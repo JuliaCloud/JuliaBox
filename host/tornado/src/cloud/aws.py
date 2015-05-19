@@ -383,15 +383,26 @@ class CloudHost(LoggerMixin):
     @staticmethod
     def get_public_addresses_by_tag(tag, value):
         conn = CloudHost.connect_ec2()
-        reservations = conn.get_all_instances(filters={"tag:"+tag : value})
-        return [i.public_dns_name for r in reservations for i in r.instances]
+        instances = conn.get_only_instances(filters={"tag:"+tag : value, "instance-state-name":"running"})
+        return [i.public_dns_name for i in instances]
         
     @staticmethod
     def get_private_addresses_by_tag(tag, value):
         conn = CloudHost.connect_ec2()
-        reservations = conn.get_all_instances(filters={"tag:"+tag : value})
-        return [i.private_dns_name for r in reservations for i in r.instances]
+        instances = conn.get_only_instances(filters={"tag:"+tag : value, "instance-state-name":"running"})
+        return [i.private_dns_name for i in instances]
         
+    @staticmethod
+    def get_public_addresses_by_placement_group(gname):
+        conn = CloudHost.connect_ec2()
+        instances = conn.get_only_instances(filters={"placement-group-name" : gname, "instance-state-name":"running"})
+        return [i.public_dns_name for i in instances]
+        
+    @staticmethod
+    def get_private_addresses_by_placement_group(gname):
+        conn = CloudHost.connect_ec2()
+        instances = conn.get_only_instances(filters={"placement-group-name" : gname, "instance-state-name":"running"})
+        return [i.private_dns_name for i in instances]
 
     @staticmethod
     def should_accept_session(is_leader):

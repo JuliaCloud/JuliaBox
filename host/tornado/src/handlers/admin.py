@@ -116,7 +116,7 @@ class AdminHandler(JBoxHandler):
         if clustername == "":
             return False
     
-        cluster_hosts = CloudHost.get_public_addresses_by_tag("clustername", clustername)
+        cluster_hosts = CloudHost.get_private_addresses_by_placement_group("juliabox")
         AdminHandler.log_debug("addcluster got hosts: %r", cluster_hosts)
         
         # write out the machinefile on the docker's filesystem
