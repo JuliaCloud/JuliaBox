@@ -2,10 +2,12 @@
 # Version:30
 
 FROM julialang/juliaboxpkgdist:v0.3.8 
+# Switching the base to the bare julia image helps during JuliaBox development by reducing image size
+#FROM julialang/julia:v0.3.8 
 
 MAINTAINER Tanmay Mohapatra
 
-RUN ln -fs /opt/julia/bin/julia /usr/local/bin/julia
+RUN ln -fs /opt/julia/bin/julia /usr/bin/julia
 RUN git clone https://github.com/tanmaykm/shellinabox_fork.git; cd shellinabox_fork; ./configure; make install; cd ..; rm -rf shellinabox_fork
 
 # add juser
