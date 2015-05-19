@@ -192,16 +192,16 @@ class JBoxVol(LoggerMixin):
         JBoxVol.replace_in_file(supervisordconf_path, "command=ipython notebook", new_cmd)
 
         # switch profile in kernel.json
-        kernel_path = os.path.join(self.disk_path, ".ipython", "kernels", "julia-0.3", "kernel.json")
+        kernel_path = os.path.join(self.disk_path, ".ipython", "kernels", "julia-0.4", "kernel.json")
         kernel_cfg = {
             "argv": ["/usr/bin/julia"],
-            "display_name": "Julia 0.3.8",
+            "display_name": "Julia 0.4.0",
             "language": "julia"
         }
 
         if custom_jimg is not None:
             kernel_cfg['argv'].extend(["-J", custom_jimg])
-        kernel_cfg['argv'].extend(["-i", "-F", "/home/juser/.julia/v0.3/IJulia/src/kernel.jl", "{connection_file}"])
+        kernel_cfg['argv'].extend(["-i", "-F", "/home/juser/.julia/v0.4/IJulia/src/kernel.jl", "{connection_file}"])
         with open(kernel_path, 'w') as kout:
             kout.write(json.dumps(kernel_cfg, indent=4))
 
