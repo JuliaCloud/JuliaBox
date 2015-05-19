@@ -26,15 +26,15 @@ sudo docker run -i -v ${JUSER_HOME}:/home/juser --user=root --workdir=/home/juse
 sudo chown -R 1000:1000 ${JUSER_HOME}
 ${SUDO_JUSER} rm ${JUSER_HOME}/setup_julia.sh ${JUSER_HOME}/build_sysimg.jl ${JUSER_HOME}/jimg.jl ${JUSER_HOME}/mkjimg.jl
 
-# create julia kernels
-${SUDO_JUSER} mkdir -p ${JUSER_HOME}/.ipython/kernels/julia\ 0.3
-${SUDO_JUSER} cat > ${JUSER_HOME}/.ipython/kernels/julia\ 0.3/kernel.json <<EOF
-{
-        "argv": ["/usr/bin/julia", "-F", "/home/juser/.julia/v0.3/IJulia/src/kernel.jl", "{connection_file}"],
-        "display_name": "Julia 0.3.6",
-        "language": "julia"
-}
-EOF
+## create julia kernels
+#${SUDO_JUSER} mkdir -p ${JUSER_HOME}/.ipython/kernels/julia\ 0.3
+#${SUDO_JUSER} cat > ${JUSER_HOME}/.ipython/kernels/julia\ 0.3/kernel.json <<EOF
+#{
+#        "argv": ["/usr/bin/julia", "-F", "/home/juser/.julia/v0.3/IJulia/src/kernel.jl", "{connection_file}"],
+#        "display_name": "Julia 0.3.6",
+#        "language": "julia"
+#}
+#EOF
 
 #${SUDO_JUSER} mkdir -p ${JUSER_HOME}/.ipython/kernels/jboxjulia
 #${SUDO_JUSER} cat > ${JUSER_HOME}/.ipython/kernels/jboxjulia/kernel.json <<EOF
