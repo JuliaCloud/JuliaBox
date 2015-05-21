@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+import os
 import isodate
 import json
 from cloud.aws import CloudHost
@@ -24,14 +25,16 @@ class AdminHandler(JBoxHandler):
         user = JBoxUserV2(user_id)
         is_admin = sessname in self.config("admin_sessnames", [])
         manage_containers = is_admin or user.has_role(JBoxUserV2.ROLE_MANAGE_CONTAINERS)
+        use_cluster = is_admin or user.has_resource_profile(JBoxUserV2.RES_PROF_CLUSTER)
         show_report = is_admin or user.has_role(JBoxUserV2.ROLE_ACCESS_STATS)
         cont = JBoxContainer.get_by_name(sessname)
 
         if cont is None:
             self.send_error()
             return
- 
-        if self.handle_if_addcluster(cont):
+
+        # TODO: introduce new role for cluster access 
+        if self.handle_if_addcluster(cont, use_cluster):
             return
         if self.handle_if_logout(cont):
             return
@@ -53,6 +56,7 @@ class AdminHandler(JBoxHandler):
         d = dict(
             manage_containers=manage_containers,
             show_report=show_report,
+            use_cluster=use_cluster,
             sessname=sessname,
             user_id=user_id,
             created=isodate.datetime_isoformat(cont.time_created()),
@@ -104,7 +108,7 @@ class AdminHandler(JBoxHandler):
             return True
         return False
 
-    def handle_if_addcluster(self, cont):
+    def handle_if_addcluster(self, cont, is_allowed):
         clustername = self.get_argument('addcluster', False)
 
         if clustername is False:
@@ -115,6 +119,12 @@ class AdminHandler(JBoxHandler):
 
         if clustername == "":
             return False
+
+        if not is_allowed:
+            AdminHandler.log_error("Cluser access not allowed for user")
+            response = {'code': -1, 'data': 'You do not have permissions to use any clusters'}
+            self.write(response)
+            return True
     
         cluster_hosts = CloudHost.get_private_addresses_by_placement_group("juliabox")
         AdminHandler.log_debug("addcluster got hosts: %r", cluster_hosts)
@@ -123,12 +133,14 @@ class AdminHandler(JBoxHandler):
         vol = JBoxLoopbackVol.get_disk_from_container(cont.dockid)
         path = vol.disk_path
         AdminHandler.log_debug("addcluster got diskpath: %s", path)
+
+        machinefile = os.path.join(path, ".juliabox", "machinefile")
+        with open(machinefile, 'w') as f:
+            for host in cluster_hosts:
+                f.write(host+'\n')
         
-        f = open(path + '/.juliabox/machinefile', 'w')
-        for host in cluster_hosts:
-            f.write(host+'\n')
-        f.close()
-        
+        response = {'code': 0, 'data': '/home/juser/.juliabox/machinefile'}
+        self.write(response)
         return True
 
     def handle_if_instance_info(self, is_allowed):

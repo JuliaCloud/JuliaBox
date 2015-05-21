@@ -83,11 +83,13 @@
 	    	    event.preventDefault();
 	    	    parent.JuliaBox.websocktest();
 	    	});
-	    
+
+{% if (d["use_cluster"]) %}
             $('#addcluster').click(function(event){
                 event.preventDefault();
                 parent.JuliaBox.addcluster($('#clustername').val());
             });
+{% end %}
 
 {% if (d["manage_containers"] or d["show_report"]) %}
 	    	$('#showuserstats').click(function(event){
@@ -152,7 +154,9 @@
 	<tr><td>SSH Public Key:</td><td><a href="#" id="showsshkey">View</a></td></tr>
 	<tr><td>Julia Image:</td><td><span id='jimg_curr'>precompiled packages</span> (<a href="#" id="jimg_switch"><small>switch to: <span id='jimg_new'>standard</span></small></a>)</td></tr>
 	<tr><td>Network Connectivity Test:</td><td><a href="#" id="websocktest">Start</a></td></tr>
+{% if (d["use_cluster"]) %}
 	<tr><td>Cluster Name:</td><td> <input id="clustername" type="text">  <input type="submit" value="Add" id="addcluster"> </td></tr>
+{% end %}
 </table>
 
 <h3>JuliaBox version:</h3>
