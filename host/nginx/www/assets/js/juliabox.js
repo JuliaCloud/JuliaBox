@@ -508,7 +508,27 @@ var JuliaBox = (function($, _, undefined){
     			}
     		});
     	},
-    	
+
+    	addcluster: function (clustername) {
+            s = function(res) {
+            	if (res.code == 0) {
+            		self.popup_alert("Added cluster " + clustername + ". Created machinefile at " + res.data);
+            	}
+            	else {
+					if (res.data) {
+						self.popup_alert("Error adding cluster. " + res.data);
+					}
+					else {
+						self.popup_alert("Error adding cluster " + clustername + ". Please ensure it is started and healthy.");
+					}
+            	}
+            };
+            f = function() {
+				self.popup_alert("Error adding cluster " + clustername + ". Please ensure it is started and healthy.");
+            };
+            self.comm('/hostadmin/', 'GET', { 'addcluster' : clustername }, s, f);
+    	},
+
     	inform_logged_out: function (pingfail) {
     		if(!_loggedout) {
 	    		_loggedout = true;
