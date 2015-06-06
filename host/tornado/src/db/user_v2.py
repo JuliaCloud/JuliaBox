@@ -82,6 +82,8 @@ class JBoxUserV2(JBoxDB):
     STATS = None
     STAT_NAME = "stat_users"
 
+    DEF_MAX_CLUSTER_CORES = 64
+
     def __init__(self, user_id, create=False):
         if self.table() is None:
             self.is_new = False
@@ -225,6 +227,24 @@ class JBoxUserV2(JBoxDB):
     def set_courses_offered(self, courses_offered):
         if self.item is not None:
             self.item['courses_offered'] = json.dumps(courses_offered)
+
+    def set_balance(self, amt):
+        self.set_attrib('balance', amt)
+
+    def credit_balance(self, amt):
+        self.set_attrib('balance', self.get_attrib('balance', 0.0) + amt)
+
+    def debit_balance(self, amt):
+        self.set_attrib('balance', self.get_attrib('balance', 0.0) - amt)
+
+    def get_balance(self):
+        return self.get_attrib('balance', 0.0)
+
+    def set_max_cluster_cores(self, cores):
+        self.set_attrib('max_cluster_cores', cores)
+
+    def get_max_cluster_cores(self):
+        return self.get_attrib('max_cluster_cores', JBoxUserV2.DEF_MAX_CLUSTER_CORES)
 
     @staticmethod
     def get_pending_activations(max_count):

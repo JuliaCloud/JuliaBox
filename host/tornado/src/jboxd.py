@@ -15,7 +15,7 @@ from jbox_tasks import JBoxAsyncJob
 from jbox_util import LoggerMixin, read_config, retry, unique_sessname
 from jbox_container import JBoxContainer
 from vol import VolMgr, JBoxLoopbackVol
-
+from parallel import UserCluster
 
 def jboxd_method(f):
     def wrapper(*args, **kwargs):
@@ -66,11 +66,10 @@ class JBoxd(LoggerMixin):
                             region=cloud_cfg['region'],
                             install_id=cloud_cfg['install_id'])
         VolMgr.configure(dckr, cfg)
-        JBoxAsyncJob.configure(cfg)
-        JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'],
-                                cfg['numlocalmax'], cfg['async_job_ports'], async_mode=JBoxAsyncJob.MODE_SUB)
+        JBoxAsyncJob.configure(cfg, JBoxAsyncJob.MODE_SUB)
+        JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], cfg['numlocalmax'])
         self.log_debug("Backup daemon listening on ports: %s", repr(cfg['async_job_ports']))
-        JBoxd.QUEUE = JBoxContainer.ASYNC_JOB
+        JBoxd.QUEUE = JBoxAsyncJob.get()
 
         JBoxd.MAX_ACTIVATIONS_PER_SEC = user_activation_cfg['max_activations_per_sec']
         JBoxd.MAX_AUTO_ACTIVATIONS_PER_RUN = user_activation_cfg['max_activations_per_run']
@@ -209,6 +208,12 @@ class JBoxd(LoggerMixin):
 
     @staticmethod
     @jboxd_method
+    def terminate_or_delete_cluster(cluster_id):
+        uc = UserCluster(None, gname=cluster_id)
+        uc.terminate_or_delete()
+
+    @staticmethod
+    @jboxd_method
     def refresh_disks():
         if JBoxd._is_scheduled(JBoxAsyncJob.CMD_UPDATE_USER_HOME_IMAGE, ()):
             return
@@ -242,6 +247,9 @@ class JBoxd(LoggerMixin):
             fn = JBoxd.collect_stats
         elif cmd == JBoxAsyncJob.CMD_UPDATE_DISK_STATES:
             fn = JBoxd.update_disk_states
+        elif cmd == JBoxAsyncJob.CMD_TERMINATE_OR_DELETE_CLUSTER:
+            fn = JBoxd.terminate_or_delete_cluster
+            args = (data,)
         else:
             self.log_error("Unknown command " + str(cmd))
             return

@@ -8,9 +8,11 @@ from cloud.aws import CloudHost
 from jbox_util import unquote
 from handlers.handler_base import JBoxHandler
 from jbox_container import JBoxContainer
+from parallel import UserCluster
+from jbox_tasks import JBoxAsyncJob
 from db import JBoxUserV2, JBoxDynConfig, JBoxAccountingV2, JBoxInvite
-from vol import JBoxLoopbackVol
 
+from vol import VolMgr
 
 class AdminHandler(JBoxHandler):
     def get(self):
@@ -34,7 +36,7 @@ class AdminHandler(JBoxHandler):
             return
 
         # TODO: introduce new role for cluster access 
-        if self.handle_if_addcluster(cont, use_cluster):
+        if self.handle_if_cluster(user, cont, use_cluster):
             return
         if self.handle_if_logout(cont):
             return
@@ -102,11 +104,89 @@ class AdminHandler(JBoxHandler):
     def handle_if_logout(self, cont):
         logout = self.get_argument('logout', False)
         if logout == 'me':
-            cont.async_backup_and_cleanup()
+            JBoxContainer.invalidate_container(cont.get_name())
+            JBoxAsyncJob.async_backup_and_cleanup(cont.dockid)
             response = {'code': 0, 'data': ''}
             self.write(response)
             return True
         return False
+
+    def write_machinefile(self, cont, uc):
+        cluster_hosts = set(uc.public_ips)
+        if len(cluster_hosts) == 0:
+            return
+
+        # write out the machinefile on the docker's filesystem
+        vol = VolMgr.get_disk_from_container(cont.dockid)
+        machinefile = os.path.join(vol.disk_path, ".juliabox", "machinefile")
+
+        existing_hosts = set()
+        try:
+            with open(machinefile, 'r') as f:
+                existing_hosts = set([x.rstrip('\n') for x in f.readlines()])
+        except:
+            pass
+
+        if cluster_hosts == existing_hosts:
+            return
+
+        self.log_debug("writing machinefile for %s to path: %s", cont.debug_str(), machinefile)
+        with open(machinefile, 'w') as f:
+            for host in cluster_hosts:
+                f.write(host+'\n')
+
+    def handle_if_cluster(self, user, cont, is_allowed):
+        mode = self.get_argument('cluster', False)
+        if mode is False:
+            return False
+
+        if not is_allowed:
+            AdminHandler.log_error("Cluser access not allowed for user")
+            response = {'code': -1, 'data': 'You do not have permissions to use any clusters'}
+            self.write(response)
+            return True
+
+        try:
+            max_cores = user.get_max_cluster_cores()
+            balance = user.get_balance()
+            uc = UserCluster(user.get_user_id())
+            if mode == 'status':
+                status = uc.status()
+                status['limits'] = {
+                    'max_cores': max_cores,
+                    'credits': balance
+                }
+                self.write_machinefile(cont, uc)
+                response = {'code': 0, 'data': status}
+            elif mode == 'terminate':
+                action = 'terminate' if uc.isactive() else 'delete'
+                uc.terminate_or_delete()
+                response = {'code': 0, 'data': action}
+            elif mode == 'create':
+                ninsts = int(self.get_argument('ninsts', 0))
+                avzone = self.get_argument('avzone', '')
+                spot_price = float(self.get_argument('spot_price', 0.0))
+                if ninsts > (max_cores / UserCluster.INSTANCE_CORES):
+                    response = {'code': -1, 'data': 'You are allowed a maximum of ' + str(max_cores) + ' cores.'}
+                elif (spot_price > UserCluster.INSTANCE_COST) or (spot_price < 0):
+                    response = {
+                        'code': -1,
+                        'data': 'Bid price must be between $0 - $' + str(UserCluster.INSTANCE_COST) + '.'
+                    }
+                else:
+                    uc.delete()
+                    uc.create(ninsts, avzone, spot_price=spot_price)
+                    uc.start()
+                    response = {'code': 0, 'data': ''}
+            else:
+                response = {'code': -1, 'data': 'Unknown cluster operation ' + mode}
+        except Exception as ex:
+            AdminHandler.log_error("exception in cluster operation")
+            AdminHandler._get_logger().exception("exception in cluster operation")
+            response = {'code': -1, 'data': ex.message}
+
+        self.write(response)
+        return True
 
     def handle_if_addcluster(self, cont, is_allowed):
         clustername = self.get_argument('addcluster', False)
@@ -130,7 +210,7 @@ class AdminHandler(JBoxHandler):
         AdminHandler.log_debug("addcluster got hosts: %r", cluster_hosts)
         
         # write out the machinefile on the docker's filesystem
-        vol = JBoxLoopbackVol.get_disk_from_container(cont.dockid)
+        vol = VolMgr.get_disk_from_container(cont.dockid)
         path = vol.disk_path
         AdminHandler.log_debug("addcluster got diskpath: %s", path)
 
@@ -173,7 +253,7 @@ class AdminHandler(JBoxHandler):
 
                     for idx in range(0, len(instances)):
                         inst = instances[idx]
-                        result[inst] = JBoxContainer.sync_session_status(inst)['data']
+                        result[inst] = JBoxAsyncJob.sync_session_status(inst)['data']
                 else:
                     raise Exception("unknown command %s" % (stats,))
 

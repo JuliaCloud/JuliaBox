@@ -224,3 +224,20 @@ class JBoxDynConfig(JBoxDB):
         if not record.is_new:
             record.set_value(val)
             record.save()
+
+    @staticmethod
+    def get_user_cluster_config(cluster):
+        #return json.loads('{"instance_cores": 32, "instance_type": "r3.8xlarge", "key_name": "jublr", "image_id": "ami-2261794a", "instance_cost": 2.8, "sec_grps": ["juliacluster"]}')
+        try:
+            record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'user_cluster'))
+        except boto.dynamodb2.exceptions.ItemNotFound:
+            return None
+        return json.loads(record.get_value())
+
+    @staticmethod
+    def set_user_cluster_config(cluster, cfg):
+        val = json.dumps(cfg)
+        record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'user_cluster'), create=True, value=val)
+        if not record.is_new:
+            record.set_value(val)
+            record.save()
