@@ -135,6 +135,18 @@ class AdminHandler(JBoxHandler):
             for host in cluster_hosts:
                 f.write(host+'\n')
 
+    @staticmethod
+    def create_user_script(cont):
+        vol = VolMgr.get_disk_from_container(cont.dockid)
+
+        pub_key_file = os.path.join(vol.disk_path, ".ssh", "id_rsa.pub")
+        with open(pub_key_file, 'r') as f:
+            pub_key = f.read()
+
+        auth_key_file = "/home/ubuntu/.ssh/authorized_keys"
+        template = '#! /usr/bin/env bash\n\nsudo -u ubuntu sh -c "echo \\\"%s\\\" >> %s && chmod 600 %s"'
+        return template % (pub_key, auth_key_file, auth_key_file)
+
     def handle_if_cluster(self, user, cont, is_allowed):
         mode = self.get_argument('cluster', False)
         if mode is False:
@@ -175,7 +187,8 @@ class AdminHandler(JBoxHandler):
                     }
                 else:
                     uc.delete()
-                    uc.create(ninsts, avzone, spot_price=spot_price)
+                    user_data = AdminHandler.create_user_script(cont)
+                    uc.create(ninsts, avzone, user_data, spot_price=spot_price)
                     uc.start()
                     response = {'code': 0, 'data': ''}
             else:

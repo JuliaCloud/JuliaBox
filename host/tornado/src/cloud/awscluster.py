@@ -112,6 +112,7 @@ class Cluster(CloudHost):
     def create_launch_config(lconfig_name, image_id, inst_type, key_name, security_groups,
                              spot_price=0,
                              user_data_file=None,
+                             user_data=None,
                              block_dev_mappings=None,
                              ebs_optimized=False,
                              overwrite=False):
@@ -127,11 +128,10 @@ class Cluster(CloudHost):
 
         auto_scale_conn = CloudHost.connect_autoscale()
 
-        if user_data_file is None:
-            user_data = None
-        else:
-            with open(user_data_file, 'r') as udf:
-                user_data = udf.read()
+        if user_data is None:
+            if user_data_file is not None:
+                with open(user_data_file, 'r') as udf:
+                    user_data = udf.read()
 
         lconfig = LaunchConfiguration()
         lconfig.instance_type = inst_type
@@ -151,7 +151,7 @@ class Cluster(CloudHost):
             lconfig.ebs_optimized = True
 
         auto_scale_conn.create_launch_configuration(lconfig)
-        Cluster.log_info("Created launch configuration %s with user data file %s", lconfig.name, user_data_file)
+        Cluster.log_info("Created launch configuration %s", lconfig.name)
 
     @staticmethod
     def delete_launch_config(lconfig_name):

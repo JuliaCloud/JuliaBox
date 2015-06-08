@@ -178,7 +178,7 @@ class UserCluster(LoggerMixin):
         self.instances = Cluster.get_autoscaled_instances(self.gname)
         self.public_ips = CloudHost.get_public_addresses_by_placement_group(self.gname)
 
-    def create(self, ninsts, avzone, spot_price=0):
+    def create(self, ninsts, avzone, user_data, spot_price=0):
         if self.exists():
             raise Exception("%s exists" % (self.debug_str(),))
 
@@ -191,6 +191,7 @@ class UserCluster(LoggerMixin):
         # create a launch configuration
         Cluster.create_launch_config(self.gname, UserCluster.IMAGE_ID, UserCluster.INSTANCE_TYPE,
                                      UserCluster.KEY_NAME, UserCluster.SEC_GRPS,
+                                     user_data=user_data,
                                      spot_price=spot_price)
         self.log_info("Launch configuration %s", self.gname)
 
