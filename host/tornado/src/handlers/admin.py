@@ -14,6 +14,7 @@ from db import JBoxUserV2, JBoxDynConfig, JBoxAccountingV2, JBoxInvite
 
 from vol import VolMgr
 
+
 class AdminHandler(JBoxHandler):
     def get(self):
         sessname = unquote(self.get_cookie("sessname"))
@@ -143,8 +144,8 @@ class AdminHandler(JBoxHandler):
         with open(pub_key_file, 'r') as f:
             pub_key = f.read()
 
-        auth_key_file = "/home/ubuntu/.ssh/authorized_keys"
-        template = '#! /usr/bin/env bash\n\nsudo -u ubuntu sh -c "echo \\\"%s\\\" >> %s && chmod 600 %s"'
+        auth_key_file = "/home/juser/.ssh/authorized_keys"
+        template = '#! /usr/bin/env bash\n\nsudo -u juser sh -c "echo \\\"%s\\\" >> %s && chmod 600 %s"'
         return template % (pub_key, auth_key_file, auth_key_file)
 
     def handle_if_cluster(self, user, cont, is_allowed):
