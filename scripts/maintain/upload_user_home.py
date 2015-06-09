@@ -3,11 +3,13 @@
 import os
 import sys
 import shutil
-import db
+
+import docker
+
 from db import JBoxDynConfig
 from jbox_util import read_config, LoggerMixin
-import docker
-from cloud.aws import CloudHost
+from juliabox import db
+from juliabox.cloud.aws import CloudHost
 from vol import VolMgr, JBoxVol
 
 if __name__ == "__main__":

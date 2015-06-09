@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 
 from boto.dynamodb2.table import Table
-from db import JBoxUserV2, JBoxInvite, JBoxDiskState, JBoxAccountingV2, JBoxDynConfig, \
+
+from juliabox.db import JBoxUserV2, JBoxInvite, JBoxDiskState, JBoxAccountingV2, JBoxDynConfig, \
     JBoxSessionProps, JBoxCourseHomework
 
 

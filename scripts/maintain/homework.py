@@ -28,9 +28,9 @@ import csv
 
 from cloud.aws import CloudHost
 from jbox_util import read_config, LoggerMixin
-import db
 from db import JBoxCourseHomework
-from handlers import HomeworkHandler
+from juliabox import db
+from juliabox.handlers import HomeworkHandler
 
 
 def report_as_csv(wfile, perq):
