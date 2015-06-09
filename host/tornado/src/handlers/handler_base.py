@@ -1,5 +1,5 @@
-import base64
 import json
+import base64
 import traceback
 import pytz
 import datetime
@@ -9,6 +9,7 @@ from tornado.web import RequestHandler
 
 from jbox_util import LoggerMixin, unique_sessname
 from jbox_container import JBoxContainer
+from jbox_tasks import JBoxAsyncJob
 from jbox_crypto import signstr
 from cloud.aws import CloudHost
 from db import is_proposed_cluster_leader
@@ -67,16 +68,19 @@ class JBoxHandler(RequestHandler, LoggerMixin):
         if max_hop:
             self_load = CloudHost.get_instance_stats(CloudHost.instance_id(), 'Load')
             if self_load < 100:
-                JBoxContainer.async_launch_by_name(sessname, user_id, True)
+                JBoxContainer.invalidate_container(sessname)
+                JBoxAsyncJob.async_launch_by_name(sessname, user_id, True)
                 return True
 
         is_leader = is_proposed_cluster_leader()
         if ((cont is None) or (not cont.is_running())) and (not CloudHost.should_accept_session(is_leader)):
             if cont is not None:
-                cont.async_backup_and_cleanup()
+                JBoxContainer.invalidate_container(cont.get_name())
+                JBoxAsyncJob.async_backup_and_cleanup(cont.dockid)
             return False
 
-        JBoxContainer.async_launch_by_name(sessname, user_id, True)
+        JBoxContainer.invalidate_container(sessname)
+        JBoxAsyncJob.async_launch_by_name(sessname, user_id, True)
         return True
 
     def unset_affinity(self):

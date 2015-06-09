@@ -15,6 +15,7 @@ from jbox_tasks import JBoxAsyncJob
 from jbox_util import read_config, LoggerMixin
 from vol import VolMgr
 from jbox_container import JBoxContainer
+from parallel import UserCluster
 from handlers import JBoxHandler, AdminHandler, MainHandler, AuthHandler, PingHandler, CorsHandler, HomeworkHandler
 
 
@@ -47,9 +48,8 @@ class JBox(LoggerMixin):
                             install_id=cloud_cfg['install_id'])
 
         VolMgr.configure(dckr, cfg)
-        JBoxAsyncJob.configure(cfg)
-        JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'],
-                                cfg['numlocalmax'], cfg['async_job_ports'])
+        JBoxAsyncJob.configure(cfg, JBoxAsyncJob.MODE_PUB)
+        JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], cfg['numlocalmax'])
 
         self.application = tornado.web.Application([
             (r"/", MainHandler),
@@ -81,7 +81,7 @@ class JBox(LoggerMixin):
             CloudHost.register_instance_dns()
         JBoxContainer.publish_container_stats()
         JBox.do_update_user_home_image()
-        JBoxContainer.async_refresh_disks()
+        JBoxAsyncJob.async_refresh_disks()
         self.ct.start()
         self.ioloop.start()
 
@@ -89,7 +89,7 @@ class JBox(LoggerMixin):
     def do_update_user_home_image():
         if VolMgr.has_update_for_user_home_image():
             if not VolMgr.update_user_home_image(fetch=False):
-                JBoxContainer.async_update_user_home_image()
+                JBoxAsyncJob.async_update_user_home_image()
 
     @staticmethod
     def monitor_registrations():
@@ -107,7 +107,35 @@ class JBox(LoggerMixin):
             num_pending_activations = JBoxUserV2.count_pending_activations()
             if num_pending_activations > 0:
                 CloudHost.log_info("scheduling activations for %d pending activations", num_pending_activations)
-                JBoxContainer.async_schedule_activations()
+                JBoxAsyncJob.async_schedule_activations()
+
+    @staticmethod
+    def get_active_sessions():
+        instances = CloudHost.get_autoscaled_instances() if CloudHost.ENABLED['autoscale'] else []
+        if len(instances) == 0:
+            instances = ['localhost']
+
+        active_sessions = set()
+        for inst in instances:
+            sessions = JBoxAsyncJob.sync_session_status(inst)['data']
+            if len(sessions) > 0:
+                for sess_id in sessions.keys():
+                    active_sessions.add(sess_id)
+
+        return active_sessions
+
+    @staticmethod
+    def monitor_user_clusters():
+        active_clusters = UserCluster.list_all_groupids()
+        CloudHost.log_info("%d active clusters", len(active_clusters))
+        if len(active_clusters) == 0:
+            return
+        active_sessions = JBox.get_active_sessions()
+        for cluster_id in active_clusters:
+            sess_id = "/" + UserCluster.sessname_for_cluster(cluster_id)
+            if sess_id not in active_sessions:
+                CloudHost.log_info("Session (%s) corresponding to cluster (%s) not found. Terminating cluster.")
+                JBoxAsyncJob.async_terminate_or_delete_cluster(cluster_id)
 
     @staticmethod
     def is_ready_to_terminate():
@@ -126,9 +154,10 @@ class JBox(LoggerMixin):
         if is_cluster_leader():
             CloudHost.log_info("I am the cluster leader")
             JBox.monitor_registrations()
+            JBox.monitor_user_clusters()
             if not JBoxDynConfig.is_stat_collected_within(CloudHost.INSTALL_ID, 1):
-                JBoxContainer.async_collect_stats()
-            JBoxContainer.async_update_disk_state()
+                JBoxAsyncJob.async_collect_stats()
+            JBoxAsyncJob.async_update_disk_state()
         elif JBox.is_ready_to_terminate():
             terminating = True
             JBox.log_warn("terminating to scale down")

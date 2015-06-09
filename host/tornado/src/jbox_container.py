@@ -30,8 +30,6 @@ class JBoxContainer(LoggerMixin):
     INITIAL_DISK_USED_PCT = None
     LAST_CPU_PCT = None
 
-    ASYNC_JOB = None
-
     def __init__(self, dockid):
         self.dockid = dockid
         self.props = None
@@ -96,13 +94,12 @@ class JBoxContainer(LoggerMixin):
         return []
 
     @staticmethod
-    def configure(dckr, image, mem_limit, cpu_limit, max_containers, async_job_ports, async_mode=JBoxAsyncJob.MODE_PUB):
+    def configure(dckr, image, mem_limit, cpu_limit, max_containers):
         JBoxContainer.DCKR = dckr
         JBoxContainer.DCKR_IMAGE = image
         JBoxContainer.MEM_LIMIT = mem_limit
         JBoxContainer.CPU_LIMIT = cpu_limit
         JBoxContainer.MAX_CONTAINERS = max_containers
-        JBoxContainer.ASYNC_JOB = JBoxAsyncJob(async_job_ports, async_mode)
 
     @staticmethod
     def _create_new(name):
@@ -120,48 +117,12 @@ class JBoxContainer(LoggerMixin):
         return cont
 
     @staticmethod
-    def async_refresh_disks():
-        JBoxContainer.log_info("scheduling refresh of loopback disks")
-        JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_REFRESH_DISKS, '')
-
-    @staticmethod
-    def async_update_user_home_image():
-        JBoxContainer.log_info("scheduling update of user home image")
-        JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_UPDATE_USER_HOME_IMAGE, '')
-
-    @staticmethod
-    def async_collect_stats():
-        JBoxContainer.log_info("scheduling stats collection")
-        JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_COLLECT_STATS, '')
-
-    @staticmethod
-    def async_update_disk_state():
-        JBoxContainer.log_info("updating disk states")
-        JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_UPDATE_DISK_STATES, '')
-
-    @staticmethod
-    def async_schedule_activations():
-        JBoxContainer.log_info("scheduling activations")
-        JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_AUTO_ACTIVATE, '')
-
-    @staticmethod
-    def async_launch_by_name(name, email, reuse=True):
-        JBoxContainer.log_info("Scheduling startup name:%s email:%s", name, email)
-        cname = "/" + name
+    def invalidate_container(cname):
+        if not cname.startswith("/"):
+            cname = "/" + cname
         if JBoxContainer.VALID_CONTAINERS.has_key(cname):
+            JBoxContainer.log_info("Invalidating container %s", cname)
             del JBoxContainer.VALID_CONTAINERS[cname]
-        JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_LAUNCH_SESSION, (name, email, reuse))
-
-    def async_backup_and_cleanup(self):
-        JBoxContainer.log_info("scheduling cleanup for %s", self.debug_str())
-        if self.get_name() in JBoxContainer.VALID_CONTAINERS:
-            del JBoxContainer.VALID_CONTAINERS[self.get_name()]
-        JBoxContainer.ASYNC_JOB.send(JBoxAsyncJob.CMD_BACKUP_CLEANUP, self.dockid)
-
-    @staticmethod
-    def sync_session_status(instance_id):
-        JBoxContainer.log_debug("fetching session status from %s", instance_id)
-        return JBoxContainer.ASYNC_JOB.sendrecv(JBoxAsyncJob.CMD_SESSION_STATUS, {}, dest=instance_id)
 
     @staticmethod
     def launch_by_name(name, email, reuse=True):
@@ -261,14 +222,16 @@ class JBoxContainer(LoggerMixin):
                 # JBoxContainer.log_info("time_started " + str(cont.time_started()) +
                 #               " delete_before: " + str(delete_before) +
                 #               " cond: " + str(cont.time_started() < delete_before))
-                JBoxContainer.log_warn("Running beyond allowed time %s", cont.debug_str())
-                cont.async_backup_and_cleanup()
+                JBoxContainer.log_warn("Running beyond allowed time %s. Scheduling cleanup.", cont.debug_str())
+                JBoxContainer.invalidate_container(cont.get_name())
+                JBoxAsyncJob.async_backup_and_cleanup(cont.dockid)
             elif (last_ping is not None) and c_is_active and (last_ping < stop_inacive_before):
                 # if inactive for too long, stop it
                 # JBoxContainer.log_info("last_ping " + str(last_ping) + " stop_before: " + str(stop_before) +
                 #           " cond: " + str(last_ping < stop_before))
-                JBoxContainer.log_warn("Inactive beyond allowed time %s", cont.debug_str())
-                cont.async_backup_and_cleanup()
+                JBoxContainer.log_warn("Inactive beyond allowed time %s. Scheduling cleanup.", cont.debug_str())
+                JBoxContainer.invalidate_container(cont.get_name())
+                JBoxAsyncJob.async_backup_and_cleanup(cont.dockid)
 
         # delete ping entries for non exixtent containers
         for cname in JBoxContainer.PINGS.keys():

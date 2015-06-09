@@ -275,13 +275,13 @@ class CloudHost(LoggerMixin):
 
         while True:
             metrics = CloudHost.connect_cloudwatch().list_metrics(next_token=next_token,
-                                                                    metric_name=metric_name,
-                                                                    namespace=metric_namespace)
+                                                                  metric_name=metric_name,
+                                                                  namespace=metric_namespace)
             for m in metrics:
                 for n_dim, v_dim in m.dimensions.iteritems():
                     dims[n_dim] = dims.get(n_dim, []) + v_dim
             next_token = metrics.next_token
-            if next_token is None:
+            if (next_token is None) or (len(next_token) == 0):
                 break
         if len(dims) == 0:
             CloudHost.log_warn("invalid metric " + '.'.join([metric_namespace, metric_name]))
@@ -391,18 +391,27 @@ class CloudHost(LoggerMixin):
         conn = CloudHost.connect_ec2()
         instances = conn.get_only_instances(filters={"tag:"+tag : value, "instance-state-name":"running"})
         return [i.private_dns_name for i in instances]
-        
+
     @staticmethod
     def get_public_addresses_by_placement_group(gname):
         conn = CloudHost.connect_ec2()
-        instances = conn.get_only_instances(filters={"placement-group-name" : gname, "instance-state-name":"running"})
+        instances = conn.get_only_instances(filters={"placement-group-name": gname, "instance-state-name": "running"})
         return [i.public_dns_name for i in instances]
         
     @staticmethod
     def get_private_addresses_by_placement_group(gname):
         conn = CloudHost.connect_ec2()
-        instances = conn.get_only_instances(filters={"placement-group-name" : gname, "instance-state-name":"running"})
+        instances = conn.get_only_instances(filters={"placement-group-name": gname, "instance-state-name": "running"})
         return [i.private_dns_name for i in instances]
+
+    @staticmethod
+    def get_image(image_name):
+        conn = CloudHost.connect_ec2()
+        images = conn.get_all_images(owners='self')
+        for image in images:
+            if image.name == image_name:
+                return image
+        return None
 
     @staticmethod
     def should_accept_session(is_leader):
@@ -506,8 +515,24 @@ class CloudHost(LoggerMixin):
         return None
 
     @staticmethod
-    def get_autoscaled_instances():
-        group = CloudHost.connect_autoscale().get_all_groups([CloudHost.AUTOSCALE_GROUP])[0]
+    def get_autoscale_group(gname):
+        conn = CloudHost.connect_autoscale()
+        try:
+            groups = conn.get_all_groups([gname])
+            if len(groups) > 0:
+                return groups[0]
+        except Exception as e:
+            CloudHost.log_error("Exception getting autoscale group %s", gname)
+
+        return None
+
+    @staticmethod
+    def get_autoscaled_instances(gname=None):
+        if gname is None:
+            gname = CloudHost.AUTOSCALE_GROUP
+        group = CloudHost.get_autoscale_group(gname)
+        if (group is None) or (len(group.instances) == 0):
+            return []
         instances_ids = [i.instance_id for i in group.instances]
         reservations = CloudHost.connect_ec2().get_all_reservations(instances_ids)
         instances = [i.id for r in reservations for i in r.instances]

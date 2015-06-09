@@ -16,11 +16,14 @@ class JBoxAsyncJob(LoggerMixin):
     CMD_REFRESH_DISKS = 5
     CMD_COLLECT_STATS = 6
     CMD_UPDATE_DISK_STATES = 7
+    CMD_TERMINATE_OR_DELETE_CLUSTER = 8
 
     CMD_REQ_RESP = 50
     CMD_SESSION_STATUS = 51
 
     ENCKEY = None
+
+    SINGLETON_INSTANCE = None
 
     def __init__(self, ports, mode):
         self._mode = mode
@@ -49,8 +52,14 @@ class JBoxAsyncJob(LoggerMixin):
             self._req_rep_sock.bind(rraddr)
 
     @staticmethod
-    def configure(cfg):
+    def configure(cfg, async_mode):
+        async_job_ports = cfg['async_job_ports']
         JBoxAsyncJob.ENCKEY = cfg['sesskey']
+        JBoxAsyncJob.SINGLETON_INSTANCE = JBoxAsyncJob(async_job_ports, async_mode)
+
+    @staticmethod
+    def get():
+        return JBoxAsyncJob.SINGLETON_INSTANCE
 
     @staticmethod
     def _make_msg(cmd, data):
@@ -132,3 +141,48 @@ class JBoxAsyncJob(LoggerMixin):
         rrreq = (self._req_rep_sock in socks) and (socks[self._req_rep_sock] == zmq.POLLIN)
 
         return ppreq, rrreq
+
+    @staticmethod
+    def async_refresh_disks():
+        JBoxAsyncJob.log_info("scheduling refresh of loopback disks")
+        JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_REFRESH_DISKS, '')
+
+    @staticmethod
+    def async_update_user_home_image():
+        JBoxAsyncJob.log_info("scheduling update of user home image")
+        JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_UPDATE_USER_HOME_IMAGE, '')
+
+    @staticmethod
+    def async_collect_stats():
+        JBoxAsyncJob.log_info("scheduling stats collection")
+        JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_COLLECT_STATS, '')
+
+    @staticmethod
+    def async_update_disk_state():
+        JBoxAsyncJob.log_info("updating disk states")
+        JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_UPDATE_DISK_STATES, '')
+
+    @staticmethod
+    def async_schedule_activations():
+        JBoxAsyncJob.log_info("scheduling activations")
+        JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_AUTO_ACTIVATE, '')
+
+    @staticmethod
+    def async_launch_by_name(name, email, reuse=True):
+        JBoxAsyncJob.log_info("Scheduling startup name:%s email:%s", name, email)
+        JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_LAUNCH_SESSION, (name, email, reuse))
+
+    @staticmethod
+    def async_backup_and_cleanup(dockid):
+        JBoxAsyncJob.log_info("scheduling cleanup for %s", dockid)
+        JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_BACKUP_CLEANUP, dockid)
+
+    @staticmethod
+    def sync_session_status(instance_id):
+        JBoxAsyncJob.log_debug("fetching session status from %s", instance_id)
+        return JBoxAsyncJob.get().sendrecv(JBoxAsyncJob.CMD_SESSION_STATUS, {}, dest=instance_id)
+
+    @staticmethod
+    def async_terminate_or_delete_cluster(cluster_id):
+        JBoxAsyncJob.log_info("scheduling termination or deletion of %s", cluster_id)
+        JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_TERMINATE_OR_DELETE_CLUSTER, cluster_id)
