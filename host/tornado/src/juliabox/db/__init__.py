@@ -8,26 +8,17 @@ from dynconfig import JBoxDynConfig
 from disk_state import JBoxDiskState
 from course_homework import JBoxCourseHomework
 from juliabox.cloud.aws import CloudHost
+from juliabox.jbox_util import JBoxCfg
 
 
-def configure_db(cfg):
-    JBoxDB.configure(cfg)
-    cloud_cfg = cfg['cloud_host']
-
-    if 'jbox_users_v2' in cloud_cfg:
-        JBoxUserV2.NAME = cloud_cfg['jbox_users_v2']
-    if 'jbox_invites' in cloud_cfg:
-        JBoxInvite.NAME = cloud_cfg['jbox_invites']
-    if 'jbox_accounting_v2' in cloud_cfg:
-        JBoxAccountingV2.NAME = cloud_cfg['jbox_accounting_v2']
-    if 'jbox_session' in cloud_cfg:
-        JBoxSessionProps.NAME = cloud_cfg['jbox_session']
-    if 'jbox_dynconfig' in cloud_cfg:
-        JBoxDynConfig.NAME = cloud_cfg['jbox_dynconfig']
-    if 'jbox_diskstate' in cloud_cfg:
-        JBoxDiskState.NAME = cloud_cfg['jbox_diskstate']
-    if 'jbox_coursehomework' in cloud_cfg:
-        JBoxCourseHomework.NAME = cloud_cfg['jbox_coursehomework']
+def configure():
+    JBoxUserV2.NAME = JBoxCfg.get('cloud_host.cloud_cfg', JBoxUserV2.NAME)
+    JBoxInvite.NAME = JBoxCfg.get('cloud_host.jbox_invites', JBoxInvite.NAME)
+    JBoxAccountingV2.NAME = JBoxCfg.get('cloud_host.jbox_accounting_v2', JBoxAccountingV2.NAME)
+    JBoxSessionProps.NAME = JBoxCfg.get('cloud_host.jbox_session', JBoxSessionProps.NAME)
+    JBoxDynConfig.NAME = JBoxCfg.get('cloud_host.jbox_dynconfig', JBoxDynConfig.NAME)
+    JBoxDiskState.NAME = JBoxCfg.get('cloud_host.jbox_diskstate', JBoxDiskState.NAME)
+    JBoxCourseHomework.NAME = JBoxCfg.get('cloud_host.jbox_coursehomework', JBoxCourseHomework.NAME)
 
 
 def is_proposed_cluster_leader():

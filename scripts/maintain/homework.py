@@ -25,10 +25,11 @@
 import sys
 import json
 import csv
+import os
 
-from cloud.aws import CloudHost
-from jbox_util import read_config, LoggerMixin
-from db import JBoxCourseHomework
+from juliabox.cloud.aws import CloudHost
+from juliabox.jbox_util import LoggerMixin, JBoxCfg
+from juliabox.db import JBoxCourseHomework
 from juliabox import db
 from juliabox.handlers import HomeworkHandler
 
@@ -88,32 +89,19 @@ def print_usage():
     print("\t%s report <course.cfg> <as_csv>" % (sys.argv[0],))
     print("\t%s answers <course.cfg>" % (sys.argv[0],))
 
-
 def process_commands(argv):
     with open(argv[2]) as f:
         uplcourse = eval(f.read())
 
-    cfg = read_config()
-    cloud_cfg = cfg['cloud_host']
+    conf_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../host/tornado/conf'))
+    conf_file = os.path.join(conf_dir, 'tornado.conf')
+    user_conf_file = os.path.join(conf_dir, 'jbox.user')
 
-    LoggerMixin.setup_logger(level=cfg['root_log_level'])
-    LoggerMixin.DEFAULT_LEVEL = cfg['jbox_log_level']
+    JBoxCfg.read(conf_file, user_conf_file)
 
-    db.configure_db(cfg)
-
-    CloudHost.configure(has_s3=cloud_cfg['s3'],
-                        has_dynamodb=cloud_cfg['dynamodb'],
-                        has_cloudwatch=cloud_cfg['cloudwatch'],
-                        has_autoscale=cloud_cfg['autoscale'],
-                        has_route53=cloud_cfg['route53'],
-                        has_ebs=cloud_cfg['ebs'],
-                        has_ses=cloud_cfg['ses'],
-                        scale_up_at_load=cloud_cfg['scale_up_at_load'],
-                        scale_up_policy=cloud_cfg['scale_up_policy'],
-                        autoscale_group=cloud_cfg['autoscale_group'],
-                        route53_domain=cloud_cfg['route53_domain'],
-                        region=cloud_cfg['region'],
-                        install_id=cloud_cfg['install_id'])
+    LoggerMixin.configure()
+    db.configure()
+    CloudHost.configure()
 
     cmd = argv[1]
     if cmd == "upload":

@@ -7,7 +7,7 @@ import datetime
 import isodate
 from tornado.web import RequestHandler
 
-from juliabox.jbox_util import LoggerMixin, unique_sessname
+from juliabox.jbox_util import LoggerMixin, unique_sessname, JBoxCfg
 from juliabox.jbox_container import JBoxContainer
 from juliabox.jbox_tasks import JBoxAsyncJob
 from juliabox.jbox_crypto import signstr
@@ -16,26 +16,12 @@ from juliabox.db import is_proposed_cluster_leader
 
 
 class JBoxHandler(RequestHandler, LoggerMixin):
-    _config = None
     AUTH_COOKIE = 'juliabox'
     AUTH_VALID_DAYS = 30
     AUTH_VALID_SECS = (AUTH_VALID_DAYS * 24 * 60 * 60)
 
     def rendertpl(self, tpl, **kwargs):
         self.render("../../../www/" + tpl, **kwargs)
-
-    @classmethod
-    def configure(cls, cfg):
-        cls._config = cfg
-
-    @classmethod
-    def config(cls, key=None, default=None):
-        if key is None:
-            return cls._config
-        if key in cls._config:
-            return cls._config[key]
-        else:
-            return default
 
     @classmethod
     def is_valid_req(cls, req):
@@ -48,7 +34,7 @@ class JBoxHandler(RequestHandler, LoggerMixin):
         hostipnb = req.get_cookie("hostipnb").replace('"', '')
         signval = req.get_cookie("sign").replace('"', '')
 
-        sign = signstr(sessname + hostshell + hostupl + hostipnb, cls._config["sesskey"])
+        sign = signstr(sessname + hostshell + hostupl + hostipnb, JBoxCfg.get("sesskey"))
         if sign != signval:
             cls.log_info('not valid req. signature not matching')
             return False
@@ -91,7 +77,7 @@ class JBoxHandler(RequestHandler, LoggerMixin):
 
     def set_loading_state(self, user_id):
         sessname = unique_sessname(user_id)
-        sign = signstr(sessname + '000', self.config("sesskey"))
+        sign = signstr(sessname + '000', JBoxCfg.get("sesskey"))
         self.set_container_cookies({
             "sessname": sessname,
             "hostshell": 0,
@@ -111,7 +97,7 @@ class JBoxHandler(RequestHandler, LoggerMixin):
             self.clear_cookie(name)
 
     def set_container_cookies(self, cookies):
-        max_session_time = self.config('expire')
+        max_session_time = JBoxCfg.get('expire')
         if max_session_time == 0:
             max_session_time = JBoxHandler.AUTH_VALID_SECS
         expires = datetime.datetime.utcnow() + datetime.timedelta(seconds=max_session_time)
@@ -120,7 +106,7 @@ class JBoxHandler(RequestHandler, LoggerMixin):
             self.set_cookie(n, str(v), expires=expires)
 
     def set_lb_tracker_cookie(self):
-        self.set_cookie('lb', signstr(CloudHost.instance_id(), self.config('sesskey')), expires_days=30)
+        self.set_cookie('lb', signstr(CloudHost.instance_id(), JBoxCfg.get('sesskey')), expires_days=30)
 
     def get_session_cookie(self):
         try:
@@ -128,7 +114,7 @@ class JBoxHandler(RequestHandler, LoggerMixin):
             if jbox_cookie is None:
                 return None
             jbox_cookie = json.loads(base64.b64decode(jbox_cookie))
-            sign = signstr(jbox_cookie['u'] + jbox_cookie['t'], JBoxHandler._config['sesskey'])
+            sign = signstr(jbox_cookie['u'] + jbox_cookie['t'], JBoxCfg.get('sesskey'))
             if sign != jbox_cookie['x']:
                 self.log_info("signature mismatch for " + jbox_cookie['u'])
                 return None
@@ -146,7 +132,7 @@ class JBoxHandler(RequestHandler, LoggerMixin):
 
     def set_session_cookie(self, user_id):
         t = datetime.datetime.now(pytz.utc).isoformat()
-        sign = signstr(user_id + t, self.config('sesskey'))
+        sign = signstr(user_id + t, JBoxCfg.get('sesskey'))
 
         jbox_cookie = {'u': user_id, 't': t, 'x': sign}
         self.set_cookie(JBoxHandler.AUTH_COOKIE, base64.b64encode(json.dumps(jbox_cookie)))

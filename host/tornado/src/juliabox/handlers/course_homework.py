@@ -3,7 +3,7 @@ import pytz
 import json
 
 from juliabox.cloud.aws import CloudHost
-from juliabox.jbox_util import unquote
+from juliabox.jbox_util import unquote, JBoxCfg
 from handler_base import JBoxHandler
 from juliabox.jbox_container import JBoxContainer
 from juliabox.db import JBoxUserV2, JBoxCourseHomework, JBoxDynConfig
@@ -26,7 +26,7 @@ class HomeworkHandler(JBoxHandler):
 
         user_id = jbox_cookie['u']
         user = JBoxUserV2(user_id)
-        is_admin = sessname in self.config("admin_sessnames", []) or user.has_role(JBoxUserV2.ROLE_SUPER)
+        is_admin = sessname in JBoxCfg.get("admin_sessnames", []) or user.has_role(JBoxUserV2.ROLE_SUPER)
         course_owner = is_admin or user.has_role(JBoxUserV2.ROLE_OFFER_COURSES)
         cont = JBoxContainer.get_by_name(sessname)
         self.log_info("user_id[%r], is_admin[%r], course_owner[%r]", user_id, is_admin, course_owner)

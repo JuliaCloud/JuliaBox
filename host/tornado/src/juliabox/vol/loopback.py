@@ -2,7 +2,7 @@ import os
 import threading
 import time
 
-from juliabox.jbox_util import ensure_delete
+from juliabox.jbox_util import ensure_delete, JBoxCfg
 from jbox_volume import JBoxVol
 
 
@@ -17,10 +17,10 @@ class JBoxLoopbackVol(JBoxVol):
     LOCK = None
 
     @staticmethod
-    def configure(disk_limit, fs_loc, max_disks):
-        JBoxLoopbackVol.DISK_LIMIT = disk_limit
-        JBoxLoopbackVol.FS_LOC = fs_loc
-        JBoxLoopbackVol.MAX_DISKS = max_disks
+    def configure():
+        JBoxLoopbackVol.DISK_LIMIT = JBoxCfg.get('disk_limit')
+        JBoxLoopbackVol.FS_LOC = os.path.expanduser(JBoxCfg.get('mnt_location'))
+        JBoxLoopbackVol.MAX_DISKS = JBoxCfg.get('numdisksmax')
         JBoxLoopbackVol.LOCK = threading.Lock()
         JBoxLoopbackVol.refresh_disk_use_status()
 

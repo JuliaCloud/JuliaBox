@@ -4,7 +4,7 @@ import time
 
 from juliabox.cloud.aws import CloudHost
 from juliabox.db import JBoxSessionProps, JBoxDiskState
-from juliabox.jbox_util import unique_sessname
+from juliabox.jbox_util import unique_sessname, JBoxCfg
 from jbox_volume import JBoxVol
 
 
@@ -20,15 +20,21 @@ class JBoxEBSVol(JBoxVol):
     LOCK = None
 
     @staticmethod
-    def configure(disk_limit, fs_loc, max_disks, disk_template_snap_id):
-        JBoxEBSVol.HAS_EBS = True
-        JBoxEBSVol.FS_LOC = fs_loc
-        JBoxEBSVol.DISK_LIMIT = disk_limit
-        JBoxEBSVol.MAX_DISKS = max_disks
+    def configure():
+        JBoxEBSVol.HAS_EBS = JBoxCfg.get('cloud_host.ebs')
+        if not JBoxEBSVol.HAS_EBS:
+            return
+
+        num_disks_max = JBoxCfg.get('numdisksmax')
+        JBoxEBSVol.FS_LOC = os.path.expanduser(JBoxCfg.get('cloud_host.ebs_mnt_location'))
+        JBoxEBSVol.DISK_LIMIT = 1
+        JBoxEBSVol.MAX_DISKS = num_disks_max
+        JBoxEBSVol.DISK_TEMPLATE_SNAPSHOT = JBoxCfg.get('cloud_host.ebs_template')
+
         JBoxEBSVol.DEVICES = JBoxEBSVol._get_configured_devices(JBoxEBSVol.FS_LOC)
-        JBoxEBSVol.DISK_TEMPLATE_SNAPSHOT = disk_template_snap_id
-        if len(JBoxEBSVol.DEVICES) < max_disks:
+        if len(JBoxEBSVol.DEVICES) < num_disks_max:
             raise Exception("Not enough EBS mount points configured")
+
         JBoxEBSVol.LOCK = threading.Lock()
         JBoxEBSVol.refresh_disk_use_status()
 

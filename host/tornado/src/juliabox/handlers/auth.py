@@ -12,7 +12,7 @@ from oauth2client.client import OAuth2Credentials, _extract_id_token
 
 from handler_base import JBoxHandler
 from juliabox.db import JBoxUserV2, JBoxDynConfig
-from juliabox.jbox_util import unquote
+from juliabox.jbox_util import unquote, JBoxCfg
 from juliabox.cloud.aws import CloudHost
 
 
@@ -22,7 +22,7 @@ class AuthHandler(JBoxHandler, GoogleOAuth2Mixin):
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self):
-        if not self.config("gauth"):
+        if not JBoxCfg.get("gauth"):
             sessname = unquote(self.get_argument("sessname"))
             self.set_session_cookie(sessname)
             self.redirect('/')

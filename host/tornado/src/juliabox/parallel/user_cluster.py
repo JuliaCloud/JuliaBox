@@ -89,15 +89,15 @@ class UserCluster(LoggerMixin):
             UserCluster.SEC_GRPS = cfg['sec_grps']
             UserCluster.CONFIGURE_TIME = nowtime
 
-    @staticmethod
-    def configure(image_id, instance_type, instance_cores, instance_cost, key_name, sec_grps):
-        UserCluster.IMAGE_ID = image_id
-        UserCluster.INSTANCE_TYPE = instance_type
-        UserCluster.INSTANCE_CORES = instance_cores
-        UserCluster.INSTANCE_COST = instance_cost
-        UserCluster.KEY_NAME = key_name
-        UserCluster.SEC_GRPS = sec_grps
-        UserCluster.CONFIGURE_TIME = datetime.datetime.now(pytz.utc)
+    # @staticmethod
+    # def configure(image_id, instance_type, instance_cores, instance_cost, key_name, sec_grps):
+    #     UserCluster.IMAGE_ID = image_id
+    #     UserCluster.INSTANCE_TYPE = instance_type
+    #     UserCluster.INSTANCE_CORES = instance_cores
+    #     UserCluster.INSTANCE_COST = instance_cost
+    #     UserCluster.KEY_NAME = key_name
+    #     UserCluster.SEC_GRPS = sec_grps
+    #     UserCluster.CONFIGURE_TIME = datetime.datetime.now(pytz.utc)
 
     @staticmethod
     def get_best_spot():

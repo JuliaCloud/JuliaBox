@@ -10,44 +10,24 @@ from cloud.aws import CloudHost
 import db
 from db import JBoxDynConfig, JBoxUserV2, is_cluster_leader, is_proposed_cluster_leader
 from jbox_tasks import JBoxAsyncJob
-from jbox_util import read_config, LoggerMixin
+from jbox_util import LoggerMixin, JBoxCfg
 from vol import VolMgr
 from jbox_container import JBoxContainer
 from parallel import UserCluster
-from handlers import JBoxHandler, AdminHandler, MainHandler, AuthHandler, PingHandler, CorsHandler, HomeworkHandler
+from handlers import AdminHandler, MainHandler, AuthHandler, PingHandler, CorsHandler, HomeworkHandler
 
 
 class JBox(LoggerMixin):
-    cfg = None
-
     def __init__(self):
-        dckr = docker.Client()
-        cfg = JBox.cfg = read_config()
-        cloud_cfg = cfg['cloud_host']
+        LoggerMixin.configure()
+        db.configure()
+        CloudHost.configure()
+        VolMgr.configure()
 
-        LoggerMixin.setup_logger(level=cfg['root_log_level'])
-        LoggerMixin.DEFAULT_LEVEL = cfg['jbox_log_level']
+        JBoxAsyncJob.configure()
+        JBoxAsyncJob.init(JBoxAsyncJob.MODE_PUB)
 
-        JBoxHandler.configure(cfg)
-        db.configure_db(cfg)
-
-        CloudHost.configure(has_s3=cloud_cfg['s3'],
-                            has_dynamodb=cloud_cfg['dynamodb'],
-                            has_cloudwatch=cloud_cfg['cloudwatch'],
-                            has_autoscale=cloud_cfg['autoscale'],
-                            has_route53=cloud_cfg['route53'],
-                            has_ebs=cloud_cfg['ebs'],
-                            has_ses=cloud_cfg['ses'],
-                            scale_up_at_load=cloud_cfg['scale_up_at_load'],
-                            scale_up_policy=cloud_cfg['scale_up_policy'],
-                            autoscale_group=cloud_cfg['autoscale_group'],
-                            route53_domain=cloud_cfg['route53_domain'],
-                            region=cloud_cfg['region'],
-                            install_id=cloud_cfg['install_id'])
-
-        VolMgr.configure(dckr, cfg)
-        JBoxAsyncJob.configure(cfg, JBoxAsyncJob.MODE_PUB)
-        JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], cfg['numlocalmax'])
+        JBoxContainer.configure()
 
         self.application = tornado.web.Application([
             (r"/", MainHandler),
@@ -59,8 +39,8 @@ class JBox(LoggerMixin):
         ])
         cookie_secret = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
         self.application.settings["cookie_secret"] = cookie_secret
-        self.application.settings["google_oauth"] = cfg["google_oauth"]
-        self.application.listen(cfg["port"])
+        self.application.settings["google_oauth"] = JBoxCfg.get('google_oauth')
+        self.application.listen(JBoxCfg.get('port'))
 
         self.ioloop = tornado.ioloop.IOLoop.instance()
 
@@ -138,7 +118,7 @@ class JBox(LoggerMixin):
 
     @staticmethod
     def is_ready_to_terminate():
-        if not JBox.cfg['cloud_host']['scale_down']:
+        if not JBoxCfg.get('cloud_host.scale_down'):
             return False
 
         num_containers = JBoxContainer.num_active() + JBoxContainer.num_stopped()
@@ -147,9 +127,9 @@ class JBox(LoggerMixin):
     @staticmethod
     def do_housekeeping():
         terminating = False
-        server_delete_timeout = JBox.cfg['expire']
-        JBoxContainer.maintain(max_timeout=server_delete_timeout, inactive_timeout=JBox.cfg['inactivity_timeout'],
-                               protected_names=JBox.cfg['protected_docknames'])
+        server_delete_timeout = JBoxCfg.get('expire')
+        JBoxContainer.maintain(max_timeout=server_delete_timeout, inactive_timeout=JBoxCfg.get('inactivity_timeout'),
+                               protected_names=JBoxCfg.get('protected_docknames'))
         if is_cluster_leader():
             CloudHost.log_info("I am the cluster leader")
             JBox.monitor_registrations()

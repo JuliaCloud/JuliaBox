@@ -1,7 +1,7 @@
 import zmq
 import json
 
-from jbox_util import LoggerMixin
+from jbox_util import LoggerMixin, JBoxCfg
 from jbox_crypto import signstr
 from cloud.aws import CloudHost
 
@@ -23,6 +23,7 @@ class JBoxAsyncJob(LoggerMixin):
     CMD_SESSION_STATUS = 51
 
     ENCKEY = None
+    PORTS = None
 
     SINGLETON_INSTANCE = None
 
@@ -53,10 +54,13 @@ class JBoxAsyncJob(LoggerMixin):
             self._req_rep_sock.bind(rraddr)
 
     @staticmethod
-    def configure(cfg, async_mode):
-        async_job_ports = cfg['async_job_ports']
-        JBoxAsyncJob.ENCKEY = cfg['sesskey']
-        JBoxAsyncJob.SINGLETON_INSTANCE = JBoxAsyncJob(async_job_ports, async_mode)
+    def configure():
+        JBoxAsyncJob.PORTS = JBoxCfg.get('async_job_ports')
+        JBoxAsyncJob.ENCKEY = JBoxCfg.get('sesskey')
+
+    @staticmethod
+    def init(async_mode):
+        JBoxAsyncJob.SINGLETON_INSTANCE = JBoxAsyncJob(JBoxAsyncJob.PORTS, async_mode)
 
     @staticmethod
     def get():

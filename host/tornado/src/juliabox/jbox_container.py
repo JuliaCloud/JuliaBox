@@ -9,7 +9,7 @@ import psutil
 from cloud.aws import CloudHost
 from db import JBoxAccountingV2
 from jbox_tasks import JBoxAsyncJob
-from jbox_util import LoggerMixin, parse_iso_time
+from jbox_util import LoggerMixin, JBoxCfg, parse_iso_time
 from vol import VolMgr
 
 
@@ -94,12 +94,12 @@ class JBoxContainer(LoggerMixin):
         return []
 
     @staticmethod
-    def configure(dckr, image, mem_limit, cpu_limit, max_containers):
-        JBoxContainer.DCKR = dckr
-        JBoxContainer.DCKR_IMAGE = image
-        JBoxContainer.MEM_LIMIT = mem_limit
-        JBoxContainer.CPU_LIMIT = cpu_limit
-        JBoxContainer.MAX_CONTAINERS = max_containers
+    def configure():
+        JBoxContainer.DCKR = JBoxCfg.dckr
+        JBoxContainer.DCKR_IMAGE = JBoxCfg.get('docker_image')
+        JBoxContainer.MEM_LIMIT = JBoxCfg.get('mem_limit')
+        JBoxContainer.CPU_LIMIT = JBoxCfg.get('cpu_limit')
+        JBoxContainer.MAX_CONTAINERS = JBoxCfg.get('numlocalmax')
 
     @staticmethod
     def _create_new(name):

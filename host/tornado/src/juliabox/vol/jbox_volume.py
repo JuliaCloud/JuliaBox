@@ -8,11 +8,15 @@ import json
 import pytz
 
 from juliabox.cloud.aws import CloudHost
-from juliabox.jbox_util import LoggerMixin, unique_sessname, ensure_delete, esc_sessname, get_user_name, parse_iso_time
+from juliabox.jbox_util import unique_sessname, ensure_delete, esc_sessname, get_user_name, parse_iso_time
+from juliabox.jbox_util import LoggerMixin, JBoxCfg, make_sure_path_exists
+from juliabox.jbox_util import JBoxPluginType
 from juliabox.jbox_crypto import ssh_keygen
 
 
 class JBoxVol(LoggerMixin):
+    __metaclass__ = JBoxPluginType
+
     BACKUP_LOC = None
     DCKR = None
     LOCAL_TZ_OFFSET = 0
@@ -61,14 +65,23 @@ class JBoxVol(LoggerMixin):
         props = JBoxVol.DCKR.inspect_container(cid)
         return props['Name'] if ('Name' in props) else None
 
-    @classmethod
-    def configure_base(cls, dckr, wsock_proto, user_home_img, backup_loc, backup_bucket=None):
-        JBoxVol.DCKR = dckr
-        JBoxVol.NOTEBOOK_WEBSOCK_PROTO = wsock_proto + '://'
-        JBoxVol.USER_HOME_IMG = user_home_img
-        JBoxVol.BACKUP_LOC = backup_loc
+    # this is template method
+    @staticmethod
+    def configure():
+        backup_location = os.path.expanduser(JBoxCfg.get('backup_location'))
+        make_sure_path_exists(backup_location)
+
+        JBoxVol.DCKR = JBoxCfg.dckr
+        JBoxVol.NOTEBOOK_WEBSOCK_PROTO = JBoxCfg.get('websocket_protocol') + '://'
+        JBoxVol.USER_HOME_IMG = os.path.expanduser(JBoxCfg.get('user_home_image'))
+        JBoxVol.BACKUP_LOC = backup_location
         JBoxVol.LOCAL_TZ_OFFSET = JBoxVol.local_time_offset()
-        JBoxVol.BACKUP_BUCKET = backup_bucket
+        JBoxVol.BACKUP_BUCKET = JBoxCfg.get('cloud_host.backup_bucket')
+
+        for plugin in JBoxVol.plugins:
+            print "JBoxVol got plugin %r" % (plugin,)
+            #assert isinstance(plugin, JBoxVol)
+            plugin.configure()
 
     def debug_str(self):
         return self._dbg_str

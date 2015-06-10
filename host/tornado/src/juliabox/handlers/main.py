@@ -5,7 +5,7 @@ import httplib2
 from oauth2client.client import OAuth2Credentials
 
 from handler_base import JBoxHandler
-from juliabox.jbox_util import unique_sessname
+from juliabox.jbox_util import unique_sessname, JBoxCfg
 from juliabox.jbox_crypto import signstr
 from juliabox.db.user_v2 import JBoxUserV2
 from juliabox.jbox_container import JBoxContainer
@@ -27,7 +27,7 @@ class MainHandler(JBoxHandler):
                                    user_id=pending_activation)
             else:
                 state = self.state()
-            self.rendertpl("index.tpl", cfg=self.config(), state=state)
+            self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=state)
         else:
             user_id = jbox_cookie['u']
 
@@ -69,7 +69,7 @@ class MainHandler(JBoxHandler):
             if loading_step > 30:
                 self.log_error("Could not start instance. Session [%s] for user [%s] didn't load.", sessname, user_id)
                 self.clear_container_cookies()
-                self.rendertpl("index.tpl", cfg=self.config(),
+                self.rendertpl("index.tpl", cfg=JBoxCfg.nv,
                                state=self.state(
                                    error='Could not start your instance! Please try again.',
                                    pending_activation=False,
@@ -81,7 +81,7 @@ class MainHandler(JBoxHandler):
             self.set_cookie("loading", str(loading_step))
             self.rendertpl("loading.tpl", user_id=user_id)
         else:
-            if self.config("gauth"):
+            if JBoxCfg.get("gauth"):
                 jbuser = JBoxUserV2(user_id)
                 creds = jbuser.get_gtok()
                 if creds is not None:
@@ -100,7 +100,7 @@ class MainHandler(JBoxHandler):
                 authtok = None
 
             (shellport, uplport, ipnbport) = cont.get_host_ports()
-            sign = signstr(sessname + str(shellport) + str(uplport) + str(ipnbport), self.config("sesskey"))
+            sign = signstr(sessname + str(shellport) + str(uplport) + str(ipnbport), JBoxCfg.get("sesskey"))
 
             self.clear_cookie("loading")
             self.set_container_cookies({
@@ -111,12 +111,12 @@ class MainHandler(JBoxHandler):
                 "sign": sign
             })
             self.set_lb_tracker_cookie()
-            self.rendertpl("ipnbsess.tpl", sessname=sessname, cfg=self.config(), creds=creds, authtok=authtok,
+            self.rendertpl("ipnbsess.tpl", sessname=sessname, cfg=JBoxCfg.nv, creds=creds, authtok=authtok,
                            user_id=user_id)
 
     def chk_and_launch_docker(self, user_id):
         nhops = int(self.get_argument('h', 0))
-        numhopmax = self.config('numhopmax', 0)
+        numhopmax = JBoxCfg.get('numhopmax', 0)
         max_hop = nhops > numhopmax
         launched = self.try_launch_container(user_id, max_hop=max_hop)
 
@@ -129,7 +129,7 @@ class MainHandler(JBoxHandler):
         self.log_debug("at hop %d for user %s", nhops, user_id)
         if max_hop:
             self.log_error("Server maxed out. Can't launch container at hop %d for user %s", nhops, user_id)
-            self.rendertpl("index.tpl", cfg=self.config(), state=self.state(
+            self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
                 error="Maximum number of JuliaBox instances active. Please try after sometime.", success=''))
         else:
             self.redirect('/?h=' + str(nhops + 1))

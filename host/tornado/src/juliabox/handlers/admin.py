@@ -4,7 +4,7 @@ import os
 import isodate
 
 from juliabox.cloud.aws import CloudHost
-from juliabox.jbox_util import unquote
+from juliabox.jbox_util import unquote, JBoxCfg
 from handler_base import JBoxHandler
 from juliabox.jbox_container import JBoxContainer
 from juliabox.parallel import UserCluster
@@ -24,7 +24,7 @@ class AdminHandler(JBoxHandler):
 
         user_id = jbox_cookie['u']
         user = JBoxUserV2(user_id)
-        is_admin = sessname in self.config("admin_sessnames", [])
+        is_admin = sessname in JBoxCfg.get("admin_sessnames", [])
         manage_containers = is_admin or user.has_role(JBoxUserV2.ROLE_MANAGE_CONTAINERS)
         use_cluster = is_admin or user.has_resource_profile(JBoxUserV2.RES_PROF_CLUSTER)
         show_report = is_admin or user.has_role(JBoxUserV2.ROLE_ACCESS_STATS)
@@ -34,7 +34,6 @@ class AdminHandler(JBoxHandler):
             self.send_error()
             return
 
-        # TODO: introduce new role for cluster access 
         if self.handle_if_cluster(user, cont, use_cluster):
             return
         if self.handle_if_logout(cont):
@@ -62,16 +61,16 @@ class AdminHandler(JBoxHandler):
             user_id=user_id,
             created=isodate.datetime_isoformat(cont.time_created()),
             started=isodate.datetime_isoformat(cont.time_started()),
-            allowed_till=isodate.datetime_isoformat((cont.time_started() + timedelta(seconds=self.config('expire')))),
+            allowed_till=isodate.datetime_isoformat((cont.time_started() + timedelta(seconds=JBoxCfg.get('expire')))),
             mem=cont.get_memory_allocated(),
             cpu=cont.get_cpu_allocated(),
             disk=cont.get_disk_allocated(),
-            expire=self.config('expire'),
+            expire=JBoxCfg.get('expire'),
             juliaboxver=juliaboxver,
             jimg_type=jimg_type
         )
 
-        self.rendertpl("ipnbadmin.tpl", d=d, cfg=self.config())
+        self.rendertpl("ipnbadmin.tpl", d=d, cfg=JBoxCfg.nv)
 
     def handle_switch_julia_img(self, user):
         switch_julia_img = self.get_argument('switch_julia_img', None)
@@ -96,7 +95,7 @@ class AdminHandler(JBoxHandler):
             AdminHandler.log_error("Show config not allowed for user")
             response = {'code': -1, 'data': 'You do not have permissions to view these stats'}
         else:
-            response = {'code': 0, 'data': self.config()}
+            response = {'code': 0, 'data': JBoxCfg.nv}
         self.write(response)
         return True
 

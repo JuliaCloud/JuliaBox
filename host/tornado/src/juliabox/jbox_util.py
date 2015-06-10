@@ -74,33 +74,6 @@ def unique_sessname(s):
     return '_'.join([name, hashdigest])
 
 
-def read_config():
-    with open("conf/tornado.conf") as f:
-        cfg = eval(f.read())
-
-    def update_config(base_cfg, add_cfg):
-        for n, v in add_cfg.iteritems():
-            if (n in base_cfg) and isinstance(base_cfg[n], dict):
-                update_config(base_cfg[n], v)
-            else:
-                base_cfg[n] = v
-
-    if os.path.isfile("conf/jbox.user"):
-        with open("conf/jbox.user") as f:
-            ucfg = eval(f.read())
-        update_config(cfg, ucfg)
-
-    cfg["admin_sessnames"] = []
-    for ad in cfg["admin_users"]:
-        cfg["admin_sessnames"].append(unique_sessname(ad))
-
-    cfg["protected_docknames"] = []
-    for ps in cfg["protected_sessions"]:
-        cfg["protected_docknames"].append("/" + unique_sessname(ps))
-
-    return cfg
-
-
 def make_sure_path_exists(path):
     try:
         os.makedirs(path)
@@ -152,9 +125,64 @@ def unquote(s):
         return s
 
 
+class JBoxCfg(object):
+    nv = None
+    dckr = None
+
+    @staticmethod
+    def update_config(base_cfg, add_cfg):
+        for n, v in add_cfg.iteritems():
+            if (n in base_cfg) and isinstance(base_cfg[n], dict):
+                JBoxCfg.update_config(base_cfg[n], v)
+            else:
+                base_cfg[n] = v
+
+    @staticmethod
+    def expand(cfg):
+        cfg["admin_sessnames"] = []
+        for ad in cfg["admin_users"]:
+            cfg["admin_sessnames"].append(unique_sessname(ad))
+
+        cfg["protected_docknames"] = []
+        for ps in cfg["protected_sessions"]:
+            cfg["protected_docknames"].append("/" + unique_sessname(ps))
+
+    @classmethod
+    def read(cls, *args):
+        if len(args) == 0:
+            JBoxCfg.read("../conf/tornado.conf", "../conf/jbox.user")
+
+        cfg = None
+
+        for arg in args:
+            with open(arg) as f:
+                arg_cfg = eval(f.read())
+            if cfg is None:
+                cfg = arg_cfg
+            else:
+                JBoxCfg.update_config(cfg, arg_cfg)
+
+        JBoxCfg.expand(cfg)
+        cls.nv = cfg
+
+    @classmethod
+    def get(cls, dotted_name, default=None):
+        v = cls.nv
+        for n in dotted_name.split('.'):
+            v = v.get(n)
+            if v is None:
+                break
+        return default if v is None else v
+
+
 class LoggerMixin(object):
     _logger = None
     DEFAULT_LEVEL = logging.INFO
+
+    @staticmethod
+    def configure():
+        LoggerMixin.setup_logger(level=JBoxCfg.get('root_log_level'))
+        LoggerMixin.DEFAULT_LEVEL = JBoxCfg.get('jbox_log_level')
 
     @staticmethod
     def setup_logger(name=None, level=logging.INFO):
@@ -208,3 +236,27 @@ class LoggerMixin(object):
     @classmethod
     def log_debug(cls, msg, *args, **kwargs):
         cls._get_logger().debug(msg, *args, **kwargs)
+
+
+class JBoxPluginType(type):
+    def __init__(cls, name, bases, attrs):
+        super(JBoxPluginType, cls).__init__(name, bases, attrs)
+        if not hasattr(cls, 'plugins'):
+            cls.plugins = []
+        else:
+            cls.plugins.append(cls)
+
+    def jbox_get_plugins(cls, feature):
+        matches = []
+        for plugin in cls.plugins:
+            if hasattr(plugin, 'provides'):
+                if feature in plugin.provides:
+                    matches.append(plugin)
+        return matches
+
+    def jbox_get_plugin(cls, feature):
+        for plugin in cls.plugins:
+            if hasattr(plugin, 'provides'):
+                if feature in plugin.provides:
+                    return plugin
+        return None

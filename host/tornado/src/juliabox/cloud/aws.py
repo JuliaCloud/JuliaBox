@@ -16,7 +16,7 @@ import boto.utils
 import psutil
 import sh
 
-from juliabox.jbox_util import LoggerMixin, parse_iso_time, retry
+from juliabox.jbox_util import LoggerMixin, JBoxCfg, parse_iso_time, retry
 
 
 class CloudHost(LoggerMixin):
@@ -170,27 +170,23 @@ class CloudHost(LoggerMixin):
         return minutes
 
     @staticmethod
-    def configure(has_s3=True, has_dynamodb=True, has_cloudwatch=True, has_autoscale=True,
-                  has_route53=True, has_ebs=True, has_ses=True,
-                  scale_up_at_load=80, scale_up_policy=None, autoscale_group=None,
-                  route53_domain=None,
-                  region='us-east-1', install_id='JuliaBox'):
-        CloudHost.ENABLED['s3'] = has_s3
-        CloudHost.ENABLED['dynamodb'] = has_dynamodb
-        CloudHost.ENABLED['cloudwatch'] = has_cloudwatch
-        CloudHost.ENABLED['autoscale'] = has_autoscale
-        CloudHost.ENABLED['route53'] = has_route53
-        CloudHost.ENABLED['ebs'] = has_ebs
-        CloudHost.ENABLED['ses'] = has_ses
+    def configure():
+        CloudHost.ENABLED['s3'] = JBoxCfg.get('cloud_host.s3', True)
+        CloudHost.ENABLED['dynamodb'] = JBoxCfg.get('cloud_host.dynamodb', True)
+        CloudHost.ENABLED['cloudwatch'] = JBoxCfg.get('cloud_host.cloudwatch', True)
+        CloudHost.ENABLED['autoscale'] = JBoxCfg.get('cloud_host.autoscale', True)
+        CloudHost.ENABLED['route53'] = JBoxCfg.get('cloud_host.route53', True)
+        CloudHost.ENABLED['ebs'] = JBoxCfg.get('cloud_host.ebs', True)
+        CloudHost.ENABLED['ses'] = JBoxCfg.get('cloud_host.ses', True)
 
-        CloudHost.SCALE_UP_AT_LOAD = scale_up_at_load
-        CloudHost.SCALE_UP_POLICY = scale_up_policy
-        CloudHost.AUTOSCALE_GROUP = autoscale_group
+        CloudHost.SCALE_UP_AT_LOAD = JBoxCfg.get('cloud_host.scale_up_at_load', 80)
+        CloudHost.SCALE_UP_POLICY = JBoxCfg.get('cloud_host.scale_up_policy', None)
+        CloudHost.AUTOSCALE_GROUP = JBoxCfg.get('cloud_host.autoscale_group', None)
 
-        CloudHost.ROUTE53_DOMAIN = route53_domain
+        CloudHost.ROUTE53_DOMAIN = JBoxCfg.get('cloud_host.route53_domain', None)
 
-        CloudHost.INSTALL_ID = install_id
-        CloudHost.REGION = region
+        CloudHost.INSTALL_ID = JBoxCfg.get('cloud_host.install_id', 'JuliaBox')
+        CloudHost.REGION = JBoxCfg.get('cloud_host.region', 'us-east-1')
 
     @staticmethod
     def connect_ec2():

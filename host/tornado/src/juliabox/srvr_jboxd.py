@@ -10,7 +10,7 @@ from cloud.aws import CloudHost
 import db
 from db import JBoxUserV2, JBoxDynConfig, JBoxDiskState, JBoxSessionProps
 from jbox_tasks import JBoxAsyncJob
-from jbox_util import LoggerMixin, read_config, retry, unique_sessname
+from jbox_util import LoggerMixin, JBoxCfg, retry, unique_sessname
 from jbox_container import JBoxContainer
 from vol import VolMgr, JBoxLoopbackVol
 from parallel import UserCluster
@@ -41,40 +41,24 @@ class JBoxd(LoggerMixin):
     QUEUE = None
 
     def __init__(self):
-        dckr = docker.Client()
-        cfg = read_config()
-        cloud_cfg = cfg['cloud_host']
-        user_activation_cfg = cfg['user_activation']
+        LoggerMixin.configure()
+        db.configure()
+        CloudHost.configure()
+        VolMgr.configure()
 
-        LoggerMixin.setup_logger(level=cfg['root_log_level'])
-        LoggerMixin.DEFAULT_LEVEL = cfg['jbox_log_level']
+        JBoxAsyncJob.configure()
+        JBoxAsyncJob.init(JBoxAsyncJob.MODE_SUB)
 
-        db.configure_db(cfg)
+        JBoxContainer.configure()
 
-        CloudHost.configure(has_s3=cloud_cfg['s3'],
-                            has_dynamodb=cloud_cfg['dynamodb'],
-                            has_cloudwatch=cloud_cfg['cloudwatch'],
-                            has_autoscale=cloud_cfg['autoscale'],
-                            has_route53=cloud_cfg['route53'],
-                            has_ebs=cloud_cfg['ebs'],
-                            has_ses=cloud_cfg['ses'],
-                            scale_up_at_load=cloud_cfg['scale_up_at_load'],
-                            scale_up_policy=cloud_cfg['scale_up_policy'],
-                            autoscale_group=cloud_cfg['autoscale_group'],
-                            route53_domain=cloud_cfg['route53_domain'],
-                            region=cloud_cfg['region'],
-                            install_id=cloud_cfg['install_id'])
-        VolMgr.configure(dckr, cfg)
-        JBoxAsyncJob.configure(cfg, JBoxAsyncJob.MODE_SUB)
-        JBoxContainer.configure(dckr, cfg['docker_image'], cfg['mem_limit'], cfg['cpu_limit'], cfg['numlocalmax'])
-        self.log_debug("Backup daemon listening on ports: %s", repr(cfg['async_job_ports']))
+        self.log_debug("Backup daemon listening on ports: %s", repr(JBoxCfg.get('async_job_ports')))
         JBoxd.QUEUE = JBoxAsyncJob.get()
 
-        JBoxd.MAX_ACTIVATIONS_PER_SEC = user_activation_cfg['max_activations_per_sec']
-        JBoxd.MAX_AUTO_ACTIVATIONS_PER_RUN = user_activation_cfg['max_activations_per_run']
-        JBoxd.ACTIVATION_SUBJECT = user_activation_cfg['mail_subject']
-        JBoxd.ACTIVATION_BODY = user_activation_cfg['mail_body']
-        JBoxd.ACTIVATION_SENDER = user_activation_cfg['sender']
+        JBoxd.MAX_ACTIVATIONS_PER_SEC = JBoxCfg.get('user_activation.max_activations_per_sec')
+        JBoxd.MAX_AUTO_ACTIVATIONS_PER_RUN = JBoxCfg.get('user_activation.max_activations_per_run')
+        JBoxd.ACTIVATION_SUBJECT = JBoxCfg.get('user_activation.mail_subject')
+        JBoxd.ACTIVATION_BODY = JBoxCfg.get('user_activation.mail_body')
+        JBoxd.ACTIVATION_SENDER = JBoxCfg.get('user_activation.sender')
 
     @staticmethod
     def is_duplicate(sign):

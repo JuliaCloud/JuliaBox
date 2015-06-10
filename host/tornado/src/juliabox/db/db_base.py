@@ -4,12 +4,10 @@ import pytz
 from boto.dynamodb2.table import Table
 
 from juliabox.cloud.aws import CloudHost
-from juliabox.jbox_util import LoggerMixin
+from juliabox.jbox_util import LoggerMixin, JBoxCfg
 
 
 class JBoxDB(LoggerMixin):
-    ENCKEY = None
-
     @classmethod
     def table(cls):
         if (cls.TABLE is None) and (CloudHost.ENABLED['dynamodb']) and (cls.NAME is not None):
@@ -50,11 +48,7 @@ class JBoxDB(LoggerMixin):
 
     @classmethod
     def enckey(cls):
-        return JBoxDB.ENCKEY
-
-    @staticmethod
-    def configure(cfg):
-        JBoxDB.ENCKEY = cfg['sesskey']
+        return JBoxCfg.get('sesskey')
 
     @staticmethod
     def datetime_to_yyyymm(dt):

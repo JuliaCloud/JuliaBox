@@ -3,7 +3,7 @@ import datetime
 import errno
 import pytz
 
-from juliabox.jbox_util import make_sure_path_exists, LoggerMixin, unique_sessname
+from juliabox.jbox_util import LoggerMixin, JBoxCfg, unique_sessname
 from juliabox.db import JBoxUserV2, JBoxDynConfig
 from jbox_volume import JBoxVol
 from loopback import JBoxLoopbackVol
@@ -17,23 +17,9 @@ class VolMgr(LoggerMixin):
     STAT_NAME = "stat_volmgr"
 
     @staticmethod
-    def configure(dckr, cfg):
-        cloud_cfg = cfg['cloud_host']
-
-        backup_location = os.path.expanduser(cfg['backup_location'])
-        user_home_img = os.path.expanduser(cfg['user_home_image'])
-        wsock_proto = cfg['websocket_protocol']
-        mnt_location = os.path.expanduser(cfg['mnt_location'])
-        backup_bucket = cloud_cfg['backup_bucket']
-        num_disks_max = cfg["numdisksmax"]
-        make_sure_path_exists(backup_location)
-
-        JBoxVol.configure_base(dckr, wsock_proto, user_home_img, backup_location, backup_bucket=backup_bucket)
-        JBoxLoopbackVol.configure(cfg['disk_limit'], mnt_location, num_disks_max)
-        if cloud_cfg['ebs']:
-            VolMgr.HAS_EBS = True
-            ebs_mnt_location = os.path.expanduser(cloud_cfg['ebs_mnt_location'])
-            JBoxEBSVol.configure(1, ebs_mnt_location, num_disks_max, cloud_cfg['ebs_template'])
+    def configure():
+        VolMgr.HAS_EBS = JBoxCfg.get('cloud_host.ebs')
+        JBoxVol.configure()
 
     @staticmethod
     def has_update_for_user_home_image():
