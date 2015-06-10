@@ -5,10 +5,12 @@ import time
 from juliabox.cloud.aws import CloudHost
 from juliabox.db import JBoxSessionProps, JBoxDiskState
 from juliabox.jbox_util import unique_sessname, JBoxCfg
-from jbox_volume import JBoxVol
+from juliabox.vol import JBoxVol
 
 
 class JBoxEBSVol(JBoxVol):
+    provides = [JBoxVol.PLUGIN_USERHOME, JBoxVol.PLUGIN_EBS_USERHOME]
+
     DEVICES = []
     MAX_DISKS = 0
     FS_LOC = None
@@ -16,15 +18,10 @@ class JBoxEBSVol(JBoxVol):
     DISK_USE_STATUS = {}
     DISK_RESERVE_TIME = {}
     DISK_TEMPLATE_SNAPSHOT = None
-    HAS_EBS = False
     LOCK = None
 
     @staticmethod
     def configure():
-        JBoxEBSVol.HAS_EBS = JBoxCfg.get('cloud_host.ebs')
-        if not JBoxEBSVol.HAS_EBS:
-            return
-
         num_disks_max = JBoxCfg.get('numdisksmax')
         JBoxEBSVol.FS_LOC = os.path.expanduser(JBoxCfg.get('cloud_host.ebs_mnt_location'))
         JBoxEBSVol.DISK_LIMIT = 1
@@ -73,6 +70,10 @@ class JBoxEBSVol(JBoxVol):
             JBoxEBSVol.log_error("error finding disk ids used in " + cid)
             return []
         return used
+
+    @staticmethod
+    def refresh_user_home_image():
+        pass
 
     @staticmethod
     def refresh_disk_use_status(container_id_list=None):
@@ -134,16 +135,12 @@ class JBoxEBSVol(JBoxVol):
 
     @staticmethod
     def disk_ids_used_pct():
-        if not JBoxEBSVol.HAS_EBS:
-            return 0
         pct = (sum(JBoxEBSVol.DISK_USE_STATUS.values()) * 100) / len(JBoxEBSVol.DISK_USE_STATUS)
         return min(100, max(0, pct))
 
     @staticmethod
     def get_disk_for_user(user_email):
         JBoxEBSVol.log_debug("creating EBS volume for %s", user_email)
-        if not JBoxEBSVol.HAS_EBS:
-            raise Exception("EBS disks not enabled")
 
         disk_id = JBoxEBSVol._reserve_disk_id()
         if disk_id is None:
@@ -202,10 +199,15 @@ class JBoxEBSVol(JBoxVol):
         return ebsvol
 
     @staticmethod
+    def is_mount_path(fs_path):
+        return fs_path.startswith(JBoxEBSVol.FS_LOC)
+
+    @staticmethod
     def get_disk_from_container(cid):
-        if not JBoxEBSVol.HAS_EBS:
-            raise Exception("EBS disks not enabled")
         disk_ids_used = JBoxEBSVol._get_disk_ids_used(cid)
+        if len(disk_ids_used) == 0:
+            return None
+
         disk_id_used = disk_ids_used[0]
         disk_path = os.path.join(JBoxEBSVol.FS_LOC, str(disk_id_used))
         container_name = JBoxVol.get_cname(cid)
@@ -226,8 +228,6 @@ class JBoxEBSVol(JBoxVol):
         return snap_id
 
     def release(self, backup=False):
-        if not JBoxEBSVol.HAS_EBS:
-            raise Exception("EBS disks not enabled")
         disk_id = self.disk_path.split('/')[-1]
         CloudHost.unmount_device(disk_id, JBoxEBSVol.FS_LOC)
         if backup:

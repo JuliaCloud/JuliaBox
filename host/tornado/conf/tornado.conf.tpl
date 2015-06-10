@@ -103,6 +103,13 @@ Welcome to JuliaBox. We hope you will like it and also share with your friends.
     "backup_location" : "~/juliabox_backup",
     "mnt_location" : "/mnt/jbox/mnt",
     "user_home_image" : "~/user_home.tar.gz",
+
+    "plugins": [
+        "juliabox.plugins.vol_loopback",
+        "juliabox.plugins.vol_ebs",
+        ""
+    ],
+
     "dummy" : "dummy"
 }
 

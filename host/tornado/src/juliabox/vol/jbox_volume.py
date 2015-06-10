@@ -15,7 +15,29 @@ from juliabox.jbox_crypto import ssh_keygen
 
 
 class JBoxVol(LoggerMixin):
+    """ The base class for user volume providers.
+    Volumes are always mounted as user home now. We shall have other mount points in future for data folders.
+
+    It is a plugin mount point, looking for features:
+    - userhome (provides replacement for user home folder)
+    - ebs.userhome (AWS EBS volumes - requirement indicated through user's resource profile)
+
+    Methods expected in the plugin:
+    - configure: Initialize self. Configuration file can be accessed through JBoxCfg.
+    - refresh_user_home_image: Update any pre-created disk images with a freshly downloaded JuliaBox user home image.
+    - get_disk_from_container: Should return an object representing the disk mounted in the provided container if any.
+    - is_mount_path: Should return True if the provided path belongs to a disk managed by the plugin.
+    - disk_ids_used_pct: Percent of disk ids in use (indicates load on the system).
+    - get_disk_for_user: Create, initialize and return an object representing a disk for the gived user id.
+    - refresh_disk_use_status: Update status of all disks managed by the plugin by iterating through all containers.
+
+    The base class also provides ability to back up and restore volumes as tar files
+    either on the filesystem or on AWS S3. This can also be factored out as a plugin point in future.
+    """
+
     __metaclass__ = JBoxPluginType
+    PLUGIN_USERHOME = 'userhome'
+    PLUGIN_EBS_USERHOME = 'ebs.userhome'
 
     BACKUP_LOC = None
     DCKR = None
@@ -79,9 +101,12 @@ class JBoxVol(LoggerMixin):
         JBoxVol.BACKUP_BUCKET = JBoxCfg.get('cloud_host.backup_bucket')
 
         for plugin in JBoxVol.plugins:
-            print "JBoxVol got plugin %r" % (plugin,)
-            #assert isinstance(plugin, JBoxVol)
+            assert issubclass(plugin, JBoxVol)
             plugin.configure()
+            JBoxVol.log_info("Found plugin %r provides %r", plugin, plugin.provides)
+
+        if len(JBoxVol.plugins) == 0:
+            JBoxVol.log_warn("No plugins found!")
 
     def debug_str(self):
         return self._dbg_str

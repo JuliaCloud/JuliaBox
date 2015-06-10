@@ -3,10 +3,12 @@ import threading
 import time
 
 from juliabox.jbox_util import ensure_delete, JBoxCfg
-from jbox_volume import JBoxVol
+from juliabox.vol import JBoxVol
 
 
 class JBoxLoopbackVol(JBoxVol):
+    provides = [JBoxVol.PLUGIN_USERHOME]
+
     FS_LOC = None
     DISK_LIMIT = None
     MAX_CONTAINERS = 0
@@ -132,8 +134,15 @@ class JBoxLoopbackVol(JBoxVol):
         return loopvol
 
     @staticmethod
+    def is_mount_path(fs_path):
+        return fs_path.startswith(JBoxLoopbackVol.FS_LOC)
+
+    @staticmethod
     def get_disk_from_container(cid):
         disk_ids_used = JBoxLoopbackVol._get_disk_ids_used(cid)
+        if len(disk_ids_used) == 0:
+            return None
+
         disk_id_used = disk_ids_used[0]
         disk_path = os.path.join(JBoxLoopbackVol.FS_LOC, str(disk_id_used))
         container_name = JBoxVol.get_cname(cid)
@@ -141,7 +150,7 @@ class JBoxLoopbackVol(JBoxVol):
         return JBoxLoopbackVol(disk_path, sessname=sessname)
 
     @staticmethod
-    def refresh_all_disks():
+    def refresh_user_home_image():
         disk_id = 0
         while disk_id < JBoxLoopbackVol.MAX_DISKS:
             disk_id = JBoxLoopbackVol._reserve_disk_id(begin_idx=disk_id)

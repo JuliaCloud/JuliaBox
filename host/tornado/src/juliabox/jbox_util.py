@@ -147,6 +147,12 @@ class JBoxCfg(object):
         for ps in cfg["protected_sessions"]:
             cfg["protected_docknames"].append("/" + unique_sessname(ps))
 
+    @staticmethod
+    def load_plugins():
+        for name in JBoxCfg.get('plugins'):
+            if len(name) > 0:
+                __import__(name)
+
     @classmethod
     def read(cls, *args):
         if len(args) == 0:
@@ -164,6 +170,7 @@ class JBoxCfg(object):
 
         JBoxCfg.expand(cfg)
         cls.nv = cfg
+        JBoxCfg.load_plugins()
 
     @classmethod
     def get(cls, dotted_name, default=None):

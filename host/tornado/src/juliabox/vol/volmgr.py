@@ -6,19 +6,15 @@ import pytz
 from juliabox.jbox_util import LoggerMixin, JBoxCfg, unique_sessname
 from juliabox.db import JBoxUserV2, JBoxDynConfig
 from jbox_volume import JBoxVol
-from loopback import JBoxLoopbackVol
-from ebs import JBoxEBSVol
 from juliabox.cloud.aws import CloudHost
 
 
 class VolMgr(LoggerMixin):
-    HAS_EBS = False
     STATS = None
     STAT_NAME = "stat_volmgr"
 
     @staticmethod
     def configure():
-        VolMgr.HAS_EBS = JBoxCfg.get('cloud_host.ebs')
         JBoxVol.configure()
 
     @staticmethod
@@ -55,15 +51,17 @@ class VolMgr(LoggerMixin):
         return False
 
     @staticmethod
+    def refresh_user_home_image():
+        for plugin in JBoxVol.plugins:
+            plugin.refresh_user_home_image()
+
+    @staticmethod
     def get_disk_from_container(cid):
-        props = JBoxVol.dckr().inspect_container(cid)
         try:
-            vols = props['Volumes']
-            for _cpath, hpath in vols.iteritems():
-                if hpath.startswith(JBoxLoopbackVol.FS_LOC):
-                    return JBoxLoopbackVol.get_disk_from_container(cid)
-                elif VolMgr.HAS_EBS and hpath.startswith(JBoxEBSVol.FS_LOC):
-                    return JBoxEBSVol.get_disk_from_container(cid)
+            for plugin in JBoxVol.plugins:
+                disk = plugin.get_disk_from_container(cid)
+                if disk is not None:
+                    return disk
         except:
             VolMgr.log_error("error finding disk ids used in " + cid)
 
@@ -71,23 +69,23 @@ class VolMgr(LoggerMixin):
 
     @staticmethod
     def is_mount_path(fs_path):
-        return fs_path.startswith(JBoxLoopbackVol.FS_LOC) or (VolMgr.HAS_EBS and fs_path.startswith(JBoxEBSVol.FS_LOC))
+        for plugin in JBoxVol.plugins:
+            if plugin.is_mount_path(fs_path):
+                return True
+        return False
 
     @staticmethod
     def used_pct():
-        pct = JBoxLoopbackVol.disk_ids_used_pct()
-        if VolMgr.HAS_EBS:
-            pct += JBoxEBSVol.disk_ids_used_pct()
+        pct = 0.0
+        for plugin in JBoxVol.plugins:
+            pct += plugin.disk_ids_used_pct()
+
         return min(100, max(0, pct))
 
     @staticmethod
     def get_disk_for_user(email):
         VolMgr.log_debug("restoring disk for %s", email)
         user = JBoxUserV2(email)
-
-        ebs = False
-        if VolMgr.HAS_EBS:
-            ebs = user.has_resource_profile(JBoxUserV2.RES_PROF_DISK_EBS_1G)
 
         custom_jimg = None
         ipython_profile = 'julia'
@@ -96,10 +94,19 @@ class VolMgr(LoggerMixin):
             custom_jimg = '/home/juser/.juliabox/jimg/sys.ji'
             ipython_profile = 'jboxjulia'
 
-        if ebs:
-            disk = JBoxEBSVol.get_disk_for_user(email)
-        else:
-            disk = JBoxLoopbackVol.get_disk_for_user(email)
+        plugin = None
+        if user.has_resource_profile(JBoxUserV2.RES_PROF_DISK_EBS_1G):
+            plugin = JBoxVol.jbox_get_plugin(JBoxVol.PLUGIN_EBS_USERHOME)
+
+        # if no EBS plugin configured, use the base plugin
+        if plugin is None:
+            plugin = JBoxVol.jbox_get_plugin(JBoxVol.PLUGIN_USERHOME)
+
+        if plugin is None:
+            raise Exception("No plugin found for %s" % (JBoxVol.PLUGIN_USERHOME,))
+
+        disk = plugin.get_disk_for_user(email)
+
         try:
             disk.setup_julia_image(ipython_profile, custom_jimg)
             disk.setup_tutorial_link()
@@ -116,9 +123,8 @@ class VolMgr(LoggerMixin):
 
     @staticmethod
     def refresh_disk_use_status(container_id_list=None):
-        JBoxLoopbackVol.refresh_disk_use_status(container_id_list=container_id_list)
-        if VolMgr.HAS_EBS:
-            JBoxEBSVol.refresh_disk_use_status(container_id_list=container_id_list)
+        for plugin in JBoxVol.plugins:
+            plugin.refresh_disk_use_status(container_id_list=container_id_list)
 
     @staticmethod
     def calc_stat(user_email):

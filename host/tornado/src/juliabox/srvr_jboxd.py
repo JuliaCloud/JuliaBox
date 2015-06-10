@@ -4,15 +4,13 @@ import time
 import datetime
 import pytz
 
-import docker
-
 from cloud.aws import CloudHost
 import db
 from db import JBoxUserV2, JBoxDynConfig, JBoxDiskState, JBoxSessionProps
 from jbox_tasks import JBoxAsyncJob
 from jbox_util import LoggerMixin, JBoxCfg, retry, unique_sessname
 from jbox_container import JBoxContainer
-from vol import VolMgr, JBoxLoopbackVol
+from vol import VolMgr
 from parallel import UserCluster
 
 
@@ -153,7 +151,7 @@ class JBoxd(LoggerMixin):
     @jboxd_method
     def update_user_home_image():
         VolMgr.update_user_home_image(fetch=True)
-        JBoxLoopbackVol.refresh_all_disks()
+        VolMgr.refresh_user_home_image()
 
     @staticmethod
     @jboxd_method
@@ -200,7 +198,7 @@ class JBoxd(LoggerMixin):
     def refresh_disks():
         if JBoxd._is_scheduled(JBoxAsyncJob.CMD_UPDATE_USER_HOME_IMAGE, ()):
             return
-        JBoxLoopbackVol.refresh_all_disks()
+        VolMgr.refresh_user_home_image()
 
     @staticmethod
     @jboxd_method
