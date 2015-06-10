@@ -1,15 +1,27 @@
+__author__ = 'tan'
 import datetime
 import pytz
 import json
 
 from juliabox.cloud.aws import CloudHost
 from juliabox.jbox_util import unquote, JBoxCfg
-from handler_base import JBoxHandler
+from juliabox.handlers import JBoxHandlerPlugin
 from juliabox.jbox_container import JBoxContainer
-from juliabox.db import JBoxUserV2, JBoxCourseHomework, JBoxDynConfig
+from juliabox.db import JBoxUserV2, JBoxDynConfig
+from course_homework_tbl import JBoxCourseHomework
 
 
-class HomeworkHandler(JBoxHandler):
+class HomeworkHandler(JBoxHandlerPlugin):
+    provides = [JBoxHandlerPlugin.PLUGIN_HANDLER, JBoxHandlerPlugin.PLUGIN_JS]
+
+    @staticmethod
+    def get_js():
+        return "/assets/plugins/course_homework/course_homework.js"
+
+    @staticmethod
+    def get_uri():
+        return r"/jboxplugin/hw/"
+
     def get(self):
         self.log_debug("Homework handler got GET request")
         return self.post()

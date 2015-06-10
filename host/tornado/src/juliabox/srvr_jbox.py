@@ -14,7 +14,8 @@ from jbox_util import LoggerMixin, JBoxCfg
 from vol import VolMgr
 from jbox_container import JBoxContainer
 from parallel import UserCluster
-from handlers import AdminHandler, MainHandler, AuthHandler, PingHandler, CorsHandler, HomeworkHandler
+from handlers import AdminHandler, MainHandler, AuthHandler, PingHandler, CorsHandler
+from handlers import JBoxHandlerPlugin
 
 
 class JBox(LoggerMixin):
@@ -29,14 +30,16 @@ class JBox(LoggerMixin):
 
         JBoxContainer.configure()
 
-        self.application = tornado.web.Application([
+        request_handlers = [
             (r"/", MainHandler),
             (r"/hostlaunchipnb/", AuthHandler),
             (r"/hostadmin/", AdminHandler),
             (r"/ping/", PingHandler),
-            (r"/cors/", CorsHandler),
-            (r"/hw/", HomeworkHandler)
-        ])
+            (r"/cors/", CorsHandler)
+        ]
+        JBoxHandlerPlugin.add_plugin_handlers(request_handlers)
+        self.application = tornado.web.Application(request_handlers)
+
         cookie_secret = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
         self.application.settings["cookie_secret"] = cookie_secret
         self.application.settings["google_oauth"] = JBoxCfg.get('google_oauth')

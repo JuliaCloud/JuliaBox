@@ -1,3 +1,4 @@
+__author__ = 'tan'
 import datetime
 import pytz
 from decimal import Decimal
@@ -6,10 +7,12 @@ from boto.dynamodb2.fields import HashKey, RangeKey
 from boto.dynamodb2.types import STRING
 import boto.dynamodb2.exceptions
 
-from juliabox.db import JBoxDB
+from juliabox.db import JBoxDBPlugin
 
 
-class JBoxCourseHomework(JBoxDB):
+class JBoxCourseHomework(JBoxDBPlugin):
+    provides = ['dynamodb.table']
+
     NAME = 'jbox_coursehomework'
 
     SCHEMA = [

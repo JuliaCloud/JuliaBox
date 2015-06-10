@@ -31,7 +31,7 @@ from juliabox.cloud.aws import CloudHost
 from juliabox.jbox_util import LoggerMixin, JBoxCfg
 from juliabox.db import JBoxCourseHomework
 from juliabox import db
-from juliabox.handlers import HomeworkHandler
+from juliabox.plugins.course_homework import HomeworkHandler
 
 
 def report_as_csv(wfile, perq):

@@ -4,7 +4,7 @@ import httplib2
 
 from oauth2client.client import OAuth2Credentials
 
-from handler_base import JBoxHandler
+from handler_base import JBoxHandler, JBoxHandlerPlugin
 from juliabox.jbox_util import unique_sessname, JBoxCfg
 from juliabox.jbox_crypto import signstr
 from juliabox.db.user_v2 import JBoxUserV2
@@ -112,7 +112,7 @@ class MainHandler(JBoxHandler):
             })
             self.set_lb_tracker_cookie()
             self.rendertpl("ipnbsess.tpl", sessname=sessname, cfg=JBoxCfg.nv, creds=creds, authtok=authtok,
-                           user_id=user_id)
+                           user_id=user_id, js_includes=JBoxHandlerPlugin.PLUGIN_JAVASCRIPTS)
 
     def chk_and_launch_docker(self, user_id):
         nhops = int(self.get_argument('h', 0))

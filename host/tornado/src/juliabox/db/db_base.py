@@ -4,7 +4,7 @@ import pytz
 from boto.dynamodb2.table import Table
 
 from juliabox.cloud.aws import CloudHost
-from juliabox.jbox_util import LoggerMixin, JBoxCfg
+from juliabox.jbox_util import LoggerMixin, JBoxCfg, JBoxPluginType
 
 
 class JBoxDB(LoggerMixin):
@@ -70,3 +70,21 @@ class JBoxDB(LoggerMixin):
     def epoch_secs_to_datetime(secs):
         epoch = datetime.datetime.fromtimestamp(0, pytz.utc)
         return epoch + datetime.timedelta(seconds=secs)
+
+
+class JBoxDBPlugin(JBoxDB):
+    """ The base class for database table providers.
+    DynamoDB is the only type of database supported as of now.
+
+    It is a plugin mount point, looking for features:
+    - dynamodb.table (tables hosted on dynamodb)
+
+    Plugins are expected to have:
+    - NAME: attribute holding table name
+    - SCHEMA and INDEXES: attributes holding table structure
+    - TABLE: attribute to hold the table reference
+
+    Plugins can take help of base methods provided in JBoxDB.
+    """
+
+    __metaclass__ = JBoxPluginType

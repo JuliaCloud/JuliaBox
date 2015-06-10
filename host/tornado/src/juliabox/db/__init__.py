@@ -1,12 +1,11 @@
 __author__ = 'tan'
-from db_base import JBoxDB
+from db_base import JBoxDB, JBoxDBPlugin
 from user_v2 import JBoxUserV2
 from invites import JBoxInvite
 from accounting_v2 import JBoxAccountingV2
 from container import JBoxSessionProps
 from dynconfig import JBoxDynConfig
 from disk_state import JBoxDiskState
-from course_homework import JBoxCourseHomework
 from juliabox.cloud.aws import CloudHost
 from juliabox.jbox_util import JBoxCfg
 
@@ -18,7 +17,10 @@ def configure():
     JBoxSessionProps.NAME = JBoxCfg.get('cloud_host.jbox_session', JBoxSessionProps.NAME)
     JBoxDynConfig.NAME = JBoxCfg.get('cloud_host.jbox_dynconfig', JBoxDynConfig.NAME)
     JBoxDiskState.NAME = JBoxCfg.get('cloud_host.jbox_diskstate', JBoxDiskState.NAME)
-    JBoxCourseHomework.NAME = JBoxCfg.get('cloud_host.jbox_coursehomework', JBoxCourseHomework.NAME)
+
+    for plugin in JBoxDBPlugin.plugins:
+        JBoxDB.log_info("Found plugin %r provides %r", plugin, plugin.provides)
+        plugin.NAME = JBoxCfg.get('cloud_host.' + plugin.NAME, plugin.NAME)
 
 
 def is_proposed_cluster_leader():

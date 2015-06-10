@@ -7,7 +7,7 @@ import datetime
 import isodate
 from tornado.web import RequestHandler
 
-from juliabox.jbox_util import LoggerMixin, unique_sessname, JBoxCfg
+from juliabox.jbox_util import LoggerMixin, unique_sessname, JBoxCfg, JBoxPluginType
 from juliabox.jbox_container import JBoxContainer
 from juliabox.jbox_tasks import JBoxAsyncJob
 from juliabox.jbox_crypto import signstr
@@ -136,3 +136,34 @@ class JBoxHandler(RequestHandler, LoggerMixin):
 
         jbox_cookie = {'u': user_id, 't': t, 'x': sign}
         self.set_cookie(JBoxHandler.AUTH_COOKIE, base64.b64encode(json.dumps(jbox_cookie)))
+
+
+class JBoxHandlerPlugin(JBoxHandler):
+    """ The base class for request handler plugins.
+
+    It is a plugin mount point, looking for features:
+    - handler (handles requests to a URL spec)
+    - js (provides javascript file to be included at top level)
+
+    Methods expected in the plugin:
+    - get_js: Provide javascript path to be included at top level if any
+    - get_uri: Provide URI handled
+    - should also provide methods required from a tornado request handler
+    """
+
+    __metaclass__ = JBoxPluginType
+
+    PLUGIN_HANDLER = 'handler'
+    PLUGIN_JS = 'js'
+
+    PLUGIN_JAVASCRIPTS = []
+
+    @staticmethod
+    def add_plugin_handlers(l):
+        for plugin in JBoxHandlerPlugin.jbox_get_plugins(JBoxHandlerPlugin.PLUGIN_HANDLER):
+            JBoxHandlerPlugin.log_info("Found plugin %r provides %r", plugin, plugin.provides)
+            l.append((plugin.get_uri(), plugin))
+
+        for plugin in JBoxHandlerPlugin.jbox_get_plugins(JBoxHandlerPlugin.PLUGIN_JS):
+            JBoxHandlerPlugin.log_info("Found plugin %r provides %r", plugin, plugin.provides)
+            JBoxHandlerPlugin.PLUGIN_JAVASCRIPTS.append(plugin.get_js())

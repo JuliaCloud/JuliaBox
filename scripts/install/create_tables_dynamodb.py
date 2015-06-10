@@ -3,8 +3,10 @@
 from boto.dynamodb2.table import Table
 
 from juliabox.db import JBoxUserV2, JBoxInvite, JBoxDiskState, JBoxAccountingV2, JBoxDynConfig, \
-    JBoxSessionProps, JBoxCourseHomework
+    JBoxSessionProps, JBoxDBPlugin
 
+# import any plugins that contribute tables
+import juliabox.plugins.course_homework
 
 def table_exists(name):
     t = Table(name)
@@ -14,8 +16,11 @@ def table_exists(name):
     except:
         return False
 
-for cls in [JBoxUserV2, JBoxInvite, JBoxDiskState, JBoxAccountingV2, JBoxDynConfig,
-            JBoxSessionProps, JBoxCourseHomework]:
+tables = [JBoxUserV2, JBoxInvite, JBoxDiskState, JBoxAccountingV2, JBoxDynConfig, JBoxSessionProps]
+for plugin in JBoxDBPlugin.plugins:
+    tables.append(plugin)
+
+for cls in tables:
     print("Creating %s..." % (cls.NAME,))
     if table_exists(cls.NAME):
         print("\texists already!")
