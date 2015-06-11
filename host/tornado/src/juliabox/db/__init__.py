@@ -5,7 +5,6 @@ from invites import JBoxInvite
 from accounting_v2 import JBoxAccountingV2
 from container import JBoxSessionProps
 from dynconfig import JBoxDynConfig
-from disk_state import JBoxDiskState
 from juliabox.cloud.aws import CloudHost
 from juliabox.jbox_util import JBoxCfg
 
@@ -16,7 +15,6 @@ def configure():
     JBoxAccountingV2.NAME = JBoxCfg.get('cloud_host.jbox_accounting_v2', JBoxAccountingV2.NAME)
     JBoxSessionProps.NAME = JBoxCfg.get('cloud_host.jbox_session', JBoxSessionProps.NAME)
     JBoxDynConfig.NAME = JBoxCfg.get('cloud_host.jbox_dynconfig', JBoxDynConfig.NAME)
-    JBoxDiskState.NAME = JBoxCfg.get('cloud_host.jbox_diskstate', JBoxDiskState.NAME)
 
     for plugin in JBoxDBPlugin.plugins:
         JBoxDB.log_info("Found plugin %r provides %r", plugin, plugin.provides)

@@ -1,7 +1,7 @@
 import zmq
 import json
 
-from jbox_util import LoggerMixin, JBoxCfg
+from jbox_util import LoggerMixin, JBoxCfg, JBoxPluginType
 from jbox_crypto import signstr
 from cloud.aws import CloudHost
 
@@ -16,8 +16,8 @@ class JBoxAsyncJob(LoggerMixin):
     CMD_UPDATE_USER_HOME_IMAGE = 4
     CMD_REFRESH_DISKS = 5
     CMD_COLLECT_STATS = 6
-    CMD_UPDATE_DISK_STATES = 7
     CMD_TERMINATE_OR_DELETE_CLUSTER = 8
+    CMD_PLUGIN_MAINTENANCE = 9
 
     CMD_REQ_RESP = 50
     CMD_SESSION_STATUS = 51
@@ -163,11 +163,6 @@ class JBoxAsyncJob(LoggerMixin):
         JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_COLLECT_STATS, '')
 
     @staticmethod
-    def async_update_disk_state():
-        JBoxAsyncJob.log_info("updating disk states")
-        JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_UPDATE_DISK_STATES, '')
-
-    @staticmethod
     def async_schedule_activations():
         JBoxAsyncJob.log_info("scheduling activations")
         JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_AUTO_ACTIVATE, '')
@@ -191,3 +186,25 @@ class JBoxAsyncJob(LoggerMixin):
     def async_terminate_or_delete_cluster(cluster_id):
         JBoxAsyncJob.log_info("scheduling termination or deletion of %s", cluster_id)
         JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_TERMINATE_OR_DELETE_CLUSTER, cluster_id)
+
+    @staticmethod
+    def async_plugin_maintenance(is_leader):
+        JBoxAsyncJob.log_info("scheduling plugin maintenance. leader:%r", is_leader)
+        JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_PLUGIN_MAINTENANCE, is_leader)
+
+
+class JBoxHousekeepingPlugin(LoggerMixin):
+    """ Base class for plugins providing housekeeping tasks. Invoked during JuliaBox maintainence cycle.
+
+    It is a plugin mount point, looking for features:
+    - node.housekeeping (handles node specific periodic maintenance task)
+    - cluster.housekeeping (handles periodic maintenance task common to all nodes. invoked only on the cluster leader)
+
+    Methods expected:
+    - do_housekeeping: invoked with plugin class name, and feature in context as argument
+    """
+
+    __metaclass__ = JBoxPluginType
+
+    PLUGIN_NODE_HOUSEKEEPING = 'node.housekeeping'
+    PLUGIN_CLUSTER_HOUSEKEEPING = 'cluster.housekeeping'

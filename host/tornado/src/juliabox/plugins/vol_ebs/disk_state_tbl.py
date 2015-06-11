@@ -1,3 +1,4 @@
+__author__ = 'tan'
 import json
 import datetime
 import pytz
@@ -6,10 +7,12 @@ from boto.dynamodb2.fields import HashKey, GlobalKeysOnlyIndex
 from boto.dynamodb2.types import NUMBER, STRING
 import boto.dynamodb2.exceptions
 
-from juliabox.db import JBoxDB
+from juliabox.db import JBoxDBPlugin
 
 
-class JBoxDiskState(JBoxDB):
+class JBoxDiskState(JBoxDBPlugin):
+    provides = ['dynamodb.table']
+
     NAME = 'jbox_diskstate'
 
     SCHEMA = [

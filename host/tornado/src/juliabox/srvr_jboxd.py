@@ -1,14 +1,12 @@
 import threading
 import json
 import time
-import datetime
-import pytz
 
 from cloud.aws import CloudHost
 import db
-from db import JBoxUserV2, JBoxDynConfig, JBoxDiskState, JBoxSessionProps
-from jbox_tasks import JBoxAsyncJob
-from jbox_util import LoggerMixin, JBoxCfg, retry, unique_sessname
+from db import JBoxUserV2, JBoxDynConfig
+from jbox_tasks import JBoxAsyncJob, JBoxHousekeepingPlugin
+from jbox_util import LoggerMixin, JBoxCfg, retry
 from jbox_container import JBoxContainer
 from vol import VolMgr
 from parallel import UserCluster
@@ -155,40 +153,6 @@ class JBoxd(LoggerMixin):
 
     @staticmethod
     @jboxd_method
-    def update_disk_states():
-        detached_disks = JBoxDiskState.get_detached_disks()
-        time_now = datetime.datetime.now(pytz.utc)
-        for disk_key in detached_disks:
-            disk_info = JBoxDiskState(disk_key=disk_key)
-            user_id = disk_info.get_user_id()
-            sess_props = JBoxSessionProps(unique_sessname(user_id))
-            incomplete_snapshots = []
-            modified = False
-            for snap_id in disk_info.get_snapshot_ids():
-                if not CloudHost.is_snapshot_complete(snap_id):
-                    incomplete_snapshots.append(snap_id)
-                    continue
-                JBoxd.log_debug("updating latest snapshot of user %s to %s", user_id, snap_id)
-                old_snap_id = sess_props.get_snapshot_id()
-                sess_props.set_snapshot_id(snap_id)
-                modified = True
-                if old_snap_id is not None:
-                    CloudHost.delete_snapshot(old_snap_id)
-            if modified:
-                sess_props.save()
-                disk_info.set_snapshot_ids(incomplete_snapshots)
-                disk_info.save()
-            if len(incomplete_snapshots) == 0:
-                if (time_now - disk_info.get_detach_time()).total_seconds() > 24*60*60:
-                    vol_id = disk_info.get_volume_id()
-                    JBoxd.log_debug("volume %s for user %s unused for too long", vol_id, user_id)
-                    disk_info.delete()
-                    CloudHost.detach_volume(vol_id, delete=True)
-            else:
-                JBoxd.log_debug("ongoing snapshots of user %s: %r", user_id, incomplete_snapshots)
-
-    @staticmethod
-    @jboxd_method
     def terminate_or_delete_cluster(cluster_id):
         uc = UserCluster(None, gname=cluster_id)
         uc.terminate_or_delete()
@@ -206,6 +170,16 @@ class JBoxd(LoggerMixin):
         VolMgr.publish_stats()
         db.publish_stats()
         JBoxDynConfig.set_stat_collected_date(CloudHost.INSTALL_ID)
+
+    @staticmethod
+    def schedule_housekeeping(cmd, is_leader):
+        features = [JBoxHousekeepingPlugin.PLUGIN_NODE_HOUSEKEEPING]
+        if is_leader is True:
+            features.append(JBoxHousekeepingPlugin.PLUGIN_CLUSTER_HOUSEKEEPING)
+
+        for feature in features:
+            for plugin in JBoxHousekeepingPlugin.jbox_get_plugins(feature):
+                JBoxd.schedule_thread(cmd, plugin.do_housekeeping, (plugin.__name__, feature))
 
     def process_offline(self):
         self.log_debug("processing offline...")
@@ -226,11 +200,12 @@ class JBoxd(LoggerMixin):
             fn = JBoxd.refresh_disks
         elif cmd == JBoxAsyncJob.CMD_COLLECT_STATS:
             fn = JBoxd.collect_stats
-        elif cmd == JBoxAsyncJob.CMD_UPDATE_DISK_STATES:
-            fn = JBoxd.update_disk_states
         elif cmd == JBoxAsyncJob.CMD_TERMINATE_OR_DELETE_CLUSTER:
             fn = JBoxd.terminate_or_delete_cluster
             args = (data,)
+        elif cmd == JBoxAsyncJob.CMD_PLUGIN_MAINTENANCE:
+            JBoxd.schedule_housekeeping(cmd, data)
+            return
         else:
             self.log_error("Unknown command " + str(cmd))
             return

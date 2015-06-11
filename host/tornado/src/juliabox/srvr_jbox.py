@@ -4,7 +4,6 @@ import string
 import tornado.ioloop
 import tornado.web
 import tornado.auth
-import docker
 
 from cloud.aws import CloudHost
 import db
@@ -133,13 +132,13 @@ class JBox(LoggerMixin):
         server_delete_timeout = JBoxCfg.get('expire')
         JBoxContainer.maintain(max_timeout=server_delete_timeout, inactive_timeout=JBoxCfg.get('inactivity_timeout'),
                                protected_names=JBoxCfg.get('protected_docknames'))
-        if is_cluster_leader():
+        is_leader = is_cluster_leader()
+        if is_leader:
             CloudHost.log_info("I am the cluster leader")
             JBox.monitor_registrations()
             JBox.monitor_user_clusters()
             if not JBoxDynConfig.is_stat_collected_within(CloudHost.INSTALL_ID, 1):
                 JBoxAsyncJob.async_collect_stats()
-            JBoxAsyncJob.async_update_disk_state()
         elif JBox.is_ready_to_terminate():
             terminating = True
             JBox.log_warn("terminating to scale down")
@@ -151,3 +150,4 @@ class JBox(LoggerMixin):
 
         if not terminating:
             JBox.do_update_user_home_image()
+            JBoxAsyncJob.async_plugin_maintenance(is_leader)
