@@ -4,14 +4,14 @@ __author__ = 'tan'
 import sys
 import os
 import tarfile
-import docker
 import datetime
 import pytz
 
-from cloud.aws import CloudHost
+import docker
 
-from jbox_util import LoggerMixin, unique_sessname, read_config
-from vol import JBoxVol, VolMgr
+from juliabox.cloud.aws import CloudHost
+from juliabox.jbox_util import LoggerMixin, unique_sessname, JBoxCfg
+from juliabox.vol import JBoxVol, VolMgr
 
 
 class S3Disk(LoggerMixin):
@@ -66,29 +66,19 @@ class S3Disk(LoggerMixin):
 
     @staticmethod
     def init():
-        dckr = docker.Client()
-        cfg = read_config()
-        cloud_cfg = cfg['cloud_host']
-        cloud_cfg['backup_bucket'] = "juliabox_userbackup"
+        conf_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../host/tornado/conf'))
+        conf_file = os.path.join(conf_dir, 'tornado.conf')
+        user_conf_file = os.path.join(conf_dir, 'jbox.user')
 
-        LoggerMixin.setup_logger(level=cfg['root_log_level'])
-        LoggerMixin.DEFAULT_LEVEL = cfg['jbox_log_level']
+        JBoxCfg.read(conf_file, user_conf_file)
+        JBoxCfg.dckr = docker.Client()
 
-        CloudHost.configure(has_s3=True, #cloud_cfg['s3'],
-                        has_dynamodb=cloud_cfg['dynamodb'],
-                        has_cloudwatch=cloud_cfg['cloudwatch'],
-                        has_autoscale=cloud_cfg['autoscale'],
-                        has_route53=cloud_cfg['route53'],
-                        has_ebs=cloud_cfg['ebs'],
-                        has_ses=cloud_cfg['ses'],
-                        scale_up_at_load=cloud_cfg['scale_up_at_load'],
-                        scale_up_policy=cloud_cfg['scale_up_policy'],
-                        autoscale_group=cloud_cfg['autoscale_group'],
-                        route53_domain=cloud_cfg['route53_domain'],
-                        region=cloud_cfg['region'],
-                        install_id=cloud_cfg['install_id'])
+        # force override
+        JBoxCfg.nv['cloud_host']['s3'] = True
 
-        VolMgr.configure(dckr, cfg)
+        LoggerMixin.configure()
+        CloudHost.configure()
+        VolMgr.configure()
 
 
 def process_args(argv):

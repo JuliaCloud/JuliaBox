@@ -21,6 +21,9 @@
     <script src="//apis.google.com/js/client.js"></script>
     <script src="/assets/js/jquery-gdrive.js"></script>
     <script src="/assets/js/juliabox.js"></script>
+    {% for js_include in js_includes %}
+    <script type="text/javascript" src="{{js_include}}"></script>
+    {% end %}
     <script type="text/javascript" src="//use.typekit.net/cpz5ogz.js"></script>
     <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
     <script type="text/javascript">
