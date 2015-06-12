@@ -9,7 +9,6 @@ from jbox_tasks import JBoxAsyncJob, JBoxHousekeepingPlugin
 from jbox_util import LoggerMixin, JBoxCfg, retry
 from jbox_container import JBoxContainer
 from vol import VolMgr
-from parallel import UserCluster
 
 
 def jboxd_method(f):
@@ -153,12 +152,6 @@ class JBoxd(LoggerMixin):
 
     @staticmethod
     @jboxd_method
-    def terminate_or_delete_cluster(cluster_id):
-        uc = UserCluster(None, gname=cluster_id)
-        uc.terminate_or_delete()
-
-    @staticmethod
-    @jboxd_method
     def refresh_disks():
         if JBoxd._is_scheduled(JBoxAsyncJob.CMD_UPDATE_USER_HOME_IMAGE, ()):
             return
@@ -200,9 +193,6 @@ class JBoxd(LoggerMixin):
             fn = JBoxd.refresh_disks
         elif cmd == JBoxAsyncJob.CMD_COLLECT_STATS:
             fn = JBoxd.collect_stats
-        elif cmd == JBoxAsyncJob.CMD_TERMINATE_OR_DELETE_CLUSTER:
-            fn = JBoxd.terminate_or_delete_cluster
-            args = (data,)
         elif cmd == JBoxAsyncJob.CMD_PLUGIN_MAINTENANCE:
             JBoxd.schedule_housekeeping(cmd, data)
             return

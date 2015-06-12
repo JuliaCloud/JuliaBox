@@ -16,7 +16,6 @@ class JBoxAsyncJob(LoggerMixin):
     CMD_UPDATE_USER_HOME_IMAGE = 4
     CMD_REFRESH_DISKS = 5
     CMD_COLLECT_STATS = 6
-    CMD_TERMINATE_OR_DELETE_CLUSTER = 8
     CMD_PLUGIN_MAINTENANCE = 9
 
     CMD_REQ_RESP = 50
@@ -181,11 +180,6 @@ class JBoxAsyncJob(LoggerMixin):
     def sync_session_status(instance_id):
         JBoxAsyncJob.log_debug("fetching session status from %s", instance_id)
         return JBoxAsyncJob.get().sendrecv(JBoxAsyncJob.CMD_SESSION_STATUS, {}, dest=instance_id)
-
-    @staticmethod
-    def async_terminate_or_delete_cluster(cluster_id):
-        JBoxAsyncJob.log_info("scheduling termination or deletion of %s", cluster_id)
-        JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_TERMINATE_OR_DELETE_CLUSTER, cluster_id)
 
     @staticmethod
     def async_plugin_maintenance(is_leader):

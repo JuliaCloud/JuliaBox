@@ -269,6 +269,21 @@ class JBoxContainer(LoggerMixin):
         except:
             return False
 
+    @staticmethod
+    def get_active_sessions():
+        instances = CloudHost.get_autoscaled_instances() if CloudHost.ENABLED['autoscale'] else []
+        if len(instances) == 0:
+            instances = ['localhost']
+
+        active_sessions = set()
+        for inst in instances:
+            sessions = JBoxAsyncJob.sync_session_status(inst)['data']
+            if len(sessions) > 0:
+                for sess_id in sessions.keys():
+                    active_sessions.add(sess_id)
+
+        return active_sessions
+
     def backup_and_cleanup(self):
         self.stop()
         self.delete(backup=True)

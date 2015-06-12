@@ -3,6 +3,7 @@ import base64
 import traceback
 import pytz
 import datetime
+import os
 
 import isodate
 from tornado.web import RequestHandler
@@ -138,6 +139,31 @@ class JBoxHandler(RequestHandler, LoggerMixin):
         self.set_cookie(JBoxHandler.AUTH_COOKIE, base64.b64encode(json.dumps(jbox_cookie)))
 
 
+class JBoxUIModulePlugin(LoggerMixin):
+    """ Enables providing additional sections in a JuliaBox screen.
+
+    Features:
+    - config (provides a section in the JuliaBox configuration screen)
+
+    Methods expected:
+    - get_template: return template_file to include
+    """
+
+    __metaclass__ = JBoxPluginType
+
+    PLUGIN_CONFIG = 'config'
+
+    @staticmethod
+    def create_include_file():
+        incl_file_path = os.path.join(os.path.dirname(__file__), "../../../www/admin_modules.tpl")
+        with open(incl_file_path, 'w') as incl_file:
+            for plugin in JBoxUIModulePlugin.plugins:
+                JBoxUIModulePlugin.log_info("Found plugin %r provides %r", plugin, plugin.provides)
+                template_file = plugin.get_template()
+
+                incl_file.write('{%% module Template("%s") %%}\n' % (template_file,))
+
+
 class JBoxHandlerPlugin(JBoxHandler):
     """ The base class for request handler plugins.
 
@@ -146,8 +172,8 @@ class JBoxHandlerPlugin(JBoxHandler):
     - js (provides javascript file to be included at top level)
 
     Methods expected in the plugin:
-    - get_js: Provide javascript path to be included at top level if any
     - get_uri: Provide URI handled
+    - get_js: Provide javascript path to be included at top level if any
     - should also provide methods required from a tornado request handler
     """
 
