@@ -6,8 +6,7 @@ var JuliaBox = (function($, _, undefined){
 	var _ping_fails = 0;
 	var _max_ping_fails = 4;
 	var _loggedout = false;
-	var _inclusterop = false;
-	
+
 	var self = {
 	    send_keep_alive: function() {
 	    	if((_ping_fails > _max_ping_fails) || _loggedout) return;
@@ -27,7 +26,8 @@ var JuliaBox = (function($, _, undefined){
 	        });
 	    },
 	    
-	    comm: function(url, type, data, success, error, dolock=true) {
+	    comm: function(url, type, data, success, error, dolock) {
+	    	dolock = typeof dolock !== 'undefined' ? dolock : true;
 			if(dolock) {
 	    		self.lock_activity();
 	    	}
@@ -389,117 +389,6 @@ var JuliaBox = (function($, _, undefined){
     			    self.comm('/hostadmin/', 'GET', { 'logout' : 'me' }, s, f);
     			}
     		});
-    	},
-
-        cluster_start: function (ninsts, avzone, spot_price, onstrt=null) {
-            s = function(res) {
-            	if (res.code == 0) {
-            	    resp = res.data
-            		self.popup_alert("Requested cluster for " + ninsts + " instance(s). Machinefile at '/home/juser/.juliabox/machinefile' will be updated with hostnames.");
-            		if(onstrt){
-            			onstrt();
-            		}
-            	}
-            	else {
-					if (res.data) {
-						self.popup_alert("Error configuring cluster. " + res.data);
-					}
-					else {
-						self.popup_alert("Unknown error configuring cluster.");
-					}
-            	}
-            };
-            f = function() {
-				self.popup_alert("Communication error while configuring cluster.");
-            };
-            self._inclusterop = true;
-            var msg = 'Start a cluster of ' + ninsts;
-            if(spot_price > 0) {
-            	msg += ' spot instance(s) at $' + spot_price + ' per instance per hour?'
-            }
-            else {
-            	msg += ' regular instance(s)?'
-            }
-    		self.popup_confirm(msg, function(res) {
-            	self._inclusterop = false;
-    			if(res) {
-					self.comm('/hostadmin/', 'GET', { 'cluster':'create', 'ninsts':ninsts, 'avzone':avzone, 'spot_price':spot_price }, s, f);
-				}
-			});
-        },
-
-        cluster_stop: function (interactive=true, onstop=null) {
-            s = function(res) {
-            	if (res.code == 0) {
-            		if(interactive) {
-            			self.popup_alert("Requested cluster termination.");
-            		}
-            		if(onstop) {
-            			onstop();
-            		}
-            	}
-            	else {
-					if (res.data) {
-						self.popup_alert("Error terminating cluster. " + res.data);
-					}
-					else {
-						self.popup_alert("Unknown error terminating cluster.");
-					}
-            	}
-            };
-            f = function() {
-				self.popup_alert("Communication error while terminating cluster.");
-            };
-            if(interactive) {
-            	self._inclusterop = true;
-				self.popup_confirm('Terminate the cluster?', function(res) {
-					self._inclusterop = false;
-					if(res) {
-						self.comm('/hostadmin/', 'GET', { 'cluster' : 'terminate' }, s, f);
-					}
-				});
-            }
-            else {
-            	self.comm('/hostadmin/', 'GET', { 'cluster' : 'terminate' }, s, f, dolock=false);
-            }
-        },
-
-        cluster_status: function (cb_success, cb_failure) {
-        	if(self._inclusterop) {
-        		return;
-        	}
-            s = function(res) {
-            	if (res.code == 0) {
-            	    cb_success(res.data)
-            	}
-            	else {
-            	    cb_failure(res.data)
-            	}
-            };
-            f = function() {
-                cb_failure(null)
-            };
-            self.comm('/hostadmin/', 'GET', { 'cluster' : 'status' }, s, f, dolock=false);
-        },
-
-    	addcluster: function (clustername) {
-            s = function(res) {
-            	if (res.code == 0) {
-            		self.popup_alert("Added cluster " + clustername + ". Created machinefile at " + res.data);
-            	}
-            	else {
-					if (res.data) {
-						self.popup_alert("Error adding cluster. " + res.data);
-					}
-					else {
-						self.popup_alert("Error adding cluster " + clustername + ". Please ensure it is started and healthy.");
-					}
-            	}
-            };
-            f = function() {
-				self.popup_alert("Error adding cluster " + clustername + ". Please ensure it is started and healthy.");
-            };
-            self.comm('/hostadmin/', 'GET', { 'addcluster' : clustername }, s, f);
     	},
 
     	inform_logged_out: function (pingfail) {

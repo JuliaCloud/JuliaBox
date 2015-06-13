@@ -4,7 +4,6 @@ import string
 import tornado.ioloop
 import tornado.web
 import tornado.auth
-import docker
 
 from cloud.aws import CloudHost
 import db
@@ -13,10 +12,8 @@ from jbox_tasks import JBoxAsyncJob
 from jbox_util import LoggerMixin, JBoxCfg
 from vol import VolMgr
 from jbox_container import JBoxContainer
-from parallel import UserCluster
 from handlers import AdminHandler, MainHandler, AuthHandler, PingHandler, CorsHandler
-from handlers import JBoxHandlerPlugin
-
+from handlers import JBoxHandlerPlugin, JBoxUIModulePlugin
 
 class JBox(LoggerMixin):
     def __init__(self):
@@ -37,7 +34,9 @@ class JBox(LoggerMixin):
             (r"/ping/", PingHandler),
             (r"/cors/", CorsHandler)
         ]
+
         JBoxHandlerPlugin.add_plugin_handlers(request_handlers)
+        JBoxUIModulePlugin.create_include_file()
         self.application = tornado.web.Application(request_handlers)
 
         cookie_secret = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
@@ -91,35 +90,6 @@ class JBox(LoggerMixin):
                 JBoxAsyncJob.async_schedule_activations()
 
     @staticmethod
-    def get_active_sessions():
-        instances = CloudHost.get_autoscaled_instances() if CloudHost.ENABLED['autoscale'] else []
-        if len(instances) == 0:
-            instances = ['localhost']
-
-        active_sessions = set()
-        for inst in instances:
-            sessions = JBoxAsyncJob.sync_session_status(inst)['data']
-            if len(sessions) > 0:
-                for sess_id in sessions.keys():
-                    active_sessions.add(sess_id)
-
-        return active_sessions
-
-    @staticmethod
-    def monitor_user_clusters():
-        active_clusters = UserCluster.list_all_groupids()
-        CloudHost.log_info("%d active clusters", len(active_clusters))
-        if len(active_clusters) == 0:
-            return
-        active_sessions = JBox.get_active_sessions()
-        for cluster_id in active_clusters:
-            sess_id = "/" + UserCluster.sessname_for_cluster(cluster_id)
-            if sess_id not in active_sessions:
-                CloudHost.log_info("Session (%s) corresponding to cluster (%s) not found. Terminating cluster.",
-                                   sess_id, cluster_id)
-                JBoxAsyncJob.async_terminate_or_delete_cluster(cluster_id)
-
-    @staticmethod
     def is_ready_to_terminate():
         if not JBoxCfg.get('cloud_host.scale_down'):
             return False
@@ -133,13 +103,12 @@ class JBox(LoggerMixin):
         server_delete_timeout = JBoxCfg.get('expire')
         JBoxContainer.maintain(max_timeout=server_delete_timeout, inactive_timeout=JBoxCfg.get('inactivity_timeout'),
                                protected_names=JBoxCfg.get('protected_docknames'))
-        if is_cluster_leader():
+        is_leader = is_cluster_leader()
+        if is_leader:
             CloudHost.log_info("I am the cluster leader")
             JBox.monitor_registrations()
-            JBox.monitor_user_clusters()
             if not JBoxDynConfig.is_stat_collected_within(CloudHost.INSTALL_ID, 1):
                 JBoxAsyncJob.async_collect_stats()
-            JBoxAsyncJob.async_update_disk_state()
         elif JBox.is_ready_to_terminate():
             terminating = True
             JBox.log_warn("terminating to scale down")
@@ -151,3 +120,4 @@ class JBox(LoggerMixin):
 
         if not terminating:
             JBox.do_update_user_home_image()
+            JBoxAsyncJob.async_plugin_maintenance(is_leader)

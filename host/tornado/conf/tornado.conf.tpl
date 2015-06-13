@@ -108,6 +108,7 @@ Welcome to JuliaBox. We hope you will like it and also share with your friends.
         "juliabox.plugins.vol_loopback",
         "juliabox.plugins.vol_ebs",
         "juliabox.plugins.course_homework",
+        "juliabox.plugins.parallel",
         ""
     ],
 

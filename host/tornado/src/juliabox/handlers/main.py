@@ -79,7 +79,10 @@ class MainHandler(JBoxHandler):
                 loading_step += 1
 
             self.set_cookie("loading", str(loading_step))
-            self.rendertpl("loading.tpl", user_id=user_id)
+            self.rendertpl("loading.tpl",
+                           user_id=user_id,
+                           cfg=JBoxCfg.nv,
+                           js_includes=JBoxHandlerPlugin.PLUGIN_JAVASCRIPTS)
         else:
             if JBoxCfg.get("gauth"):
                 jbuser = JBoxUserV2(user_id)
@@ -122,7 +125,10 @@ class MainHandler(JBoxHandler):
 
         if launched:
             self.set_loading_state(user_id)
-            self.rendertpl("loading.tpl", stage=1, user_id=user_id)
+            self.rendertpl("loading.tpl",
+                           user_id=user_id,
+                           cfg=JBoxCfg.nv,
+                           js_includes=JBoxHandlerPlugin.PLUGIN_JAVASCRIPTS)
             return
 
         self.unset_affinity()

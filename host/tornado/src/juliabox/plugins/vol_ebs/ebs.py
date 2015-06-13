@@ -3,9 +3,10 @@ import threading
 import time
 
 from juliabox.cloud.aws import CloudHost
-from juliabox.db import JBoxSessionProps, JBoxDiskState
+from juliabox.db import JBoxSessionProps
 from juliabox.jbox_util import unique_sessname, JBoxCfg
 from juliabox.vol import JBoxVol
+from disk_state_tbl import JBoxDiskState
 
 
 class JBoxEBSVol(JBoxVol):
