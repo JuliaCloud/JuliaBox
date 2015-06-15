@@ -6,6 +6,7 @@ from juliabox.jbox_tasks import JBoxHousekeepingPlugin
 from juliabox.db import JBoxSessionProps
 from juliabox.cloud.aws import CloudHost
 from juliabox.jbox_util import unique_sessname
+from juliabox.srvr_jboxd import jboxd_method
 
 from disk_state_tbl import JBoxDiskState
 
@@ -13,6 +14,7 @@ class JBoxEBSHousekeep(JBoxHousekeepingPlugin):
     provides = [JBoxHousekeepingPlugin.PLUGIN_CLUSTER_HOUSEKEEPING]
 
     @staticmethod
+    @jboxd_method
     def do_housekeeping(_name, _mode):
         detached_disks = JBoxDiskState.get_detached_disks()
         time_now = datetime.datetime.now(pytz.utc)

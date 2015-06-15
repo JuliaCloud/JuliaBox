@@ -17,6 +17,7 @@ do
 done
 
 INTERNAL_PACKAGES="https://github.com/shashi/Homework.jl.git \
+https://github.com/tanmaykm/JuliaBoxUtils.jl.git \
 https://github.com/tanmaykm/JuliaWebAPI.jl.git"
 
 for pkg in ${INTERNAL_PACKAGES}
