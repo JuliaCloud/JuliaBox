@@ -2,6 +2,7 @@ __author__ = 'tan'
 from juliabox.jbox_tasks import JBoxHousekeepingPlugin
 from juliabox.jbox_container import JBoxContainer
 from juliabox.cloud.aws import CloudHost
+from juliabox.srvr_jboxd import jboxd_method
 
 from user_cluster import UserCluster
 
@@ -14,6 +15,7 @@ class ParallelHousekeep(JBoxHousekeepingPlugin):
         uc.terminate_or_delete()
 
     @staticmethod
+    @jboxd_method
     def do_housekeeping(_name, _mode):
         active_clusters = UserCluster.list_all_groupids()
         ParallelHousekeep.log_info("%d active clusters", len(active_clusters))

@@ -244,7 +244,7 @@ class JBoxUserV2(JBoxDB):
         self.set_attrib('max_cluster_cores', cores)
 
     def get_max_cluster_cores(self):
-        return self.get_attrib('max_cluster_cores', JBoxUserV2.DEF_MAX_CLUSTER_CORES)
+        return int(self.get_attrib('max_cluster_cores', JBoxUserV2.DEF_MAX_CLUSTER_CORES))
 
     @staticmethod
     def get_pending_activations(max_count):
