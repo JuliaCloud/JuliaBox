@@ -56,6 +56,17 @@ var JuliaBox = (function($, _, undefined){
 	    	self.comm('/hostupload/sshkey', 'GET', null, s, f);
 	    },
 
+	    show_packages: function(ver) {
+	    	s = function(pkginfo){
+	    		bootbox.dialog({
+	    	            message: '<pre>' + pkginfo.data + '<pre>',
+	    	            title: "Julia " + ver
+	    	        }).find("div.modal-dialog").addClass("bootbox90");
+	    	};
+	    	f = function() { bootbox.alert("Oops. Unexpected error while retrieving packages list.<br/><br/>Please try again later."); };
+	    	self.comm('/hostupload/pkginfo', 'GET', {'ver': ver}, s, f);
+	    },
+
 	    switch_julia_image: function(disp_curr, disp_switch) {
 	    	s = function(img){
 	    	    if(img.code == 0) {

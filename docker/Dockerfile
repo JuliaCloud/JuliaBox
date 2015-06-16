@@ -1,5 +1,5 @@
 # Docker file for JuliaBox
-# Version:31
+# Version:32
 
 FROM julialang/juliaboxpkgdist:v0.3.9
 # Switching the base to the bare julia image helps during JuliaBox development by reducing image size
@@ -15,6 +15,11 @@ RUN git clone https://github.com/tanmaykm/shellinabox_fork.git; cd shellinabox_f
 RUN groupadd juser \
     && useradd -m -d /home/juser -s /bin/bash -g juser -G staff juser \
     && echo "export HOME=/home/juser" >> /home/juser/.bashrc
+
+# add Julia nightly build
+RUN mkdir -p /opt/julia_0.4.0 && \
+    curl -s -L https://status.julialang.org/download/linux-x86_64 | tar -C /opt/julia_0.4.0 -x -z --strip-components=1 -f -
+RUN ln -fs /opt/julia_0.4.0 /opt/julia_nightly
 
 USER juser
 ENV HOME /home/juser
