@@ -32,7 +32,7 @@ julia -e "Pkg.checkout(\"Interact\")"
 
 echo ""
 echo "Creating Julia stable package list..."
-julia -e 'println("Location: $JULIA_HOME\n"); versioninfo(); println(""); Pkg.status()' > /home/juser/.juliabox/stable_packages.txt
+julia -e 'println("JULIA_HOME: $JULIA_HOME\n"); versioninfo(); println(""); Pkg.status()' > /home/juser/.juliabox/stable_packages.txt
 #echo ""
 #echo "Running package tests..."
 #julia -e "Pkg.test()" > /home/juser/.juliabox/packages_test_result.txt
@@ -59,4 +59,4 @@ done
 
 echo ""
 echo "Creating Julia nightly package list..."
-/opt/julia_nightly/bin/julia -e 'println("Location: $JULIA_HOME\n"); versioninfo(); println(""); Pkg.status()' > /home/juser/.juliabox/nightly_packages.txt
+/opt/julia_nightly/bin/julia -e 'println("JULIA_HOME: $JULIA_HOME\n"); versioninfo(); println(""); Pkg.status()' > /home/juser/.juliabox/nightly_packages.txt

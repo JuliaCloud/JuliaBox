@@ -53,6 +53,10 @@ do
     echo "c.NotebookApp.allow_origin = \"*\"" | ${SUDO_JUSER} tee --append ${JUSER_HOME}/.ipython/profile_${prof}/ipython_notebook_config.py
     ${SUDO_JUSER} cp ${DIR}/IJulia/custom.css ${JUSER_HOME}/.ipython/profile_${prof}/static/custom/custom.css
     ${SUDO_JUSER} cp ${DIR}/IJulia/custom.js ${JUSER_HOME}/.ipython/profile_${prof}/static/custom/custom.js
+
+    # Do not add kernel cmd to config.py files, just having it in kernel.json seems to work.
+    # This avoids the requirement of having to recompile IJulia after switching kernel.
+    ${SUDO_JUSER} sed -i "s/^c.KernelManager.kernel_cmd =/# c.KernelManager.kernel_cmd =/" ${JUSER_HOME}/.ipython/profile_${prof}/ipython_config.py
 done
 
 ${SUDO_JUSER} cp -R ${DIR}/IJulia/tornado ${JUSER_HOME}/.juliabox/tornado
