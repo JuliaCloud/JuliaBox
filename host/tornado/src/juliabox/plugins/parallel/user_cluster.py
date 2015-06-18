@@ -63,6 +63,7 @@ class UserCluster(LoggerMixin):
         self.launch_config = None
         self.instances = []
         self.public_ips = []
+        self.private_ips = []
 
     @staticmethod
     def sessname_for_cluster(gname):
@@ -177,7 +178,8 @@ class UserCluster(LoggerMixin):
 
     def refresh_instances(self):
         self.instances = Cluster.get_autoscaled_instances(self.gname)
-        self.public_ips = CloudHost.get_public_addresses_by_placement_group(self.gname)
+        self.public_ips = CloudHost.get_public_hostnames_by_placement_group(self.gname)
+        self.private_ips = CloudHost.get_private_ips_by_placement_group(self.gname)
 
     def create(self, ninsts, avzone, user_data, spot_price=0):
         if self.exists():

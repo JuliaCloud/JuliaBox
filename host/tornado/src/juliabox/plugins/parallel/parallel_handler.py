@@ -122,14 +122,14 @@ class ParallelHandler(JBoxHandlerPlugin):
 
         self.write(response)
 
-    def write_machinefile(self, cont, uc):
-        cluster_hosts = set(uc.public_ips)
+    def _write_machinefile(self, cont, filename, machines):
+        cluster_hosts = set(machines)
         if len(cluster_hosts) == 0:
             return
 
         # write out the machinefile on the docker's filesystem
         vol = VolMgr.get_disk_from_container(cont.dockid)
-        machinefile = os.path.join(vol.disk_path, ".juliabox", "machinefile")
+        machinefile = os.path.join(vol.disk_path, ".juliabox", filename)
 
         existing_hosts = set()
         try:
@@ -145,6 +145,10 @@ class ParallelHandler(JBoxHandlerPlugin):
         with open(machinefile, 'w') as f:
             for host in cluster_hosts:
                 f.write(host+'\n')
+
+    def write_machinefile(self, cont, uc):
+        self._write_machinefile(cont, "machinefile", uc.public_ips)
+        self._write_machinefile(cont, "machinefile.private", uc.private_ips)
 
     @staticmethod
     def create_user_script(cont):

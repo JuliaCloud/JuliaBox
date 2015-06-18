@@ -110,6 +110,17 @@ class SSHKeyHandler(tornado.web.RequestHandler):
             self.write(response)
 
 
+class PkgInfoHandler(tornado.web.RequestHandler):
+    def get(self):
+        ver = self.get_argument('ver')
+        with open(os.path.expanduser('~/.juliabox/' + ver + '_packages.txt'), "r") as f:
+            response = {
+                'code': 0,
+                'data': f.read()
+            }
+            self.write(response)
+
+
 class SyncHandler(tornado.web.RequestHandler):
     LOC = '~/'
     # LOC = '/tmp/x'
@@ -286,6 +297,7 @@ if __name__ == "__main__":
         (r"/ping", PingHandler),
         (r"/sync", SyncHandler),
         (r"/sshkey", SSHKeyHandler),
+        (r"/pkginfo", PkgInfoHandler),
         (r"/", BrowseHandler)
     ])
     application.listen(cfg['port'])

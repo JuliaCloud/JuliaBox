@@ -74,6 +74,16 @@
 	    		parent.JuliaBox.show_ssh_key();
 	    	});
 
+	    	$('#showpackagesstable').click(function(event){
+	    		event.preventDefault();
+	    		parent.JuliaBox.show_packages('stable');
+	    	});
+
+	    	$('#showpackagesnightly').click(function(event){
+	    		event.preventDefault();
+	    		parent.JuliaBox.show_packages('nightly');
+	    	});
+
 	    	$('#jimg_switch').click(function(event){
 	    		event.preventDefault();
 	    		parent.JuliaBox.switch_julia_image($('#jimg_curr'), $('#jimg_new'));
@@ -151,7 +161,7 @@
 
 <h3>JuliaBox version:</h3>
 JuliaBox version: {{d["juliaboxver"]}} <br/>
-Julia version: 0.3.9 <br/>
+Julia versions and packages: <a href="#" id="showpackagesstable">stable</a> | <a href="#" id="showpackagesnightly">nightly</a><br/>
 <br/>
 
 {% include "../../../www/admin_modules.tpl" %}
