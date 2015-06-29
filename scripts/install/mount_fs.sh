@@ -65,7 +65,7 @@ service docker stop
 echo "Creating template disk image..."
 dd if=/dev/zero of=${MNT_DIR}/jimg bs=1M count=${FS_SIZE_MB} || error_exit "Error creating disk image file"
 losetup /dev/loop0 ${MNT_DIR}/jimg || error_exit "Error mapping template disk image"
-mkfs -t ext3 -m 1 -v /dev/loop0 || error_exit "Error making ext3 filesystem at /dev/loop0"
+mkfs -t ext3 -m 1 -N 144000 -v /dev/loop0 || error_exit "Error making ext3 filesystem at /dev/loop0"
 chown -R ${ID}:${ID} /dev/loop0 || error_exit "Error changing file ownership on /dev/loop0"
 losetup -d /dev/loop0
 

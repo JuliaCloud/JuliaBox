@@ -49,7 +49,7 @@
             var desired = state.instances.desired_count;
             var price = state.instances.instance_cost;
 
-            if((active > 0) && (desired == 0)) {
+            if (desired == 0) {
                 stopping = true;
             }
 

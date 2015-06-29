@@ -147,8 +147,12 @@ class ParallelHandler(JBoxHandlerPlugin):
                 f.write(host+'\n')
 
     def write_machinefile(self, cont, uc):
-        self._write_machinefile(cont, "machinefile", uc.public_ips)
-        self._write_machinefile(cont, "machinefile.private", uc.private_ips)
+        self._write_machinefile(cont, "machinefile.public", uc.public_hosts)
+        self._write_machinefile(cont, "machinefile.private", uc.private_hosts)
+        self._write_machinefile(cont, "machinefile.ip.private", uc.private_ips)
+        self._write_machinefile(cont, "machinefile.ip.public", uc.public_ips)
+        # keep default as private IP addresses - should be the most efficient
+        self._write_machinefile(cont, "machinefile", uc.private_ips)
 
     @staticmethod
     def create_user_script(cont):
@@ -159,5 +163,5 @@ class ParallelHandler(JBoxHandlerPlugin):
             pub_key = f.read()
 
         auth_key_file = "/home/juser/.ssh/authorized_keys"
-        template = '#! /usr/bin/env bash\n\nsudo -u juser sh -c "echo \\\"%s\\\" >> %s && chmod 600 %s"'
+        template = '#! /usr/bin/env bash\n\njulia -e 0\nsudo -u juser sh -c "echo \\\"%s\\\" >> %s && chmod 600 %s"'
         return template % (pub_key, auth_key_file, auth_key_file)

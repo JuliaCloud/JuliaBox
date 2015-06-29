@@ -394,7 +394,13 @@ class CloudHost(LoggerMixin):
         conn = CloudHost.connect_ec2()
         instances = conn.get_only_instances(filters={"placement-group-name": gname, "instance-state-name": "running"})
         return [i.public_dns_name for i in instances]
-        
+
+    @staticmethod
+    def get_public_ips_by_placement_group(gname):
+        conn = CloudHost.connect_ec2()
+        instances = conn.get_only_instances(filters={"placement-group-name": gname, "instance-state-name": "running"})
+        return [i.ip_address for i in instances]
+
     @staticmethod
     def get_private_hostnames_by_placement_group(gname):
         conn = CloudHost.connect_ec2()
