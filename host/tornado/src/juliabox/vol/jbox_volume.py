@@ -21,15 +21,16 @@ class JBoxVol(LoggerMixin):
     It is a plugin mount point, looking for features:
     - userhome (provides replacement for user home folder)
     - ebs.userhome (AWS EBS volumes - requirement indicated through user's resource profile)
+    - pkgbundle (provides replacement for Julia packages and precompiled images)
 
     Methods expected in the plugin:
     - configure: Initialize self. Configuration file can be accessed through JBoxCfg.
-    - refresh_user_home_image: Update any pre-created disk images with a freshly downloaded JuliaBox user home image.
     - get_disk_from_container: Should return an object representing the disk mounted in the provided container if any.
     - is_mount_path: Should return True if the provided path belongs to a disk managed by the plugin.
-    - disk_ids_used_pct: Percent of disk ids in use (indicates load on the system).
     - get_disk_for_user: Create, initialize and return an object representing a disk for the gived user id.
     - refresh_disk_use_status: Update status of all disks managed by the plugin by iterating through all containers.
+    - refresh_user_home_image: Update any pre-created disk images with a freshly downloaded JuliaBox user home image.
+    - disk_ids_used_pct: Percent of disk ids in use (indicates load on the system).
 
     The base class also provides ability to back up and restore volumes as tar files
     either on the filesystem or on AWS S3. This can also be factored out as a plugin point in future.
@@ -38,6 +39,7 @@ class JBoxVol(LoggerMixin):
     __metaclass__ = JBoxPluginType
     PLUGIN_USERHOME = 'userhome'
     PLUGIN_EBS_USERHOME = 'ebs.userhome'
+    PLUGIN_PKGBUNDLE = 'pkgbundle'
 
     BACKUP_LOC = None
     DCKR = None
@@ -45,8 +47,12 @@ class JBoxVol(LoggerMixin):
     BACKUP_BUCKET = None
     NOTEBOOK_WEBSOCK_PROTO = "wss://"
 
-    # includes Julia packages and other essentials to be placed into user home folder
+    # includes configuration files/folders and scripts to be placed into user home folder
     USER_HOME_IMG = None
+    # includes Julia packages and compiled images to be linked into from user home folder
+    PKG_IMG = None
+    PKG_MOUNT_POINT = '/opt/julia_packages'
+
     # files that must be restored from user home for proper functioning of JuliaBox
     USER_HOME_ESSENTIALS = ['.juliabox', '.ipython/README', '.ipython/kernels',
                             '.ipython/profile_julia', '.ipython/profile_default', '.ipython/profile_jboxjulia']
@@ -96,6 +102,7 @@ class JBoxVol(LoggerMixin):
         JBoxVol.DCKR = JBoxCfg.dckr
         JBoxVol.NOTEBOOK_WEBSOCK_PROTO = JBoxCfg.get('websocket_protocol') + '://'
         JBoxVol.USER_HOME_IMG = os.path.expanduser(JBoxCfg.get('user_home_image'))
+        JBoxVol.PKG_IMG = os.path.expanduser(JBoxCfg.get('pkg_image'))
         JBoxVol.BACKUP_LOC = backup_location
         JBoxVol.LOCAL_TZ_OFFSET = JBoxVol.local_time_offset()
         JBoxVol.BACKUP_BUCKET = JBoxCfg.get('cloud_host.backup_bucket')
@@ -232,13 +239,13 @@ class JBoxVol(LoggerMixin):
         kernel_path = os.path.join(self.disk_path, ".ipython", "kernels", "julia-0.3", "kernel.json")
         kernel_cfg = {
             "argv": ["/usr/bin/julia"],
-            "display_name": "Julia 0.3.9",
+            "display_name": "Julia 0.3.10",
             "language": "julia"
         }
 
         if custom_jimg is not None:
             kernel_cfg['argv'].extend(["-J", custom_jimg])
-        kernel_cfg['argv'].extend(["-i", "-F", "/home/juser/.julia/v0.3/IJulia/src/kernel.jl", "{connection_file}"])
+        kernel_cfg['argv'].extend(["-i", "-F", "/opt/julia_packages/.julia/v0.3/IJulia/src/kernel.jl", "{connection_file}"])
         with open(kernel_path, 'w') as kout:
             kout.write(json.dumps(kernel_cfg, indent=4))
 
@@ -285,7 +292,7 @@ class JBoxVol(LoggerMixin):
         bkup_tar = tarfile.open(bkup_file, 'w:gz')
 
         for f in os.listdir(self.disk_path):
-            if f.startswith('.') and (f in ['.julia', '.juliabox']):
+            if f.startswith('.') and (f in ['.juliabox']):
                 continue
             full_path = os.path.join(self.disk_path, f)
             bkup_tar.add(full_path, os.path.join('juser', f))
@@ -326,9 +333,11 @@ class JBoxVol(LoggerMixin):
                 if not info.name.startswith('juser/'):
                     continue
                 extract_name = info.name[6:]
+                if (info.type == tarfile.LNKTYPE or info.type == tarfile.SYMTYPE) and \
+                        info.linkname.startswith('juser/'):
+                    info.linkname = info.linkname[6:]
                 if info.name.startswith('juser/.'):
-                    folder = info.name.split('/')[1]
-                    if (folder == '.julia') or JBoxVol._is_path_user_home_essential(extract_name):
+                    if JBoxVol._is_path_user_home_essential(extract_name):
                         continue
                 info.name = extract_name
                 if len(info.name) == 0:

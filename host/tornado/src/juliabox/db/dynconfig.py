@@ -150,15 +150,18 @@ class JBoxDynConfig(JBoxDB):
         try:
             record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'user_home_image'))
         except boto.dynamodb2.exceptions.ItemNotFound:
-            return None, None
+            return None, None, None
         img = json.loads(record.get_value())
-        return img['bucket'], img['filename']
+        pkg_file = img['pkg_file'] if 'pkg_file' in img else None
+        home_file = img['home_file'] if 'home_file' in img else None
+        return img['bucket'], pkg_file, home_file
 
     @staticmethod
-    def set_user_home_image(cluster, bucket, filename):
+    def set_user_home_image(cluster, bucket, pkg_file, home_file):
         img = {
             'bucket': bucket,
-            'filename': filename
+            'pkg_file': pkg_file,
+            'home_file': home_file
         }
         img = json.dumps(img)
         record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'user_home_image'), create=True, value=img)

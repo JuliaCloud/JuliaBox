@@ -5,7 +5,7 @@ from juliabox.jbox_util import unquote
 from juliabox.handlers import JBoxHandlerPlugin, JBoxUIModulePlugin
 from juliabox.jbox_container import JBoxContainer
 from juliabox.db import JBoxUserV2
-from juliabox.vol import VolMgr
+from juliabox.vol import VolMgr, JBoxVol
 from user_cluster import UserCluster
 
 
@@ -128,7 +128,7 @@ class ParallelHandler(JBoxHandlerPlugin):
             return
 
         # write out the machinefile on the docker's filesystem
-        vol = VolMgr.get_disk_from_container(cont.dockid)
+        vol = VolMgr.get_disk_from_container(cont.dockid, JBoxVol.PLUGIN_USERHOME)
         machinefile = os.path.join(vol.disk_path, ".juliabox", filename)
 
         existing_hosts = set()
@@ -156,7 +156,7 @@ class ParallelHandler(JBoxHandlerPlugin):
 
     @staticmethod
     def create_user_script(cont):
-        vol = VolMgr.get_disk_from_container(cont.dockid)
+        vol = VolMgr.get_disk_from_container(cont.dockid, JBoxVol.PLUGIN_USERHOME)
 
         pub_key_file = os.path.join(vol.disk_path, ".ssh", "id_rsa.pub")
         with open(pub_key_file, 'r') as f:

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+julia -e 'Pkg.init()'
+
 # Install packages for Julia stable
 DEFAULT_PACKAGES="IJulia PyPlot SIUnits Gadfly DataStructures HDF5 MAT \
 Iterators NumericExtensions SymPy Interact Roots \
@@ -32,11 +34,13 @@ julia -e "Pkg.checkout(\"Interact\")"
 
 echo ""
 echo "Creating Julia stable package list..."
-julia -e 'println("JULIA_HOME: $JULIA_HOME\n"); versioninfo(); println(""); Pkg.status()' > /home/juser/.juliabox/stable_packages.txt
+julia -e 'println("JULIA_HOME: $JULIA_HOME\n"); versioninfo(); println(""); Pkg.status()' > /opt/julia_packages/stable_packages.txt
 #echo ""
 #echo "Running package tests..."
-#julia -e "Pkg.test()" > /home/juser/.juliabox/packages_test_result.txt
+#julia -e "Pkg.test()" > /opt/julia_packages/packages_test_result.txt
 
+
+/opt/julia_nightly/bin/julia -e 'Pkg.init()'
 
 # Install packages for Julia nightly
 JULIA_NIGHTLY_DEFAULT_PACKAGES="IJulia"
@@ -59,4 +63,4 @@ done
 
 echo ""
 echo "Creating Julia nightly package list..."
-/opt/julia_nightly/bin/julia -e 'println("JULIA_HOME: $JULIA_HOME\n"); versioninfo(); println(""); Pkg.status()' > /home/juser/.juliabox/nightly_packages.txt
+/opt/julia_nightly/bin/julia -e 'println("JULIA_HOME: $JULIA_HOME\n"); versioninfo(); println(""); Pkg.status()' > /opt/julia_packages/nightly_packages.txt

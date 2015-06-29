@@ -101,12 +101,15 @@ Welcome to JuliaBox. We hope you will like it and also share with your friends.
 
     "env_type" : "prod",
     "backup_location" : "~/juliabox_backup",
+    "pkg_location": "~/julia_packages",
     "mnt_location" : "/mnt/jbox/mnt",
     "user_home_image" : "~/user_home.tar.gz",
+    "pkg_image": "~/julia_packages.tar.gz",
 
     "plugins": [
         "juliabox.plugins.vol_loopback",
         "juliabox.plugins.vol_ebs",
+        "juliabox.plugins.vol_defpkg",
         "juliabox.plugins.course_homework",
         "juliabox.plugins.parallel",
         ""

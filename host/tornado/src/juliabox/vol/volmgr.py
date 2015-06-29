@@ -3,7 +3,7 @@ import datetime
 import errno
 import pytz
 
-from juliabox.jbox_util import LoggerMixin, JBoxCfg, unique_sessname
+from juliabox.jbox_util import LoggerMixin, unique_sessname
 from juliabox.db import JBoxUserV2, JBoxDynConfig
 from jbox_volume import JBoxVol
 from juliabox.cloud.aws import CloudHost
@@ -19,36 +19,55 @@ class VolMgr(LoggerMixin):
 
     @staticmethod
     def has_update_for_user_home_image():
-        img_dir, curr_img = os.path.split(JBoxVol.USER_HOME_IMG)
+        home_img_dir, curr_home_img = os.path.split(JBoxVol.USER_HOME_IMG)
+        pkg_img_dir, curr_pkg_img = os.path.split(JBoxVol.PKG_IMG)
+
         #VolMgr.log_debug("checking for updates to user home image %s/%s", img_dir, curr_img)
-        bucket, new_img = JBoxDynConfig.get_user_home_image(CloudHost.INSTALL_ID)
+        bucket, new_pkg_img, new_home_img = JBoxDynConfig.get_user_home_image(CloudHost.INSTALL_ID)
+
         if bucket is None:
-            VolMgr.log_info("User home image: none configured. current: %s/%s", img_dir, curr_img)
+            VolMgr.log_info("Home: none configured. current: %s/%s", home_img_dir, curr_home_img)
             return False
-        if new_img == curr_img:
-            VolMgr.log_info("User home image: no updates. current: %s/%s", img_dir, curr_img)
+
+        if new_home_img == curr_home_img and new_pkg_img == curr_pkg_img:
+            VolMgr.log_info("Home: no updates. current: %s/%s", home_img_dir, curr_home_img)
+            VolMgr.log_info("Packages: no updates. current: %s/%s", pkg_img_dir, curr_pkg_img)
             return False
         else:
-            VolMgr.log_info("User home image: update: %s/%s. current: %s/%s", bucket, new_img, img_dir, curr_img)
+            VolMgr.log_info("Home: update: %s/%s. current: %s/%s", bucket, new_home_img, home_img_dir, curr_home_img)
+            VolMgr.log_info("Packages: update: %s/%s. current: %s/%s", bucket, new_pkg_img, home_img_dir, curr_home_img)
+
         return True
 
     @staticmethod
     def update_user_home_image(fetch=True):
-        img_dir, curr_img = os.path.split(JBoxVol.USER_HOME_IMG)
-        bucket, new_img = JBoxDynConfig.get_user_home_image(CloudHost.INSTALL_ID)
-        new_img_path = os.path.join(img_dir, new_img)
+        home_img_dir, curr_home_img = os.path.split(JBoxVol.USER_HOME_IMG)
+        pkg_img_dir, curr_pkg_img = os.path.split(JBoxVol.PKG_IMG)
 
-        if fetch and (not os.path.exists(new_img_path)):
-            VolMgr.log_debug("fetching new image to %s", new_img_path)
-            k = CloudHost.pull_file_from_s3(bucket, new_img_path)
-            if k is not None:
-                VolMgr.log_debug("fetched new user home image")
+        bucket, new_pkg_img, new_home_img = JBoxDynConfig.get_user_home_image(CloudHost.INSTALL_ID)
 
-        if os.path.exists(new_img_path):
-            VolMgr.log_debug("set new image to %s", new_img_path)
-            JBoxVol.USER_HOME_IMG = new_img_path
-            return True
-        return False
+        new_home_img_path = os.path.join(home_img_dir, new_home_img)
+        new_pkg_img_path = os.path.join(pkg_img_dir, new_pkg_img)
+        updated = False
+        for img_path in (new_home_img_path, new_pkg_img_path):
+            if not os.path.exists(img_path):
+                if fetch:
+                    VolMgr.log_debug("fetching new image to %s", img_path)
+                    k = CloudHost.pull_file_from_s3(bucket, img_path)
+                    if k is not None:
+                        VolMgr.log_debug("fetched new image")
+
+        if os.path.exists(new_home_img_path):
+            VolMgr.log_debug("set new home image to %s", new_home_img_path)
+            JBoxVol.USER_HOME_IMG = new_home_img_path
+            updated = True
+
+        if os.path.exists(new_pkg_img_path):
+            VolMgr.log_debug("set new pkg image to %s", new_pkg_img_path)
+            JBoxVol.PKG_IMG = new_pkg_img_path
+            updated = True
+
+        return updated
 
     @staticmethod
     def refresh_user_home_image():
@@ -56,14 +75,27 @@ class VolMgr(LoggerMixin):
             plugin.refresh_user_home_image()
 
     @staticmethod
-    def get_disk_from_container(cid):
+    def get_disk_from_container(cid, disktype=None):
         try:
-            for plugin in JBoxVol.plugins:
+            plugins = JBoxVol.plugins if disktype is None else JBoxVol.jbox_get_plugins(disktype)
+            for plugin in plugins:
                 disk = plugin.get_disk_from_container(cid)
                 if disk is not None:
                     return disk
         except:
             VolMgr.log_error("error finding disk ids used in " + cid)
+
+        return None
+
+    @staticmethod
+    def get_pkg_mount_from_container(cid):
+        try:
+            for plugin in JBoxVol.jbox_get_plugins(JBoxVol.PLUGIN_PKGBUNDLE):
+                disk = plugin.get_disk_from_container(cid)
+                if disk is not None:
+                    return disk
+        except:
+            VolMgr.log_error("error finding pkg mount used in " + cid)
 
         return None
 
@@ -77,10 +109,18 @@ class VolMgr(LoggerMixin):
     @staticmethod
     def used_pct():
         pct = 0.0
-        for plugin in JBoxVol.plugins:
+        for plugin in JBoxVol.jbox_get_plugins(JBoxVol.PLUGIN_USERHOME):
             pct += plugin.disk_ids_used_pct()
 
         return min(100, max(0, pct))
+
+    @staticmethod
+    def get_pkg_mount_for_user(email):
+        plugin = JBoxVol.jbox_get_plugin(JBoxVol.PLUGIN_PKGBUNDLE)
+        if plugin is None:
+            raise Exception("No plugin found for %s" % (JBoxVol.PLUGIN_PKGBUNDLE,))
+        disk = plugin.get_disk_for_user(email)
+        return disk
 
     @staticmethod
     def get_disk_for_user(email):
@@ -91,7 +131,7 @@ class VolMgr(LoggerMixin):
         ipython_profile = 'julia'
         # TODO: image path should be picked up from config
         if user.has_resource_profile(JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP):
-            custom_jimg = '/home/juser/.juliabox/jimg/sys.ji'
+            custom_jimg = '/opt/julia_packages/jimg/stable/sys.ji'
             ipython_profile = 'jboxjulia'
 
         plugin = None

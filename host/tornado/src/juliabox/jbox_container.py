@@ -10,7 +10,7 @@ from cloud.aws import CloudHost
 from db import JBoxAccountingV2
 from jbox_tasks import JBoxAsyncJob
 from jbox_util import LoggerMixin, JBoxCfg, parse_iso_time
-from vol import VolMgr
+from vol import VolMgr, JBoxVol
 
 
 class JBoxContainer(LoggerMixin):
@@ -24,7 +24,7 @@ class JBoxContainer(LoggerMixin):
     # A group with 100 shares will get a ~10% portion of the CPU time (https://wiki.archlinux.org/index.php/Cgroups)
     CPU_LIMIT = 1024
     PORTS = [4200, 8000, 8998]
-    VOLUMES = ['/home/juser']
+    VOLUMES = ['/home/juser', JBoxVol.PKG_MOUNT_POINT]
     MAX_CONTAINERS = 0
     VALID_CONTAINERS = {}
     INITIAL_DISK_USED_PCT = None
@@ -71,7 +71,7 @@ class JBoxContainer(LoggerMixin):
         return psutil.virtual_memory().total
 
     def get_disk_allocated(self):
-        disk = VolMgr.get_disk_from_container(self.dockid)
+        disk = VolMgr.get_disk_from_container(self.dockid, JBoxVol.PLUGIN_USERHOME)
         if disk is not None:
             return disk.get_disk_allocated_size()
         return 0
@@ -362,14 +362,21 @@ class JBoxContainer(LoggerMixin):
             JBoxContainer.log_warn("Already started %s. Browser connectivity issues?", self.debug_str())
             return
 
-        disk = VolMgr.get_disk_for_user(email)
+        home_disk = VolMgr.get_disk_for_user(email)
+        pkgs_disk = VolMgr.get_pkg_mount_for_user(email)
+
         vols = {
-            disk.disk_path: {
+            home_disk.disk_path: {
                 'bind': JBoxContainer.VOLUMES[0],
                 'ro': False
+            },
+            pkgs_disk.disk_path: {
+                'bind': JBoxContainer.VOLUMES[1],
+                'ro': True
             }
         }
 
+        JBoxContainer.log_debug("Binding volumes %r for %s", vols, self.debug_str())
         JBoxContainer.DCKR.start(self.dockid, port_bindings=JBoxContainer.CONTAINER_PORT_BINDINGS, binds=vols)
         self.refresh()
         JBoxContainer.log_info("Started %s", self.debug_str())
@@ -401,9 +408,10 @@ class JBoxContainer(LoggerMixin):
         if self.is_running() or self.is_restarting():
             self.kill()
 
-        disk = VolMgr.get_disk_from_container(self.dockid)
-        if disk is not None:
-            disk.release(backup=backup)
+        for disktype in (JBoxVol.PLUGIN_USERHOME, JBoxVol.PLUGIN_PKGBUNDLE):
+            disk = VolMgr.get_disk_from_container(self.dockid, disktype)
+            if disk is not None:
+                disk.release(backup=backup)
 
         if cname is not None:
             JBoxContainer.PINGS.pop(cname, None)
