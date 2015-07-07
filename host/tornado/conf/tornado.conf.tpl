@@ -32,7 +32,7 @@
     # Max 1024 cpu slices. default maximum allowed is 1/8th of total cpu slices. multiplier can be applied from user profile.
     "cpu_limit" : 128,
     # Max size of user home. Default 500MB. User home is backed up within 10 minutes of the container stopping.
-    "disk_limit" : 750000000,
+    "disk_limit" : 500000000,
     
     # Seconds to wait before clearing an inactive session, for example, when the user closes the browser window (protected_sessions are not affected)
     "inactivity_timeout" : 300,
@@ -101,12 +101,15 @@ Welcome to JuliaBox. We hope you will like it and also share with your friends.
 
     "env_type" : "prod",
     "backup_location" : "~/juliabox_backup",
+    "pkg_location": "~/julia_packages",
     "mnt_location" : "/mnt/jbox/mnt",
     "user_home_image" : "~/user_home.tar.gz",
+    "pkg_image": "~/julia_packages.tar.gz",
 
     "plugins": [
         "juliabox.plugins.vol_loopback",
         "juliabox.plugins.vol_ebs",
+        "juliabox.plugins.vol_defpkg",
         "juliabox.plugins.course_homework",
         "juliabox.plugins.parallel",
         ""

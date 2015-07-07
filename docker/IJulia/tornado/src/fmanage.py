@@ -113,7 +113,7 @@ class SSHKeyHandler(tornado.web.RequestHandler):
 class PkgInfoHandler(tornado.web.RequestHandler):
     def get(self):
         ver = self.get_argument('ver')
-        with open(os.path.expanduser('~/.juliabox/' + ver + '_packages.txt'), "r") as f:
+        with open('/opt/julia_packages/' + ver + '_packages.txt', "r") as f:
             response = {
                 'code': 0,
                 'data': f.read()

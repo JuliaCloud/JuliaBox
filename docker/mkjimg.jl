@@ -1,7 +1,7 @@
 require("/home/juser/build_sysimg.jl")
 
 println("Building JuliaBox Julia system image...")
-build_sysimg("/home/juser/.juliabox/jimg/sys", "native", "/home/juser/jimg.jl", force=true)
+build_sysimg("/opt/julia_packages/jimg/stable/sys", "native", "/home/juser/jimg.jl", force=true)
 
 # create the JuliaBox Julia profile
 # TODO: this should probably be merged with IJulia deps
@@ -11,7 +11,7 @@ eprintln("Creating julia profile in IPython...")
 include(joinpath(Pkg.dir("IJulia"), "deps", "ipython.jl"))
 const ipython, ipyvers = find_ipython()
 const profile_name = "jboxjulia"
-const custom_args = ["-J", "/home/juser/.juliabox/jimg/sys.ji"]
+const custom_args = ["-J", "/opt/julia_packages/jimg/stable/sys.ji"]
 
 run(`$ipython profile create $profile_name`)
 
