@@ -1,7 +1,7 @@
 TORNADO_DIR=host/tornado
 TORNADO_CONF_DIR=$TORNADO_DIR/conf
 
-NGINX_DIR=host/nginx
+NGINX_DIR=webserver
 NGINX_CONF_DIR=$NGINX_DIR/conf
 
 function cp_tornado_userconf {

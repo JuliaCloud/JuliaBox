@@ -20,12 +20,11 @@ class JBox(LoggerMixin):
         LoggerMixin.configure()
         db.configure()
         CloudHost.configure()
+        JBoxContainer.configure()
         VolMgr.configure()
 
         JBoxAsyncJob.configure()
         JBoxAsyncJob.init(JBoxAsyncJob.MODE_PUB)
-
-        JBoxContainer.configure()
 
         request_handlers = [
             (r"/", MainHandler),
@@ -94,8 +93,8 @@ class JBox(LoggerMixin):
         if not JBoxCfg.get('cloud_host.scale_down'):
             return False
 
-        num_containers = JBoxContainer.num_active() + JBoxContainer.num_stopped()
-        return (num_containers == 0) and CloudHost.can_terminate(is_proposed_cluster_leader())
+        num_sessions = JBoxContainer.num_sessions()
+        return (num_sessions == 0) and CloudHost.can_terminate(is_proposed_cluster_leader())
 
     @staticmethod
     def do_housekeeping():

@@ -30,6 +30,10 @@ class JBoxContainer(LoggerMixin):
     INITIAL_DISK_USED_PCT = None
     LAST_CPU_PCT = None
 
+    # JuliaBox service daemon container names are suffixed so that they are not treated as regular session containers.
+    # Can move to an exclusion list if more complicated patterns are required.
+    SVC_CONTAINER_SFX = '_jboxsvc'
+
     def __init__(self, dockid):
         self.dockid = dockid
         self.props = None
@@ -184,6 +188,15 @@ class JBoxContainer(LoggerMixin):
         CloudHost.publish_stats("Load", "Percent", overall_load_pct)
 
     @staticmethod
+    def session_containers(allcontainers=True):
+        sessions = []
+        for c in JBoxContainer.DCKR.containers(all=allcontainers):
+            name = c["Names"][0] if (("Names" in c) and (c["Names"] is not None)) else c["Id"][0:12]
+            if not name.endswith(JBoxContainer.SVC_CONTAINER_SFX):
+                sessions.append(c)
+        return sessions
+
+    @staticmethod
     def maintain(max_timeout=0, inactive_timeout=0, protected_names=()):
         JBoxContainer.log_info("Starting container maintenance...")
         tnow = datetime.datetime.now(pytz.utc)
@@ -192,7 +205,7 @@ class JBoxContainer(LoggerMixin):
         stop_before = (tnow - datetime.timedelta(seconds=max_timeout)) if (max_timeout > 0) else tmin
         stop_inacive_before = (tnow - datetime.timedelta(seconds=inactive_timeout)) if (inactive_timeout > 0) else tmin
 
-        all_containers = JBoxContainer.DCKR.containers(all=True)
+        all_containers = JBoxContainer.session_containers(allcontainers=True)
         all_cnames = {}
         container_id_list = []
         for cdesc in all_containers:
@@ -252,7 +265,7 @@ class JBoxContainer(LoggerMixin):
             except:
                 pass
         else:
-            all_containers = JBoxContainer.DCKR.containers(all=True)
+            all_containers = JBoxContainer.session_containers(allcontainers=True)
             for cdesc in all_containers:
                 cid = cdesc['Id']
                 cont = JBoxContainer(cid)
@@ -295,20 +308,22 @@ class JBoxContainer(LoggerMixin):
     #         disk.backup()
 
     @staticmethod
-    def num_active():
-        active_containers = JBoxContainer.DCKR.containers(all=False)
-        return len(active_containers)
+    def num_sessions():
+        return len(JBoxContainer.session_containers(allcontainers=True))
 
     @staticmethod
-    def num_stopped():
-        all_containers = JBoxContainer.DCKR.containers(all=True)
-        return len(all_containers) - JBoxContainer.num_active()
+    def num_active():
+        return len(JBoxContainer.session_containers(allcontainers=False))
+
+    # @staticmethod
+    # def num_stopped():
+    #     return JBoxContainer.num_sessions() - JBoxContainer.num_active()
 
     @staticmethod
     def get_by_name(name):
         nname = "/" + unicode(name)
 
-        for c in JBoxContainer.DCKR.containers(all=True):
+        for c in JBoxContainer.session_containers(allcontainers=True):
             if ('Names' in c) and (c['Names'] is not None) and (c['Names'][0] == nname):
                 return JBoxContainer(c['Id'])
         return None

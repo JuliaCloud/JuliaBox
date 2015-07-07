@@ -39,12 +39,11 @@ class JBoxd(LoggerMixin):
         LoggerMixin.configure()
         db.configure()
         CloudHost.configure()
+        JBoxContainer.configure()
         VolMgr.configure()
 
         JBoxAsyncJob.configure()
         JBoxAsyncJob.init(JBoxAsyncJob.MODE_SUB)
-
-        JBoxContainer.configure()
 
         self.log_debug("Backup daemon listening on ports: %s", repr(JBoxCfg.get('async_job_ports')))
         JBoxd.QUEUE = JBoxAsyncJob.get()
@@ -205,8 +204,7 @@ class JBoxd(LoggerMixin):
     @staticmethod
     def get_session_status():
         ret = {}
-        jsonobj = JBoxContainer.DCKR.containers(all=all)
-        for c in jsonobj:
+        for c in JBoxContainer.session_containers(allcontainers=True):
             name = c["Names"][0] if (("Names" in c) and (c["Names"] is not None)) else c["Id"][0:12]
             ret[name] = c["Status"]
 

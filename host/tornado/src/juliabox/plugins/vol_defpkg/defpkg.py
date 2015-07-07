@@ -4,7 +4,7 @@ import tarfile
 
 from juliabox.jbox_util import ensure_delete, make_sure_path_exists, JBoxCfg
 from juliabox.vol import JBoxVol
-
+from juliabox.jbox_container import JBoxContainer
 
 class JBoxDefaultPackagesVol(JBoxVol):
     provides = [JBoxVol.PLUGIN_PKGBUNDLE]
@@ -43,7 +43,7 @@ class JBoxDefaultPackagesVol(JBoxVol):
         bundles = set()
         try:
             if container_id_list is None:
-                container_id_list = [cdesc['Id'] for cdesc in JBoxDefaultPackagesVol.dckr().containers(all=True)]
+                container_id_list = [cdesc['Id'] for cdesc in JBoxContainer.session_containers(allcontainers=True)]
 
             for cid in container_id_list:
                 mount_points = JBoxDefaultPackagesVol._get_package_mounts_used(cid)

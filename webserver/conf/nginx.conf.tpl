@@ -1,7 +1,7 @@
 worker_processes  2;
 daemon off;
 error_log logs/error.log warn;
-user $$NGINX_USER $$NGINX_USER;
+user juser juser;
 
 events {
     worker_connections 1024;
@@ -82,7 +82,7 @@ http {
         location /hostupload/ {
             # wait for n seconds for the container's upl listener to be ready...
             access_by_lua '
-                dofile(ngx.config.prefix() .. "lua/validate.lua")
+                dofile(ngx.config.prefix() .. "scripts/validate.lua")
                 
                 local http  = require "resty.http.simple"
                 local n = 20
@@ -114,7 +114,7 @@ http {
 # shell....
         location /hostshell/ {
             access_by_lua '
-                dofile(ngx.config.prefix() .. "lua/validate.lua")
+                dofile(ngx.config.prefix() .. "scripts/validate.lua")
                 
                 local http  = require "resty.http.simple"
                 local n = 20
@@ -147,7 +147,7 @@ http {
         location = /hostipnbsession/ {
             # wait for n seconds for the container's ipnb listener to be ready...
             access_by_lua '
-                dofile(ngx.config.prefix() .. "lua/validate.lua")
+                dofile(ngx.config.prefix() .. "scripts/validate.lua")
                 
                 local http  = require "resty.http.simple"
                 local n = 20
@@ -175,7 +175,7 @@ http {
 
 # everything else        
         location / {
-            access_by_lua_file 'lua/validate.lua';
+            access_by_lua_file 'scripts/validate.lua';
             
             proxy_pass http://127.0.0.1:$cookie_hostipnb;
             proxy_set_header X-Real-IP $remote_addr;
