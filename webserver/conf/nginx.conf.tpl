@@ -7,7 +7,6 @@ events {
     worker_connections 1024;
 }
 
-
 http {
     access_log off;
     resolver 8.8.8.8 8.8.4.4;
@@ -57,127 +56,43 @@ http {
         
         error_page 502 /timedout.html;
 
-# On the host, all locations will be specified explictly, i.e, with an "="
-# Everything else will be proxied to the appropriate container....
-# Cookie data will be used to identify the container for a session
-        
         location = / {
-            proxy_pass          http://localhost:8888;
-            proxy_set_header    Host            $host;
-            proxy_set_header    X-Real-IP       $remote_addr;
-            proxy_set_header    X-Forwarded-for $remote_addr;        
-        }        
+            set $jbox_forward_addr '';
 
-        location ~ \/(hostlaunchipnb|hostadmin|ping|cors|jboxplugin)+\/  {
-            proxy_pass          http://localhost:8888;
-            proxy_set_header    Host            $host;
-            proxy_set_header    X-Real-IP       $remote_addr;
-            proxy_set_header    X-Forwarded-for $remote_addr;
-        }        
-        
-
-# container locations
-
-# file upload and listing....
-        location /hostupload/ {
-            # wait for n seconds for the container's upl listener to be ready...
             access_by_lua '
-                dofile(ngx.config.prefix() .. "scripts/validate.lua")
-                
-                local http  = require "resty.http.simple"
-                local n = 20
-                local hostuplport = ngx.var.cookie_hostupload
-                local opts = {}
-                opts.path = "/ping"
-
-                while (n > 0) do
-                    local res, err = http.request("127.0.0.1", hostuplport, opts)
-                    if not res then
-                        ngx.sleep(1.0)
-                    else
-                        return
-                    end
-                    n = n - 1
-                end
-                return
+                validator = require "juliabox.validate"
+                validator.jbox_route()
             ';
-        
-            rewrite /hostupload/(.+) /$1 break;
-            
-            proxy_pass http://127.0.0.1:$cookie_hostupload/$1$is_args$query_string;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header Host $host;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_read_timeout  600;
-        }
 
-# shell....
-        location /hostshell/ {
-            access_by_lua '
-                dofile(ngx.config.prefix() .. "scripts/validate.lua")
-                
-                local http  = require "resty.http.simple"
-                local n = 20
-                local hostshellport = ngx.var.cookie_hostshell
-                local opts = {}
-                opts.path = "/"
-
-                while (n > 0) do
-                    local res, err = http.request("127.0.0.1", hostshellport, opts)
-                    if not res then
-                        ngx.sleep(1.0)
-                    else
-                        return
-                    end
-                    n = n - 1
-                end
-                return
-            ';
-        
-            rewrite /hostshell/(.+) /$1 break;
-            
-            proxy_pass http://127.0.0.1:$cookie_hostshell/$1$is_args$query_string;
+            proxy_pass $jbox_forward_addr;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header Host $host;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         }
 
+        location ~ /(hostlaunchipnb|hostadmin|ping|cors|jboxplugin|hostupload|hostshell|hostipnbsession)+/.* {
+            set $jbox_forward_addr '';
 
-# landing page
-        location = /hostipnbsession/ {
-            # wait for n seconds for the container's ipnb listener to be ready...
             access_by_lua '
-                dofile(ngx.config.prefix() .. "scripts/validate.lua")
-                
-                local http  = require "resty.http.simple"
-                local n = 20
-                local hostipnbport = ngx.var.cookie_hostipnb
-                local opts = {}
-                opts.path = "/"
-
-                while (n > 0) do
-                    local res, err = http.request("127.0.0.1", hostipnbport, opts)
-                    if not res then
-                        ngx.sleep(1.0)
-                    else
-                        return
-                    end
-                    n = n - 1
-                end
-                return
+                validator = require "juliabox.validate"
+                validator.jbox_route()
             ';
-        
-            proxy_pass http://127.0.0.1:$cookie_hostipnb/;
+
+            proxy_pass $jbox_forward_addr;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header Host $host;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         }
 
-# everything else        
         location / {
-            access_by_lua_file 'scripts/validate.lua';
-            
-            proxy_pass http://127.0.0.1:$cookie_hostipnb;
+            set $jbox_forward_addr '';
+
+            access_by_lua '
+                validator = require "juliabox.validate"
+                validator.jbox_route()
+            ';
+
+            proxy_pass $jbox_forward_addr;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header Host $host;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -186,9 +101,7 @@ http {
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "upgrade";
-            proxy_read_timeout  600;            
+            proxy_read_timeout  600;
         }
-        
     }
 }
-

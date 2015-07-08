@@ -24,7 +24,7 @@ class AuthHandler(JBoxHandler, GoogleOAuth2Mixin):
     def get(self):
         if not JBoxCfg.get("gauth"):
             sessname = unquote(self.get_argument("sessname"))
-            self.set_session_cookie(sessname)
+            self.set_authenticated(sessname)
             self.redirect('/')
             return
 
@@ -63,20 +63,25 @@ class AuthHandler(JBoxHandler, GoogleOAuth2Mixin):
                     self.redirect('/?pending_activation=' + user_id)
                     return
 
-                self.set_session_cookie(user_id)
+                self.set_authenticated(user_id)
                 if jbuser.is_new:
                     jbuser.save()
 
                 if self.try_launch_container(user_id, max_hop=False):
-                    self.set_loading_state(user_id)
+                    self.set_container_initialized(CloudHost.instance_local_ip(), user_id)
+                else:
+                    redirect_instance = CloudHost.get_redirect_instance_id()
+                    if redirect_instance is not None:
+                        redirect_ip = CloudHost.instance_local_ip(redirect_instance)
+                        self.set_redirect_instance_id(redirect_ip)
                 self.redirect('/')
                 return
         else:
             if state == 'ask_gdrive':
-                jbox_cookie = self.get_session_cookie()
+                user_id = self.get_user_id()
                 scope = ['https://www.googleapis.com/auth/drive']
                 extra_params = {'approval_prompt': 'force', 'access_type': 'offline',
-                                'login_hint': jbox_cookie['u'], 'include_granted_scopes': 'true',
+                                'login_hint': user_id, 'include_granted_scopes': 'true',
                                 'state': 'store_creds'}
             else:
                 scope = ['profile', 'email']

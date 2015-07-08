@@ -55,8 +55,10 @@ class CloudHost(LoggerMixin):
     def instance_id():
         if CloudHost.INSTANCE_ID is None:
             if not CloudHost.ENABLED['cloudwatch']:
+                CloudHost.log_debug('using localhost as instance_id')
                 CloudHost.INSTANCE_ID = 'localhost'
             else:
+                CloudHost.log_debug('getting instance_id from metadata')
                 CloudHost.INSTANCE_ID = boto.utils.get_instance_metadata()['instance-id']
         return CloudHost.INSTANCE_ID
 
@@ -421,6 +423,28 @@ class CloudHost(LoggerMixin):
             if image.name == image_name:
                 return image
         return None
+
+    @staticmethod
+    def get_redirect_instance_id():
+        if not CloudHost.ENABLED['cloudwatch']:
+            return None
+        cluster_load = CloudHost.get_cluster_stats('Load')
+        cluster_load = {k: v for k, v in cluster_load.iteritems() if CloudHost.get_ami_recentness(k) >= 0}
+        avg_load = CloudHost.get_cluster_average_stats('Load', results=cluster_load)
+
+        if avg_load >= 50:
+            # exclude machines with load >= avg_load
+            filtered_nodes = [k for k, v in cluster_load.iteritems() if v < avg_load]
+        else:
+            # exclude machines with load <= avg_load
+            filtered_nodes = [k for k, v in cluster_load.iteritems() if v > avg_load]
+
+        if len(filtered_nodes) == 0:
+            filtered_nodes = cluster_load.keys()
+
+        filtered_nodes.sort()
+        CloudHost.log_info("Redirect to instance_id: %r", filtered_nodes[0])
+        return filtered_nodes[0]
 
     @staticmethod
     def should_accept_session(is_leader):

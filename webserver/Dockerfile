@@ -22,6 +22,7 @@ RUN apt-get update \
     netcat \
     git \
     wget \
+    lua-socket \
     && apt-get clean
 
 # Create juser which will run the webserver
@@ -41,14 +42,9 @@ RUN mkdir -p resty \
     && make install \
     && cd ../.. \
     && rm -Rf resty \
-    && mkdir -p ${NGINX_INSTALL_DIR}/lualib/resty/http \
-    && wget -P ${NGINX_INSTALL_DIR}/lualib/resty/http/ https://raw.githubusercontent.com/tanmaykm/lua-resty-http-simple/master/lib/resty/http/simple.lua
-
-# Add static files, configuration, scripts and certificates
-ADD www /jboxweb/www
-ADD conf /jboxweb/conf
-ADD scripts /jboxweb/scripts
-ADD certs /jboxweb/certs
+    && mkdir -p ${NGINX_INSTALL_DIR}/lualib/resty \
+    && wget -P ${NGINX_INSTALL_DIR}/lualib/resty/ https://raw.githubusercontent.com/tanmaykm/lua-resty-http/master/lib/resty/http.lua \
+    && wget -P ${NGINX_INSTALL_DIR}/lualib/resty/ https://raw.githubusercontent.com/tanmaykm/lua-resty-http/master/lib/resty/http_headers.lua
 
 # Export volume for logs
 RUN mkdir /jboxweb/logs
@@ -57,6 +53,15 @@ VOLUME /jboxweb/logs
 # Expose the HTTP ports.
 # For proxying to work efficiently, it may be best to run the container on host network stack
 EXPOSE 80 443
+
+# Add static files, configuration, scripts and certificates
+ADD certs /jboxweb/certs
+ADD conf /jboxweb/conf
+ADD www /jboxweb/www
+ADD scripts/validate.lua /jboxweb/openresty/lualib/juliabox/
+
+RUN ln -fs /usr/share/lua /usr/local/share/lua \
+    && ln -fs /usr/lib/x86_64-linux-gnu/lua /usr/local/lib/lua
 
 # Run nginx in foreground (daemon set to off in configuration)
 ENTRYPOINT ["/jboxweb/openresty/nginx/sbin/nginx", "-p", "/jboxweb"]

@@ -9,6 +9,7 @@ from juliabox.jbox_util import unique_sessname, JBoxCfg
 from juliabox.jbox_crypto import signstr
 from juliabox.db.user_v2 import JBoxUserV2
 from juliabox.jbox_container import JBoxContainer
+from juliabox.cloud.aws import CloudHost
 
 
 class MainHandler(JBoxHandler):
@@ -17,9 +18,9 @@ class MainHandler(JBoxHandler):
                              "We will also send you an email as things quieten down and your account is enabled."
 
     def get(self):
-        jbox_cookie = self.get_session_cookie()
+        user_id = self.get_user_id()
 
-        if None == jbox_cookie:
+        if None == user_id:
             pending_activation = self.get_argument('pending_activation', None)
             if pending_activation is not None:
                 state = self.state(success=MainHandler.MSG_PENDING_ACTIVATION,
@@ -29,8 +30,6 @@ class MainHandler(JBoxHandler):
                 state = self.state()
             self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=state)
         else:
-            user_id = jbox_cookie['u']
-
             if self.is_loading():
                 is_ajax = self.get_argument('monitor_loading', None) is not None
                 if is_ajax:
@@ -41,7 +40,7 @@ class MainHandler(JBoxHandler):
                 self.chk_and_launch_docker(user_id)
 
     def is_loading(self):
-        return self.get_cookie('loading') is not None
+        return self.get_loading_state() is not None
 
     def do_monitor_loading_ajax(self, user_id):
         sessname = unique_sessname(user_id)
@@ -68,7 +67,7 @@ class MainHandler(JBoxHandler):
             loading_step = int(self.get_cookie("loading", 0))
             if loading_step > 30:
                 self.log_error("Could not start instance. Session [%s] for user [%s] didn't load.", sessname, user_id)
-                self.clear_container_cookies()
+                self.clear_container()
                 self.rendertpl("index.tpl", cfg=JBoxCfg.nv,
                                state=self.state(
                                    error='Could not start your instance! Please try again.',
@@ -103,17 +102,12 @@ class MainHandler(JBoxHandler):
                 authtok = None
 
             (shellport, uplport, ipnbport) = cont.get_host_ports()
-            sign = signstr(sessname + str(shellport) + str(uplport) + str(ipnbport), JBoxCfg.get("sesskey"))
 
-            self.clear_cookie("loading")
-            self.set_container_cookies({
-                "sessname": sessname,
+            self.set_container_running({
                 "hostshell": shellport,
                 "hostupload": uplport,
-                "hostipnb": ipnbport,
-                "sign": sign
+                "hostipnb": ipnbport
             })
-            self.set_lb_tracker_cookie()
             self.rendertpl("ipnbsess.tpl", sessname=sessname, cfg=JBoxCfg.nv, creds=creds, authtok=authtok,
                            user_id=user_id, js_includes=JBoxHandlerPlugin.PLUGIN_JAVASCRIPTS)
 
@@ -124,7 +118,7 @@ class MainHandler(JBoxHandler):
         launched = self.try_launch_container(user_id, max_hop=max_hop)
 
         if launched:
-            self.set_loading_state(user_id)
+            self.set_container_initialized(CloudHost.instance_local_ip(), user_id)
             self.rendertpl("loading.tpl",
                            user_id=user_id,
                            cfg=JBoxCfg.nv,
@@ -138,6 +132,10 @@ class MainHandler(JBoxHandler):
             self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
                 error="Maximum number of JuliaBox instances active. Please try after sometime.", success=''))
         else:
+            redirect_instance = CloudHost.get_redirect_instance_id()
+            if redirect_instance is not None:
+                redirect_ip = CloudHost.instance_local_ip(redirect_instance)
+                self.set_redirect_instance_id(redirect_ip)
             self.redirect('/?h=' + str(nhops + 1))
 
     @staticmethod

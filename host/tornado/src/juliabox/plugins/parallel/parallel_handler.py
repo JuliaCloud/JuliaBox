@@ -1,7 +1,6 @@
 __author__ = 'tan'
 import os
 
-from juliabox.jbox_util import unquote
 from juliabox.handlers import JBoxHandlerPlugin, JBoxUIModulePlugin
 from juliabox.jbox_container import JBoxContainer
 from juliabox.db import JBoxUserV2
@@ -19,14 +18,11 @@ class ParallelUIModule(JBoxUIModulePlugin):
 
     @staticmethod
     def get_user_id(handler):
-        sessname = unquote(handler.get_cookie("sessname"))
-        jbox_cookie = handler.get_session_cookie()
-
-        if (None == sessname) or (len(sessname) == 0) or (None == jbox_cookie):
+        sessname = handler.get_session_id()
+        user_id = handler.get_user_id()
+        if (sessname is None) or (user_id is None):
             handler.send_error()
             return
-
-        user_id = jbox_cookie['u']
         return user_id
 
     @staticmethod
@@ -51,10 +47,9 @@ class ParallelHandler(JBoxHandlerPlugin):
         return self.post()
 
     def post(self):
-        sessname = unquote(self.get_cookie("sessname"))
-        jbox_cookie = self.get_session_cookie()
-
-        if (None == sessname) or (len(sessname) == 0) or (None == jbox_cookie):
+        sessname = self.get_session_id()
+        user_id = self.get_user_id()
+        if (sessname is None) or (user_id is None):
             self.send_error()
             return
 
@@ -64,7 +59,6 @@ class ParallelHandler(JBoxHandlerPlugin):
             self.send_error()
             return
 
-        user_id = jbox_cookie['u']
         user = JBoxUserV2(user_id)
         is_allowed = user.has_resource_profile(JBoxUserV2.RES_PROF_CLUSTER)
         if not is_allowed:

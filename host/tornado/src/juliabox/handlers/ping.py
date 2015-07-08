@@ -10,8 +10,9 @@ class PingHandler(JBoxHandler):
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self):
-        sessname = str(self.get_cookie("sessname")).replace('"', '')
-        if self.is_valid_req(self):
+        valid_req = self.is_valid_req()
+        sessname = self.get_session_id(validate=False)
+        if valid_req:
             JBoxContainer.record_ping("/" + sessname)
             self.set_status(status_code=204)
             self.finish()

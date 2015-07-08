@@ -4,7 +4,7 @@ import pytz
 import json
 
 from juliabox.cloud.aws import CloudHost
-from juliabox.jbox_util import unquote, JBoxCfg
+from juliabox.jbox_util import JBoxCfg
 from juliabox.handlers import JBoxHandlerPlugin
 from juliabox.jbox_container import JBoxContainer
 from juliabox.db import JBoxUserV2, JBoxDynConfig
@@ -28,15 +28,13 @@ class HomeworkHandler(JBoxHandlerPlugin):
 
     def post(self):
         self.log_debug("Homework handler got POST request")
-        sessname = unquote(self.get_cookie("sessname"))
-        jbox_cookie = self.get_session_cookie()
-
-        if (None == sessname) or (len(sessname) == 0) or (None == jbox_cookie):
-            self.log_info("Homework handler got invalid sessname[%r] or cookie[%r]", sessname, jbox_cookie)
+        sessname = self.get_session_id()
+        user_id = self.get_user_id()
+        if (sessname is None) or (user_id is None):
+            self.log_info("Homework handler got invalid sessname[%r] or user_id[%r]", sessname, user_id)
             self.send_error()
             return
 
-        user_id = jbox_cookie['u']
         user = JBoxUserV2(user_id)
         is_admin = sessname in JBoxCfg.get("admin_sessnames", []) or user.has_role(JBoxUserV2.ROLE_SUPER)
         course_owner = is_admin or user.has_role(JBoxUserV2.ROLE_OFFER_COURSES)
