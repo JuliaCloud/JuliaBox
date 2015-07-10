@@ -10,6 +10,10 @@ events {
 http {
     access_log off;
     resolver 8.8.8.8 8.8.4.4;
+
+    # cache connection check results to speed up proxy (used by router.lua)
+    lua_shared_dict connchk 10M;
+
     server {
         listen 80;
 
@@ -57,45 +61,15 @@ http {
         error_page 502 /timedout.html;
 
         location = / {
-            set $jbox_forward_addr '';
-
-            access_by_lua '
-                validator = require "juliabox.validate"
-                validator.jbox_route()
-            ';
-
-            proxy_pass $jbox_forward_addr;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header Host $host;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            include jbox_router.incl;
         }
 
         location ~ /(hostlaunchipnb|hostadmin|ping|cors|jboxplugin|hostupload|hostshell|hostipnbsession)+/.* {
-            set $jbox_forward_addr '';
-
-            access_by_lua '
-                validator = require "juliabox.validate"
-                validator.jbox_route()
-            ';
-
-            proxy_pass $jbox_forward_addr;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header Host $host;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            include jbox_router.incl;
         }
 
         location / {
-            set $jbox_forward_addr '';
-
-            access_by_lua '
-                validator = require "juliabox.validate"
-                validator.jbox_route()
-            ';
-
-            proxy_pass $jbox_forward_addr;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header Host $host;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            include jbox_router.incl;
 
             # WebSocket support (nginx 1.4)
             proxy_http_version 1.1;

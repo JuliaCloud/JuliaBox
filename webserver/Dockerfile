@@ -58,10 +58,11 @@ EXPOSE 80 443
 ADD certs /jboxweb/certs
 ADD conf /jboxweb/conf
 ADD www /jboxweb/www
-ADD scripts/validate.lua /jboxweb/openresty/lualib/juliabox/
+ADD scripts/router.lua /jboxweb/openresty/lualib/juliabox/
 
 RUN ln -fs /usr/share/lua /usr/local/share/lua \
-    && ln -fs /usr/lib/x86_64-linux-gnu/lua /usr/local/lib/lua
+    && ln -fs /usr/lib/x86_64-linux-gnu/lua /usr/local/lib/lua \
+    && cp /jboxweb/conf/logrotate.conf /etc/logrotate.d/jboxweb_logrotate.conf
 
 # Run nginx in foreground (daemon set to off in configuration)
 ENTRYPOINT ["/jboxweb/openresty/nginx/sbin/nginx", "-p", "/jboxweb"]

@@ -1,0 +1,11 @@
+set $jbox_forward_addr '';
+
+access_by_lua '
+    router = require "juliabox.router"
+    router.jbox_route()
+';
+
+proxy_pass $jbox_forward_addr;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header Host $host;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

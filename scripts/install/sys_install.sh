@@ -7,13 +7,6 @@
 #DOCKER_FS=AUFS
 DOCKER_FS=DEVICEMAPPER
 
-# configure nginx version and install location
-NGINX_VER=1.7.7.2
-# for dev setup, NGINX_INSTALL_DIR may be changed to <install dir>/JuliaBox/host/install/openresty
-NGINX_INSTALL_DIR=/usr/local/openresty
-NGINX_SUDO=sudo
-mkdir -p $NGINX_INSTALL_DIR
-
 function sysinstall_pystuff {
     sudo easy_install tornado
     sudo easy_install futures
@@ -33,24 +26,8 @@ function sysinstall_pystuff {
     sudo rm -Rf docker-py
 }
 
-function sysinstall_resty {
-    echo "Building nginx openresty for install at ${NGINX_INSTALL_DIR} ..."
-    mkdir -p resty
-    wget -P resty http://openresty.org/download/ngx_openresty-${NGINX_VER}.tar.gz
-    cd resty
-    tar -xvzf ngx_openresty-${NGINX_VER}.tar.gz
-    cd ngx_openresty-${NGINX_VER}
-    ./configure --prefix=${NGINX_INSTALL_DIR}
-    make
-    ${NGINX_SUDO} make install
-    cd ../..
-    rm -Rf resty
-    ${NGINX_SUDO} mkdir -p ${NGINX_INSTALL_DIR}/lualib/resty/http
-    ${NGINX_SUDO} cp -f libs/lua-resty-http-simple/lib/resty/http/simple.lua ${NGINX_INSTALL_DIR}/lualib/resty/http/
-}
-
 function sysinstall_libs {
-    # Stuff required for docker, openresty, and tornado
+    # Stuff required for docker, and tornado
     sudo apt-get -y update
     sudo apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev netcat git python-setuptools supervisor python-dev python-isodate python-pip python-tz libzmq-dev
 }
@@ -96,7 +73,6 @@ function configure_docker {
 
 sysinstall_libs
 sysinstall_docker
-sysinstall_resty
 sysinstall_pystuff
 configure_docker
 echo

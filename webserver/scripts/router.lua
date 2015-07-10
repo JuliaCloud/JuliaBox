@@ -1,9 +1,9 @@
--- validate.lua
+-- router.lua
 local M = {
     _VERSION = '0.01',
 }
 
-ngx.log(ngx.DEBUG, "juliabox.validate.lua initialized.\npackage path:\n" .. package.path..'\n'..package.cpath)
+ngx.log(ngx.DEBUG, "juliabox.router.lua initialized.\npackage path:\n" .. package.path..'\n'..package.cpath)
 
 local socketM = require "socket"
 local httpM  = require "resty.http"
@@ -15,7 +15,7 @@ local key = ngx.var.SESSKEY
 local cookienames = {"hostipnb", "hostshell", "hostupload", "instance_id", "sessname"}
 table.sort(cookienames)
 
-function unquote(s)
+function M.unquote(s)
     if s ~= nil and s:find'^"' then
         return s:sub(2,-2)
     end
@@ -29,16 +29,16 @@ function M.is_valid_session()
         local cval = ngx.var[varname]
         if cval ~= nil then
             table.insert(toks, cname)
-            table.insert(toks, unquote(cval))
+            table.insert(toks, M.unquote(cval))
         end
     end
     local src = table.concat(toks, "_")
     local digest = ngx.hmac_sha1(key, src)
     local b64 = ngx.encode_base64(digest)
-    local is_valid = (b64 == unquote(ngx.var.cookie_sign))
+    local is_valid = (b64 == M.unquote(ngx.var.cookie_sign))
 
     if is_valid == false then
-        ngx.log(ngx.WARN, "invalid session b64(" .. src .. ") = " .. b64 .. " != " .. (unquote(ngx.var.cookie_sign) or ""))
+        ngx.log(ngx.WARN, "invalid session b64(" .. src .. ") = " .. b64 .. " != " .. (M.unquote(ngx.var.cookie_sign) or ""))
     end
     return is_valid
 end
@@ -93,45 +93,54 @@ function M.set_forward_addr(desired_port, force_scheme, force_port)
     return localforward
 end
 
-function M.check_forward_addr(outgoing, replacement)
-    ngx.log(ngx.DEBUG, "check_forward_addr: " .. (outgoing or "") .. "=>" .. (replacement or ""))
+function M.is_accessible(url)
+    local urlhash = "u" .. ngx.md5(url)
+    local connchk = ngx.shared.connchk
+
+    if connchk:get(urlhash) then
+        ngx.log(ngx.DEBUG, "validated from cache: " .. url)
+        return true
+    end
+
     local httpc = httpM.new()
     httpc:set_timeout(1000)
-    local n = 2
 
+    local res, err = httpc:request_uri(url, {
+        method = "GET"
+    })
+
+    if res then
+        -- cache status for 2 minutes
+        connchk:set(urlhash, true, 2*60)
+        return true
+    end
+    ngx.log(ngx.DEBUG, "not accessible " .. url .. " got error: " .. err)
+
+    return false
+end
+
+function M.wait_till_accessible(url, n)
+    ngx.log(ngx.DEBUG, "wait_till_accessible: " .. url)
     while (n > 0) do
-        local res, err = httpc:request_uri(outgoing, {
-            method = "GET"
-        })
-        if res then
-            return outgoing
+        if M.is_accessible(url) then
+            return true
         end
-        ngx.log(ngx.DEBUG, "waiting for " .. outgoing .. " got error: " .. err)
         ngx.sleep(1.0)
         n = n - 1
+    end
+    return false
+end
+
+function M.check_forward_addr(outgoing, replacement)
+    if M.wait_till_accessible(outgoing, 2) then
+        return outgoing
     end
     ngx.log(ngx.WARN, "replacing inaccessible forward address " .. outgoing .. " with " .. replacement)
     return replacement
 end
 
 function M.delay_till_available(outgoing, path)
-    local outgoing_path = outgoing .. path
-    local httpc = httpM.new()
-    httpc:set_timeout(1000)
-    local n = 20
-
-    -- TODO: must cache the result somewhere!
-    while (n > 0) do
-        local res, err = httpc:request_uri(outgoing_path, {
-            method = "GET"
-        })
-        if res then
-            return
-        end
-        ngx.log(ngx.DEBUG, "waiting for " .. outgoing_path .. " got error: " .. err)
-        ngx.sleep(1.0)
-        n = n - 1
-    end
+    M.wait_till_accessible(outgoing .. path, 20)
     return
 end
 
