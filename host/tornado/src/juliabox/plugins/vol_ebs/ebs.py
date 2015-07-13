@@ -7,6 +7,7 @@ from juliabox.db import JBoxSessionProps
 from juliabox.jbox_util import unique_sessname, JBoxCfg
 from juliabox.vol import JBoxVol
 from disk_state_tbl import JBoxDiskState
+from juliabox.jbox_container import JBoxContainer
 
 
 class JBoxEBSVol(JBoxVol):
@@ -90,7 +91,7 @@ class JBoxEBSVol(JBoxVol):
                     nfree += 1
 
             if container_id_list is None:
-                container_id_list = [cdesc['Id'] for cdesc in JBoxEBSVol.dckr().containers(all=True)]
+                container_id_list = [cdesc['Id'] for cdesc in JBoxContainer.session_containers(allcontainers=True)]
 
             for cid in container_id_list:
                 disk_ids = JBoxEBSVol._get_disk_ids_used(cid)

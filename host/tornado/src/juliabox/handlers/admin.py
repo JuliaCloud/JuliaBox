@@ -12,14 +12,12 @@ from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxAccountingV2
 
 class AdminHandler(JBoxHandler):
     def get(self):
-        sessname = unquote(self.get_cookie("sessname"))
-        jbox_cookie = self.get_session_cookie()
-
-        if (None == sessname) or (len(sessname) == 0) or (None == jbox_cookie):
+        sessname = self.get_session_id()
+        user_id = self.get_user_id()
+        if (sessname is None) or (user_id is None):
             self.send_error()
             return
 
-        user_id = jbox_cookie['u']
         user = JBoxUserV2(user_id)
         is_admin = sessname in JBoxCfg.get("admin_sessnames", [])
         manage_containers = is_admin or user.has_role(JBoxUserV2.ROLE_MANAGE_CONTAINERS)

@@ -1,5 +1,6 @@
 import random
 import string
+import socket
 
 import tornado.ioloop
 import tornado.web
@@ -20,12 +21,11 @@ class JBox(LoggerMixin):
         LoggerMixin.configure()
         db.configure()
         CloudHost.configure()
+        JBoxContainer.configure()
         VolMgr.configure()
 
         JBoxAsyncJob.configure()
         JBoxAsyncJob.init(JBoxAsyncJob.MODE_PUB)
-
-        JBoxContainer.configure()
 
         request_handlers = [
             (r"/", MainHandler),
@@ -42,7 +42,8 @@ class JBox(LoggerMixin):
         cookie_secret = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
         self.application.settings["cookie_secret"] = cookie_secret
         self.application.settings["google_oauth"] = JBoxCfg.get('google_oauth')
-        self.application.listen(JBoxCfg.get('port'))
+        self.application.listen(JBoxCfg.get('port'), address=socket.gethostname())
+        self.application.listen(JBoxCfg.get('port'), address='localhost')
 
         self.ioloop = tornado.ioloop.IOLoop.instance()
 
@@ -94,8 +95,8 @@ class JBox(LoggerMixin):
         if not JBoxCfg.get('cloud_host.scale_down'):
             return False
 
-        num_containers = JBoxContainer.num_active() + JBoxContainer.num_stopped()
-        return (num_containers == 0) and CloudHost.can_terminate(is_proposed_cluster_leader())
+        num_sessions = JBoxContainer.num_sessions()
+        return (num_sessions == 0) and CloudHost.can_terminate(is_proposed_cluster_leader())
 
     @staticmethod
     def do_housekeeping():
