@@ -21,22 +21,22 @@ function pull_docker_image {
 }
 
 function make_user_home {
-	${JBOX_DIR}/docker/mk_user_home.sh
+	${JBOX_DIR}/docker/mk_user_home.sh $1
 }
 
-if [ "$1" == "pull" ]
+if [ "$2" == "pull" ]
 then
     pull_docker_image
-    make_user_home
-elif [ "$1" == "build" ]
+    make_user_home $1
+elif [ "$2" == "build" ]
 then
     build_docker_image
-    make_user_home
-elif [ "$1" == "home" ]
+    make_user_home $1
+elif [ "$2" == "home" ]
 then
-    make_user_home
+    make_user_home $1
 else
-    echo "Usage: img_create.sh <pull | build | home>"
+    echo "Usage: img_create.sh <data_location> <pull | build | home>"
 fi
 
 echo

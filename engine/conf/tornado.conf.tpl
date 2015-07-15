@@ -74,7 +74,7 @@
 
 	    # EBS disk template snapshot id
 	    "ebs_template": None,
-	    "ebs_mnt_location": "/mnt/jbox/ebs",
+	    "ebs_mnt_location": "/jboxengine/data/disks/ebs",
 
     	"dummy" : "dummy"
     },
@@ -100,11 +100,11 @@ Welcome to JuliaBox. We hope you will like it and also share with your friends.
     },
 
     "env_type" : "prod",
-    "backup_location" : "~/juliabox_backup",
-    "pkg_location": "~/julia_packages",
-    "mnt_location" : "/mnt/jbox/mnt",
-    "user_home_image" : "~/user_home.tar.gz",
-    "pkg_image": "~/julia_packages.tar.gz",
+    "backup_location" : "/jboxengine/data/backups",
+    "pkg_location": "/jboxengine/data/packages",
+    "mnt_location" : "/jboxengine/data/disks/loop/mnt",
+    "user_home_image" : "/jboxengine/data/user_home.tar.gz",
+    "pkg_image": "/jboxengine/data/julia_packages.tar.gz",
 
     "plugins": [
         "juliabox.plugins.vol_loopback",

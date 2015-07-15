@@ -1,6 +1,9 @@
 import threading
 import json
 import time
+import signal
+import os
+import sys
 
 from cloud.aws import CloudHost
 import db
@@ -26,6 +29,8 @@ def jboxd_method(f):
 
 
 class JBoxd(LoggerMixin):
+    shutdown = False
+
     ACTIVE = {}
     LOCK = threading.Lock()
     MAX_AUTO_ACTIVATIONS_PER_RUN = 10
@@ -225,7 +230,18 @@ class JBoxd(LoggerMixin):
 
         JBoxd.QUEUE.respond(_callback)
 
+    @staticmethod
+    def signal_handler(signum, frame):
+        JBoxd.shutdown = True
+        JBoxd.log_info("Received signal %r. Shutting down.", signum)
+        sys.exit(0)
+        #os._exit(0)
+
     def run(self):
+        JBoxd.log_debug("Setting up signal handlers")
+        signal.signal(signal.SIGINT, JBoxd.signal_handler)
+        signal.signal(signal.SIGTERM, JBoxd.signal_handler)
+
         if VolMgr.has_update_for_user_home_image():
             VolMgr.update_user_home_image(fetch=False)
 

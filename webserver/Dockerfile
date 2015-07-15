@@ -47,7 +47,6 @@ RUN mkdir -p resty \
     && wget -P ${NGINX_INSTALL_DIR}/lualib/resty/ https://raw.githubusercontent.com/tanmaykm/lua-resty-http/master/lib/resty/http_headers.lua
 
 # Export volume for logs
-RUN mkdir /jboxweb/logs
 VOLUME /jboxweb/logs
 
 # Expose the HTTP ports.

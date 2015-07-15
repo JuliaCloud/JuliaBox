@@ -19,8 +19,8 @@ do
     julia -e "Pkg.add(\"$pkg\")"
 done
 
-INTERNAL_PACKAGES="https://github.com/shashi/Homework.jl.git \
-https://github.com/tanmaykm/JuliaBoxUtils.jl.git \
+INTERNAL_PACKAGES="https://github.com/tanmaykm/JuliaBoxUtils.jl.git \
+https://github.com/shashi/Homework.jl.git \
 https://github.com/tanmaykm/JuliaWebAPI.jl.git"
 
 for pkg in ${INTERNAL_PACKAGES}

@@ -1,9 +1,9 @@
 #! /usr/bin/env bash
 # Mount JuliaBox loopback volumes
 
-if [ $# -ne 4 ]
+if [ $# -ne 5 ]
 then
-    echo "Usage: sudo mount_fs.sh <ndisks> <ds_size_mb> <fs_user_id> <ebs(0/1)>"
+    echo "Usage: sudo mount_fs.sh <data_location> <ndisks> <ds_size_mb> <fs_user_id> <ebs(0/1)>"
     exit 1
 fi
 
@@ -13,10 +13,11 @@ then
 	exit 1
 fi
 
-NDISKS=$1
-FS_SIZE_MB=$2
-ID=$3
-HAVE_EBS=$4
+DATA_LOC=$1
+NDISKS=$2
+FS_SIZE_MB=$3
+ID=$4
+HAVE_EBS=$5
 
 echo "Creating and mounting $NDISKS user disks of size $FS_SIZE_MB MB each..."
 
@@ -46,12 +47,12 @@ function make_ebs_fstab_entries {
     done
 }
 
-FS_DIR=/mnt/jbox
-IMG_DIR=${FS_DIR}/img
-MNT_DIR=${FS_DIR}/mnt
+FS_DIR=${DATA_LOC}/disks
+LOOP_IMG_DIR=${FS_DIR}/loop/img
+LOOP_MNT_DIR=${FS_DIR}/loop/mnt
 EBS_DIR=${FS_DIR}/ebs
 echo "    Creating folders to hold filesystems..."
-mkdir -p ${FS_DIR} ${IMG_DIR} ${MNT_DIR} ${EBS_DIR} || error_exit "Could not create folders to hold filesystems"
+mkdir -p ${FS_DIR} ${LOOP_IMG_DIR} ${LOOP_MNT_DIR} ${EBS_DIR} || error_exit "Could not create folders to hold filesystems"
 
 if [ $HAVE_EBS -eq 1 ]
 then
@@ -63,8 +64,8 @@ echo "    Stopping docker to make sure no loop devices are in use..."
 service docker stop
 
 echo "Creating template disk image..."
-dd if=/dev/zero of=${MNT_DIR}/jimg bs=1M count=${FS_SIZE_MB} || error_exit "Error creating disk image file"
-losetup /dev/loop0 ${MNT_DIR}/jimg || error_exit "Error mapping template disk image"
+dd if=/dev/zero of=${LOOP_MNT_DIR}/jimg bs=1M count=${FS_SIZE_MB} || error_exit "Error creating disk image file"
+losetup /dev/loop0 ${LOOP_MNT_DIR}/jimg || error_exit "Error mapping template disk image"
 mkfs -t ext3 -m 1 -N 144000 -v /dev/loop0 || error_exit "Error making ext3 filesystem at /dev/loop0"
 chown -R ${ID}:${ID} /dev/loop0 || error_exit "Error changing file ownership on /dev/loop0"
 losetup -d /dev/loop0
@@ -75,8 +76,8 @@ for i in $(seq 0 ${NDISKS})
 do
     echo -n "${i}."
     LOOP=/dev/loop$i
-    MNT=${MNT_DIR}/${i}
-    IMG=${IMG_DIR}/${i}
+    MNT=${LOOP_MNT_DIR}/${i}
+    IMG=${LOOP_IMG_DIR}/${i}
 
     if [ ! -e $LOOP ]
     then
@@ -86,7 +87,7 @@ do
 
     if [ ! -e ${IMG} ]
     then
-        cp ${MNT_DIR}/jimg ${IMG}
+        cp ${LOOP_MNT_DIR}/jimg ${IMG}
     fi
     losetup ${LOOP} ${IMG} || error_exit "Error mapping ${IMG} to ${LOOP}"
 
@@ -99,7 +100,7 @@ do
     chown -R ${ID}:${ID} ${MNT} || error_exit "Error changing file ownership on ${MNT}"
 done
 
-rm -f ${MNT_DIR}/jimg
+rm -f ${LOOP_MNT_DIR}/jimg
 
 if [ $HAVE_EBS -eq 1 ]
 then

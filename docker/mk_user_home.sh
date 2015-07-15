@@ -1,5 +1,12 @@
 #!/bin/bash
 
+if [ $# -ne 1 ]
+then
+    echo "Usage: mk_user_home.sh <data_location>"
+    exit 1
+fi
+
+DATA_LOC=$1
 JUSER_HOME=/tmp/juser
 PKG_DIR=/tmp/jpkg
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -49,11 +56,11 @@ ${SUDO_JUSER} cp -R ${DIR}/IJulia/tornado ${JUSER_HOME}/.juliabox/tornado
 ${SUDO_JUSER} cp ${DIR}/IJulia/supervisord.conf ${JUSER_HOME}/.juliabox/supervisord.conf
 ${SUDO_JUSER} cp -R ${DIR}/IJulia/tutorial ${JUSER_HOME}/.juliabox/tutorial
 
-sudo rm ~/julia_packages.tar.gz
-sudo tar -czvf ~/julia_packages.tar.gz -C ${PKG_DIR} .
+sudo rm ${DATA_LOC}/julia_packages.tar.gz
+sudo tar -czvf ${DATA_LOC}/julia_packages.tar.gz -C ${PKG_DIR} .
 
-sudo rm ~/user_home.tar.gz
-sudo tar -czvf ~/user_home.tar.gz -C ${JUSER_HOME} .
+sudo rm ${DATA_LOC}/user_home.tar.gz
+sudo tar -czvf ${DATA_LOC}/user_home.tar.gz -C ${JUSER_HOME} .
 
 sudo rm -rf ${JUSER_HOME}
 sudo rm -rf ${PKG_DIR}
