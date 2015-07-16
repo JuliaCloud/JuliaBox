@@ -1,0 +1,14 @@
+# Docker file for JuliaBox Engine Daemon
+# Version:1
+
+FROM juliabox/enginebase
+
+MAINTAINER Tanmay Mohapatra
+
+# Expose the daemon ports.
+# For proxying to work efficiently, it may be best to run the container on host network stack
+EXPOSE 8889 8890
+
+USER juser
+
+ENTRYPOINT ["/jboxengine/src/jboxd.py"]

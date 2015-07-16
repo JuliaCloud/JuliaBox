@@ -1,6 +1,7 @@
 import random
 import string
 import socket
+import signal
 
 import tornado.ioloop
 import tornado.web
@@ -16,7 +17,10 @@ from jbox_container import JBoxContainer
 from handlers import AdminHandler, MainHandler, AuthHandler, PingHandler, CorsHandler
 from handlers import JBoxHandlerPlugin, JBoxUIModulePlugin
 
+
 class JBox(LoggerMixin):
+    shutdown = False
+
     def __init__(self):
         LoggerMixin.configure()
         db.configure()
@@ -51,20 +55,29 @@ class JBox(LoggerMixin):
         run_interval = 5 * 60 * 1000
         self.log_info("Container maintenance every " + str(run_interval / (60 * 1000)) + " minutes")
         self.ct = tornado.ioloop.PeriodicCallback(JBox.do_housekeeping, run_interval, self.ioloop)
+        self.sigct = tornado.ioloop.PeriodicCallback(JBox.do_signals, 1000, self.ioloop)
 
     def run(self):
         if CloudHost.ENABLED['route53']:
             try:
                 CloudHost.deregister_instance_dns()
-                CloudHost.log_warn("Prior dns registration was found for the instance")
+                JBox.log_warn("Prior dns registration was found for the instance")
             except:
-                CloudHost.log_debug("No prior dns registration found for the instance")
+                JBox.log_debug("No prior dns registration found for the instance")
             CloudHost.register_instance_dns()
         JBoxContainer.publish_container_stats()
         JBox.do_update_user_home_image()
         JBoxAsyncJob.async_refresh_disks()
+
+        JBox.log_debug("Setting up signal handlers")
+        signal.signal(signal.SIGINT, JBox.signal_handler)
+        signal.signal(signal.SIGTERM, JBox.signal_handler)
+
+        JBox.log_debug("Starting ioloops")
         self.ct.start()
+        self.sigct.start()
         self.ioloop.start()
+        JBox.log_info("Stopped.")
 
     @staticmethod
     def do_update_user_home_image():
@@ -77,17 +90,17 @@ class JBox(LoggerMixin):
         max_rate = JBoxDynConfig.get_registration_hourly_rate(CloudHost.INSTALL_ID)
         rate = JBoxUserV2.count_created(1)
         reg_allowed = JBoxDynConfig.get_allow_registration(CloudHost.INSTALL_ID)
-        CloudHost.log_debug("registration allowed: %r, rate: %d, max allowed: %d", reg_allowed, rate, max_rate)
+        JBox.log_debug("registration allowed: %r, rate: %d, max allowed: %d", reg_allowed, rate, max_rate)
 
         if (reg_allowed and (rate > max_rate*1.1)) or ((not reg_allowed) and (rate < max_rate*0.9)):
             reg_allowed = not reg_allowed
-            CloudHost.log_warn("Changing registration allowed to %r", reg_allowed)
+            JBox.log_warn("Changing registration allowed to %r", reg_allowed)
             JBoxDynConfig.set_allow_registration(CloudHost.INSTALL_ID, reg_allowed)
 
         if reg_allowed:
             num_pending_activations = JBoxUserV2.count_pending_activations()
             if num_pending_activations > 0:
-                CloudHost.log_info("scheduling activations for %d pending activations", num_pending_activations)
+                JBox.log_info("scheduling activations for %d pending activations", num_pending_activations)
                 JBoxAsyncJob.async_schedule_activations()
 
     @staticmethod
@@ -106,7 +119,7 @@ class JBox(LoggerMixin):
                                protected_names=JBoxCfg.get('protected_docknames'))
         is_leader = is_cluster_leader()
         if is_leader:
-            CloudHost.log_info("I am the cluster leader")
+            JBox.log_info("I am the cluster leader")
             JBox.monitor_registrations()
             if not JBoxDynConfig.is_stat_collected_within(CloudHost.INSTALL_ID, 1):
                 JBoxAsyncJob.async_collect_stats()
@@ -116,9 +129,20 @@ class JBox(LoggerMixin):
             try:
                 CloudHost.deregister_instance_dns()
             except:
-                CloudHost.log_error("Error deregistering instance dns")
+                JBox.log_error("Error deregistering instance dns")
             CloudHost.terminate_instance()
 
         if not terminating:
             JBox.do_update_user_home_image()
             JBoxAsyncJob.async_plugin_maintenance(is_leader)
+
+    @staticmethod
+    def signal_handler(signum, frame):
+        JBox.shutdown = True
+        JBox.log_info("Received signal %r", signum)
+
+    @staticmethod
+    def do_signals():
+        if JBox.shutdown:
+            JBox.log_info("Shutting down...")
+            tornado.ioloop.IOLoop.instance().stop()

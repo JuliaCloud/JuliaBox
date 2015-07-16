@@ -11,6 +11,7 @@ from db import JBoxAccountingV2
 from jbox_tasks import JBoxAsyncJob
 from jbox_util import LoggerMixin, JBoxCfg, parse_iso_time
 from vol import VolMgr, JBoxVol
+import docker.utils
 
 
 class JBoxContainer(LoggerMixin):
@@ -63,13 +64,15 @@ class JBoxContainer(LoggerMixin):
 
     def get_cpu_allocated(self):
         props = self.get_props()
-        cpu_shares = props['Config']['CpuShares']
+        cfg = props['Config']
+        cpu_shares = cfg.get('CpuShares', 1024)
         num_cpus = multiprocessing.cpu_count()
         return max(1, int(num_cpus * cpu_shares / 1024))
 
     def get_memory_allocated(self):
         props = self.get_props()
-        mem = props['Config']['Memory']
+        cfg = props['Config']
+        mem = cfg.get('Memory', 0)
         if mem > 0:
             return mem
         return psutil.virtual_memory().total
@@ -107,9 +110,11 @@ class JBoxContainer(LoggerMixin):
 
     @staticmethod
     def _create_new(name):
+        hostcfg = docker.utils.create_host_config(mem_limit=JBoxContainer.MEM_LIMIT)
         jsonobj = JBoxContainer.DCKR.create_container(JBoxContainer.DCKR_IMAGE,
                                                       detach=True,
-                                                      mem_limit=JBoxContainer.MEM_LIMIT,
+                                                      host_config=hostcfg,
+                                                      #mem_limit=JBoxContainer.MEM_LIMIT,
                                                       cpu_shares=JBoxContainer.CPU_LIMIT,
                                                       ports=JBoxContainer.PORTS,
                                                       volumes=JBoxContainer.VOLUMES,
