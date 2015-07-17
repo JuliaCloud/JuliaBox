@@ -9,6 +9,7 @@ import docker
 from juliabox.db import JBoxDynConfig
 from juliabox import db
 from juliabox.jbox_util import JBoxCfg, LoggerMixin
+from juliabox.jbox_container import JBoxContainer
 from juliabox.cloud.aws import CloudHost
 from juliabox.vol import VolMgr, JBoxVol
 
@@ -23,6 +24,7 @@ if __name__ == "__main__":
     LoggerMixin.configure()
     db.configure()
     CloudHost.configure()
+    JBoxContainer.configure()
     VolMgr.configure()
 
     ts = JBoxVol._get_user_home_timestamp()

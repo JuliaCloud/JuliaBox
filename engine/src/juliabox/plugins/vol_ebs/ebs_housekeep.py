@@ -4,11 +4,12 @@ import datetime
 
 from juliabox.jbox_tasks import JBoxHousekeepingPlugin
 from juliabox.db import JBoxSessionProps
-from juliabox.cloud.aws import CloudHost
+from juliabox.cloud.awsebsvol import EBSVol
 from juliabox.jbox_util import unique_sessname
 from juliabox.srvr_jboxd import jboxd_method
 
 from disk_state_tbl import JBoxDiskState
+
 
 class JBoxEBSHousekeep(JBoxHousekeepingPlugin):
     provides = [JBoxHousekeepingPlugin.PLUGIN_CLUSTER_HOUSEKEEPING]
@@ -25,7 +26,7 @@ class JBoxEBSHousekeep(JBoxHousekeepingPlugin):
             incomplete_snapshots = []
             modified = False
             for snap_id in disk_info.get_snapshot_ids():
-                if not CloudHost.is_snapshot_complete(snap_id):
+                if not EBSVol.is_snapshot_complete(snap_id):
                     incomplete_snapshots.append(snap_id)
                     continue
                 JBoxEBSHousekeep.log_debug("updating latest snapshot of user %s to %s", user_id, snap_id)
@@ -33,7 +34,7 @@ class JBoxEBSHousekeep(JBoxHousekeepingPlugin):
                 sess_props.set_snapshot_id(snap_id)
                 modified = True
                 if old_snap_id is not None:
-                    CloudHost.delete_snapshot(old_snap_id)
+                    EBSVol.delete_snapshot(old_snap_id)
             if modified:
                 sess_props.save()
                 disk_info.set_snapshot_ids(incomplete_snapshots)
@@ -43,6 +44,6 @@ class JBoxEBSHousekeep(JBoxHousekeepingPlugin):
                     vol_id = disk_info.get_volume_id()
                     JBoxEBSHousekeep.log_debug("volume %s for user %s unused for too long", vol_id, user_id)
                     disk_info.delete()
-                    CloudHost.detach_volume(vol_id, delete=True)
+                    EBSVol.detach_volume(vol_id, delete=True)
             else:
                 JBoxEBSHousekeep.log_debug("ongoing snapshots of user %s: %r", user_id, incomplete_snapshots)

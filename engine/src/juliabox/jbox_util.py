@@ -1,4 +1,5 @@
 import os
+import sh
 import sys
 import time
 import errno
@@ -123,6 +124,16 @@ def unquote(s):
         return s[1:-1]
     else:
         return s
+
+
+def create_host_mnt_command(cmd):
+    pfx = os.getenv('HOST_MNT_PFX')
+    if pfx:
+        cmd = pfx + " " + cmd
+    hcmd = sh.sudo
+    for comp in cmd.split():
+        hcmd = hcmd.bake(comp)
+    return hcmd
 
 
 class JBoxCfg(object):
