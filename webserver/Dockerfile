@@ -60,8 +60,7 @@ ADD www /jboxweb/www
 ADD scripts/router.lua /jboxweb/openresty/lualib/juliabox/
 
 RUN ln -fs /usr/share/lua /usr/local/share/lua \
-    && ln -fs /usr/lib/x86_64-linux-gnu/lua /usr/local/lib/lua \
-    && cp /jboxweb/conf/logrotate.conf /etc/logrotate.d/jboxweb_logrotate.conf
+    && ln -fs /usr/lib/x86_64-linux-gnu/lua /usr/local/lib/lua
 
 # Run nginx in foreground (daemon set to off in configuration)
 ENTRYPOINT ["/jboxweb/openresty/nginx/sbin/nginx", "-p", "/jboxweb"]

@@ -1,10 +1,8 @@
 import datetime
 import os
 import pytz
-import stat
 import sys
 import traceback
-import time
 
 import boto.ec2
 import boto.ec2.cloudwatch
@@ -14,7 +12,6 @@ import boto.ses
 from boto.s3.key import Key
 import boto.utils
 import psutil
-import sh
 
 from juliabox.jbox_util import LoggerMixin, JBoxCfg, parse_iso_time, retry
 
@@ -296,9 +293,9 @@ class CloudHost(LoggerMixin):
 
         dims = {'InstanceID': CloudHost.instance_id()}
         CloudHost.log_info("CloudWatch " + CloudHost.INSTALL_ID + "." + CloudHost.instance_id() + "." + stat_name
-                             + "=" + str(stat_value) + "(" + stat_unit + ")")
+                           + "=" + str(stat_value) + "(" + stat_unit + ")")
         CloudHost.connect_cloudwatch().put_metric_data(namespace=CloudHost.INSTALL_ID, name=stat_name,
-                                                         unit=stat_unit, value=stat_value, dimensions=dims)
+                                                       unit=stat_unit, value=stat_value, dimensions=dims)
 
     @staticmethod
     def instance_accept_session_priority(instance_id, load):
@@ -317,8 +314,8 @@ class CloudHost(LoggerMixin):
             return
         try:
             CloudHost.connect_autoscale().execute_policy(CloudHost.SCALE_UP_POLICY,
-                                                           as_group=CloudHost.AUTOSCALE_GROUP,
-                                                           honor_cooldown='true')
+                                                         as_group=CloudHost.AUTOSCALE_GROUP,
+                                                         honor_cooldown='true')
         except:
             CloudHost.log_error("Error requesting scale up")
             traceback.print_exc()
@@ -689,76 +686,6 @@ class CloudHost(LoggerMixin):
         return k_new
 
     @staticmethod
-    def _get_block_device_mapping(instance_id):
-        maps = CloudHost.connect_ec2().get_instance_attribute(instance_id=instance_id,
-                                                              attribute='blockDeviceMapping')['blockDeviceMapping']
-        idmap = {}
-        for dev_path, dev in maps.iteritems():
-            idmap[dev_path] = dev.volume_id
-        return idmap
-
-    @staticmethod
-    def _mount_device(dev_id, mount_dir):
-        t1 = time.time()
-        device = os.path.join('/dev', dev_id)
-        mount_point = os.path.join(mount_dir, dev_id)
-        actual_mount_point = CloudHost._get_mount_point(dev_id)
-        if actual_mount_point == mount_point:
-            CloudHost.log_debug("Device %s already mounted at %s", device, mount_point)
-            return
-        elif actual_mount_point is None:
-            CloudHost.log_debug("Mounting device %s at %s", device, mount_point)
-            res = sh.mount(mount_point)  # the mount point must be mentioned in fstab file
-            if res.exit_code != 0:
-                raise Exception("Failed to mount device %s at %s. Error code: %d", device, mount_point, res.exit_code)
-        else:
-            raise Exception("Device already mounted at " + actual_mount_point)
-        tdiff = int(time.time() - t1)
-        CloudHost.publish_stats("EBSMountTime", "Count", tdiff)
-
-    @staticmethod
-    def _get_volume(vol_id):
-        vols = CloudHost.connect_ec2().get_all_volumes([vol_id])
-        if len(vols) == 0:
-            return None
-        return vols[0]
-
-    @staticmethod
-    def _get_volume_attach_info(vol_id):
-        vol = CloudHost._get_volume(vol_id)
-        if vol is None:
-            return None, None
-        att = vol.attach_data
-        return att.instance_id, att.device
-
-    @staticmethod
-    def unmount_device(dev_id, mount_dir):
-        mount_point = os.path.join(mount_dir, dev_id)
-        actual_mount_point = CloudHost._get_mount_point(dev_id)
-        if actual_mount_point is None:
-            return  # not mounted
-        t1 = time.time()
-        CloudHost.log_debug("Unmounting dev_id:" + repr(dev_id) +
-                            " mount_point:" + repr(mount_point) +
-                            " actual_mount_point:" + repr(actual_mount_point))
-        if mount_point != actual_mount_point:
-            CloudHost.log_warn("Mount point expected:" + mount_point + ", got:" + repr(actual_mount_point))
-            mount_point = actual_mount_point
-        res = sh.sudo.umount(mount_point)  # the mount point must be mentioned in fstab file
-        if res.exit_code != 0:
-            raise Exception("Device could not be unmounted from " + mount_point)
-        tdiff = int(time.time() - t1)
-        CloudHost.publish_stats("EBSUnmountTime", "Count", tdiff)
-
-    @staticmethod
-    def _get_mount_point(dev_id):
-        device = os.path.join('/dev', dev_id)
-        for line in sh.mount():
-            if line.startswith(device):
-                return line.split()[2]
-        return None
-
-    @staticmethod
     def _state_check(obj, state):
         obj.update()
         classname = obj.__class__.__name__
@@ -766,14 +693,6 @@ class CloudHost(LoggerMixin):
             return obj.status == state
         else:
             return obj.state == state
-
-    @staticmethod
-    def _device_exists(dev):
-        try:
-            mode = os.stat(dev).st_mode
-        except OSError:
-            return False
-        return stat.S_ISBLK(mode)
 
     @staticmethod
     @retry(10, 0.5, backoff=1.5)
@@ -784,210 +703,6 @@ class CloudHost(LoggerMixin):
     @retry(15, 0.5, backoff=1.5)
     def _wait_for_status_extended(resource, state):
         return CloudHost._state_check(resource, state)
-
-    @staticmethod
-    @retry(10, 0.5, backoff=1.5)
-    def _wait_for_device(dev):
-        return CloudHost._device_exists(dev)
-
-    @staticmethod
-    def _ensure_volume_available(vol_id, force_detach=False):
-        conn = CloudHost.connect_ec2()
-        vol = CloudHost._get_volume(vol_id)
-        if vol is None:
-            raise Exception("Volume not found: " + vol_id)
-
-        if CloudHost._state_check(vol, 'available'):
-            return True
-
-        # volume may be attached
-        instance_id = CloudHost.instance_id()
-        att_instance_id, att_device = CloudHost._get_volume_attach_info(vol_id)
-
-        if (att_instance_id is None) or (att_instance_id == instance_id):
-            return True
-
-        if force_detach:
-            CloudHost.log_warn("Forcing detach of volume " + vol_id)
-            conn.detach_volume(vol_id)
-            CloudHost._wait_for_status(vol, 'available')
-
-        if not CloudHost._state_check(vol, 'available'):
-            raise Exception("Volume not available: " + vol_id +
-                            ", attached to: " + att_instance_id +
-                            ", state: " + vol.status)
-
-    @staticmethod
-    def _attach_free_volume(vol_id, dev_id, mount_dir):
-        conn = CloudHost.connect_ec2()
-        instance_id = CloudHost.instance_id()
-        device = os.path.join('/dev', dev_id)
-        mount_point = os.path.join(mount_dir, dev_id)
-        vol = CloudHost._get_volume(vol_id)
-
-        CloudHost.log_info("Attaching volume " + vol_id + " at " + device)
-        t1 = time.time()
-        conn.attach_volume(vol_id, instance_id, device)
-
-        if not CloudHost._wait_for_status(vol, 'in-use'):
-            CloudHost.log_error("Could not attach volume " + vol_id)
-            raise Exception("Volume could not be attached. Volume id: " + vol_id)
-
-        if not CloudHost._wait_for_device(device):
-            CloudHost.log_error("Could not attach volume " + vol_id + " to device " + device)
-            raise Exception("Volume could not be attached. Volume id: " + vol_id + ", device: " + device)
-        tdiff = int(time.time() - t1)
-        CloudHost.publish_stats("EBSAttachTime", "Count", tdiff)
-
-        CloudHost._mount_device(dev_id, mount_dir)
-        return device, mount_point
-
-    @staticmethod
-    def _get_mapped_volumes(instance_id=None):
-        if instance_id is None:
-            instance_id = CloudHost.instance_id()
-
-        return CloudHost.connect_ec2().get_instance_attribute(instance_id=instance_id,
-                                                              attribute='blockDeviceMapping')['blockDeviceMapping']
-
-    @staticmethod
-    def get_volume_id_from_device(dev_id):
-        device = os.path.join('/dev', dev_id)
-        maps = CloudHost._get_mapped_volumes()
-        CloudHost.log_debug("Devices mapped: " + repr(maps))
-        if device not in maps:
-            return None
-        return maps[device].volume_id
-
-    @staticmethod
-    def is_snapshot_complete(snap_id):
-        snaps = CloudHost.connect_ec2().get_all_snapshots([snap_id])
-        if len(snaps) == 0:
-            raise Exception("Snapshot not found with id " + str(snap_id))
-        snap = snaps[0]
-        return snap.status == 'completed'
-
-    @staticmethod
-    def get_snapshot_age(snap_id):
-        snaps = CloudHost.connect_ec2().get_all_snapshots([snap_id])
-        if len(snaps) == 0:
-            raise Exception("Snapshot not found with id " + str(snap_id))
-        snap = snaps[0]
-
-        st = parse_iso_time(snap.start_time)
-        nt = datetime.datetime.now(pytz.utc)
-        return nt - st
-
-    @staticmethod
-    def create_new_volume(snap_id, dev_id, mount_dir, tag=None, disk_sz_gb=1):
-        CloudHost.log_info("Creating volume with tag " + tag +
-                           " from snapshot " + snap_id +
-                           " at dev_id " + dev_id +
-                           " mount_dir " + mount_dir)
-        conn = CloudHost.connect_ec2()
-        vol = conn.create_volume(disk_sz_gb, CloudHost.zone(),
-                                 snapshot=snap_id,
-                                 volume_type='gp2')
-                                 # volume_type='io1',
-                                 # iops=30*disk_sz_gb)
-        CloudHost._wait_for_status(vol, 'available')
-        vol_id = vol.id
-        CloudHost.log_info("Created volume with id " + vol_id)
-
-        if tag is not None:
-            conn.create_tags([vol_id], {"Name": tag})
-            CloudHost.log_info("Added tag " + tag + " to volume with id " + vol_id)
-
-        mnt_info = CloudHost._attach_free_volume(vol_id, dev_id, mount_dir)
-        return mnt_info[0], mnt_info[1], vol_id
-
-    # @staticmethod
-    # def detach_mounted_volume(dev_id, mount_dir, delete=False):
-    #     CloudHelper.log_info("Detaching volume mounted at device " + dev_id)
-    #     vol_id = CloudHelper.get_volume_id_from_device(dev_id)
-    #     CloudHelper.log_debug("Device " + dev_id + " maps volume " + vol_id)
-    #
-    #     # find the instance and device to which the volume is mapped
-    #     instance, device = CloudHelper._get_volume_attach_info(vol_id)
-    #     if instance is None:  # the volume is not mounted
-    #         return
-    #
-    #     # if mounted to current instance, also unmount the device
-    #     if instance == CloudHelper.instance_id():
-    #         dev_id = device.split('/')[-1]
-    #         CloudHelper.unmount_device(dev_id, mount_dir)
-    #         time.sleep(1)
-    #
-    #     return CloudHelper.detach_volume(vol_id, delete=delete)
-
-    @staticmethod
-    def detach_volume(vol_id, delete=False):
-        # find the instance and device to which the volume is mapped
-        instance, device = CloudHost._get_volume_attach_info(vol_id)
-        conn = CloudHost.connect_ec2()
-        if instance is not None:  # the volume is attached
-            CloudHost.log_debug("Detaching " + vol_id + " from instance " + instance + " device " + repr(device))
-            vol = CloudHost._get_volume(vol_id)
-            t1 = time.time()
-            conn.detach_volume(vol_id, instance, device)
-            if not CloudHost._wait_for_status_extended(vol, 'available'):
-                raise Exception("Volume could not be detached " + vol_id)
-            tdiff = int(time.time() - t1)
-            CloudHost.publish_stats("EBSDetachTime", "Count", tdiff)
-        if delete:
-            CloudHost.log_debug("Deleting " + vol_id)
-            conn.delete_volume(vol_id)
-
-    @staticmethod
-    def attach_volume(vol_id, dev_id, mount_dir, force_detach=False):
-        """
-        In order for EBS volumes to be mountable on the host system, JuliaBox relies on the fstab file must have
-        pre-filled mount points with options to allow non-root user to mount/unmount them. This necesseciates that
-        the mount point and device ids association be fixed beforehand. So we follow a convention where /dev/dev_id
-        will be mounted at /mount_dir/dev_id
-
-        Returns the device path and mount path where the volume was attached.
-
-        If the volume is already mounted on the current instance, the existing device and mount paths are returned,
-        which may be different from what was requested.
-
-        :param vol_id: EBS volume id to mount
-        :param dev_id: volume will be attached at /dev/dev_id
-        :param mount_dir: device will be mounted at /mount_dir/dev_id
-        :param force_detach: detach the volume from any other instance that might have attached it
-        :return: device_path, mount_path
-        """
-        CloudHost.log_info("Attaching volume " + vol_id + " to dev_id " + dev_id + " at " + mount_dir)
-        CloudHost._ensure_volume_available(vol_id, force_detach=force_detach)
-        att_instance_id, att_device = CloudHost._get_volume_attach_info(vol_id)
-
-        if att_instance_id is None:
-            return CloudHost._attach_free_volume(vol_id, dev_id, mount_dir)
-        else:
-            CloudHost.log_warn("Volume " + vol_id + " already attached to " + att_instance_id + " at " + att_device)
-            CloudHost._mount_device(dev_id, mount_dir)
-            return att_device, os.path.join(mount_dir, dev_id)
-
-    @staticmethod
-    def snapshot_volume(vol_id=None, dev_id=None, tag=None, description=None, wait_till_complete=True):
-        if dev_id is not None:
-            vol_id = CloudHost.get_volume_id_from_device(dev_id)
-        if vol_id is None:
-            CloudHost.log_warn("No volume to snapshot. vol_id: " + repr(vol_id) + ", dev_id: " + repr(dev_id))
-            return
-        vol = CloudHost._get_volume(vol_id)
-        CloudHost.log_info("Creating snapshot for volume: " + vol_id)
-        snap = vol.create_snapshot(description)
-        if wait_till_complete and (not CloudHost._wait_for_status_extended(snap, 'completed')):
-            raise Exception("Could not create snapshot for volume " + vol_id)
-        CloudHost.log_info("Created snapshot " + snap.id + " for volume " + vol_id)
-        if tag is not None:
-            CloudHost.connect_ec2().create_tags([snap.id], {'Name': tag})
-        return snap.id
-
-    @staticmethod
-    def delete_snapshot(snapshot_id):
-        CloudHost.connect_ec2().delete_snapshot(snapshot_id)
 
     @staticmethod
     def get_email_rates():

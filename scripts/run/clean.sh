@@ -2,12 +2,12 @@
 # Clean all logs
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-JBOX_DIR=`readlink -e ${DIR}/../..`
+source ${DIR}/../jboxcommon.sh
 
-\rm -f ${JBOX_DIR}/host/run/*.log
-\rm -f ${JBOX_DIR}/webserver/logs/*.log
-\rm -f ${JBOX_DIR}/engine/logs/*.log
+\rm -f ${HOST_DIR}/run/*.log
+\rm -f ${WEBSERVER_DIR}/logs/*.log
+\rm -f ${ENGINE_DIR}/logs/*.log
 
-\rm -f ${JBOX_DIR}/host/run/*.log.?
-\rm -f ${JBOX_DIR}/webserver/logs/*.log.?
-\rm -f ${JBOX_DIR}/engine/logs/*.log.?
+\rm -f ${HOST_DIR}/run/*.log.?
+\rm -f ${WEBSERVER_DIR}/logs/*.log.?
+\rm -f ${ENGINE_DIR}/logs/*.log.?

@@ -37,4 +37,4 @@ WORKDIR /home/juser
 # 8998: ipython port for julia
 EXPOSE  4200 8000 8998
 
-ENTRYPOINT /usr/bin/supervisord -n -c /home/juser/.juliabox/supervisord.conf -l /home/juser/.juliabox/supervisord.log -j /home/juser/.juliabox/supervisord.pid -q /home/juser/.juliabox
+ENTRYPOINT ["/usr/bin/supervisord", "-n", "-c", "/home/juser/.juliabox/supervisord.conf", "-l", "/home/juser/.juliabox/supervisord.log", "-j", "/home/juser/.juliabox/supervisord.pid", "-q", "/home/juser/.juliabox"]

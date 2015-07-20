@@ -1,5 +1,10 @@
-TORNADO_DIR=engine
-TORNADO_CONF_DIR=$TORNADO_DIR/conf
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+JBOX_DIR=`readlink -e ${DIR}/..`
 
-NGINX_DIR=webserver
-NGINX_CONF_DIR=$NGINX_DIR/conf
+ENGINE_DIR=${JBOX_DIR}/engine
+ENGINE_CONF_DIR=${ENGINE_DIR}/conf
+
+WEBSERVER_DIR=${JBOX_DIR}/webserver
+WEBSERVER_CONF_DIR=${WEBSERVER_DIR}/conf
+
+HOST_DIR=${JBOX_DIR}/host

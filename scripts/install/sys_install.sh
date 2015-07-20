@@ -6,6 +6,7 @@
 # configure docker to use either AUFS or DEVICEMAPPER
 #DOCKER_FS=AUFS
 DOCKER_FS=DEVICEMAPPER
+NUM_LOCALMAX=30
 
 function sysinstall_pystuff {
     sudo easy_install tornado
@@ -28,16 +29,8 @@ function sysinstall_libs {
 }
 
 function sysinstall_docker {
-    # INSTALL docker as per http://docs.docker.io/en/latest/installation/ubuntulinux/
-    sudo apt-get -y update
-    sudo apt-get -y install linux-image-extra-`uname -r`
-    sudo sh -c "wget -qO- https://get.docker.io/gpg | apt-key add -"
-    sudo sh -c "echo deb http://get.docker.io/ubuntu docker main > /etc/apt/sources.list.d/docker.list"
-    sudo apt-get -y update
-    sudo apt-get -y install lxc-docker
-
-    # docker stuff
-    sudo gpasswd -a $USER docker
+    wget -qO- https://get.docker.com/ | sh
+    sudo usermod -aG docker $USER
 }
 
 function configure_docker {

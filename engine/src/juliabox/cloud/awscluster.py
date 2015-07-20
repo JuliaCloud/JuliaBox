@@ -32,12 +32,11 @@ class Cluster(CloudHost):
             else:
                     return float(sum(lst[(len(lst)/2)-1:(len(lst)/2)+1]))/2.0
 
-        def add_price(avzone, price):
-            if avzone in avzone_pricevals:
-                pricevals = avzone_pricevals[avzone]
+        def add_price(az, price):
+            if az in avzone_pricevals:
+                pricevals = avzone_pricevals[az]
             else:
-                pricevals = []
-                avzone_pricevals[avzone] = pricevals
+                avzone_pricevals[az] = pricevals = []
             pricevals.append(price)
 
         while True:

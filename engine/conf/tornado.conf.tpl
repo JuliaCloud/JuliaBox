@@ -5,13 +5,13 @@
     # debug:10, info:20, warning:30, error:40
     "jbox_log_level": 10,
     "root_log_level": 40,
-    "gauth" : $$GAUTH,
-    "invite_only" : $$INVITE,
-    
+    # Use Google Authentication (True/False)
+    "gauth" : True,
+
     # Number of active containers to allow per instance
-    "numlocalmax" : $$NUM_LOCALMAX,
+    "numlocalmax" : 30,
     # Number of disks available to be mounted to images
-    "numdisksmax" : $$NUM_DISKSMAX,
+    "numdisksmax" : 30,
     # Maximum number of hops through the load balancer till the installation is declared overloaded
     "numhopmax": 10,
     
@@ -19,7 +19,7 @@
     "sesskey" : "$$SESSKEY",
     
     # Users that have access to the admin tab
-    "admin_users" : ["$$ADMIN_USER"],
+    "admin_users" : [],
     
     # Sessions which will not be timed out and auto-cleaned up
     "protected_sessions" : [],
@@ -37,14 +37,14 @@
     # Seconds to wait before clearing an inactive session, for example, when the user closes the browser window (protected_sessions are not affected)
     "inactivity_timeout" : 300,
     # Upper time limit for a user session before it is auto-deleted. 0 means never expire (protected_sessions are not affected)
-    "expire" : $$EXPIRE,
+    "expire" : 0,
 
     # The docker image to launch
-    "docker_image" : "$$DOCKER_IMAGE",
+    "docker_image" : "juliabox/juliabox",
     
     "google_oauth": {
-        "key": "$$CLIENT_ID", 
-        "secret": "$$CLIENT_SECRET"
+        "key": "",
+        "secret": ""
     },
     
     "cloud_host": {

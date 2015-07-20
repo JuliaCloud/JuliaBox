@@ -2,7 +2,7 @@ import threading
 import json
 import time
 import signal
-import os
+#import os
 import sys
 
 from cloud.aws import CloudHost
@@ -145,8 +145,8 @@ class JBoxd(LoggerMixin):
 
             rate_per_second -= 1
             if rate_per_second <= 0:
-                time.sleep(1)
                 rate_per_second = min(JBoxd.MAX_ACTIVATIONS_PER_SEC, rate)
+                time.sleep(1)
 
     @staticmethod
     @jboxd_method
