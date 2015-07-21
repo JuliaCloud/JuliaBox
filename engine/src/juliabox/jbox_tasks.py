@@ -200,5 +200,5 @@ class JBoxHousekeepingPlugin(LoggerMixin):
 
     __metaclass__ = JBoxPluginType
 
-    PLUGIN_NODE_HOUSEKEEPING = 'node.housekeeping'
-    PLUGIN_CLUSTER_HOUSEKEEPING = 'cluster.housekeeping'
+    PLUGIN_NODE_HOUSEKEEPING = 'housekeeping.node'
+    PLUGIN_CLUSTER_HOUSEKEEPING = 'housekeeping.cluster'

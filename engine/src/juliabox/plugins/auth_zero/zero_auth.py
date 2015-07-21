@@ -27,7 +27,9 @@ class ZeroAuthHandler(JBoxHandlerPlugin):
     Accepts an email id for identification only, so it is possible to have multiple users, each with
     their own storage and sessions.
     """
-    provides = [JBoxHandlerPlugin.PLUGIN_HANDLER]
+    provides = [JBoxHandlerPlugin.PLUGIN_HANDLER,
+                JBoxHandlerPlugin.PLUGIN_HANDLER_AUTH,
+                JBoxHandlerPlugin.PLUGIN_HANDLER_AUTH_ZERO]
 
     @staticmethod
     def register(app):

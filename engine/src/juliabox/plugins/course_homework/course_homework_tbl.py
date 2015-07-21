@@ -11,7 +11,7 @@ from juliabox.db import JBoxDBPlugin
 
 
 class JBoxCourseHomework(JBoxDBPlugin):
-    provides = ['dynamodb.table']
+    provides = [JBoxDBPlugin.PLUGIN_DYNAMODB_TABLE]
 
     NAME = 'jbox_coursehomework'
 

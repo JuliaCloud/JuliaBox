@@ -334,9 +334,9 @@ class JBoxUIModulePlugin(LoggerMixin):
 
     __metaclass__ = JBoxPluginType
 
-    PLUGIN_CONFIG = 'config'
-    PLUGIN_AUTH = 'auth'
-    PLUGIN_SESSION = 'session'
+    PLUGIN_CONFIG = 'ui.config.section'
+    PLUGIN_AUTH = 'ui.auth.btn'
+    PLUGIN_SESSION = 'ui.session.head'
 
     @staticmethod
     def create_include_files():
@@ -376,7 +376,10 @@ class JBoxHandlerPlugin(JBoxHandler):
     __metaclass__ = JBoxPluginType
 
     PLUGIN_HANDLER = 'handler'
-    PLUGIN_JS = 'js'
+    PLUGIN_HANDLER_AUTH = 'handler.auth'
+    PLUGIN_HANDLER_AUTH_ZERO = 'handler.auth.zero'
+    PLUGIN_HANDLER_AUTH_GOOGLE = 'handler.auth.google'
+    PLUGIN_JS = 'handler.js.top'
 
     PLUGIN_JAVASCRIPTS = []
 

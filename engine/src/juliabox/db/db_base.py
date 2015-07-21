@@ -87,4 +87,6 @@ class JBoxDBPlugin(JBoxDB):
     Plugins can take help of base methods provided in JBoxDB.
     """
 
+    PLUGIN_DYNAMODB_TABLE = "db.table.dynamodb"
+
     __metaclass__ = JBoxPluginType

@@ -37,9 +37,10 @@ class JBoxVol(LoggerMixin):
     """
 
     __metaclass__ = JBoxPluginType
-    PLUGIN_USERHOME = 'userhome'
-    PLUGIN_EBS_USERHOME = 'ebs.userhome'
-    PLUGIN_PKGBUNDLE = 'pkgbundle'
+    PLUGIN_USERHOME = 'vol.userhome'
+    PLUGIN_EBS_USERHOME = 'vol.userhome.ebs'
+    PLUGIN_LOCAL_USERHOME = 'vol.userhome.local'
+    PLUGIN_PKGBUNDLE = 'vol.pkgbundle'
 
     BACKUP_LOC = None
     DCKR = None

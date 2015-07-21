@@ -90,7 +90,14 @@ class MainHandler(JBoxHandler):
                 "hostupload": uplport,
                 "hostipnb": ipnbport
             })
+
+            plugin_features = self.application.settings["plugin_features"]
+            for feature in plugin_features:
+                provider_types = plugin_features[feature]
+                plugin_features[feature] = [typ.__name__ for typ in provider_types]
+
             self.rendertpl("ipnbsess.tpl",  sessname=sessname, cfg=JBoxCfg.nv, user_id=user_id,
+                           plugin_features=json.dumps(plugin_features),
                            js_includes=JBoxHandlerPlugin.PLUGIN_JAVASCRIPTS)
 
     def chk_and_launch_docker(self, user_id):

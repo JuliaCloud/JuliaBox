@@ -56,7 +56,9 @@ class GoogleAuthUIHandler(JBoxUIModulePlugin):
 
 
 class GoogleAuthHandler(JBoxHandlerPlugin, GoogleOAuth2Mixin):
-    provides = [JBoxHandlerPlugin.PLUGIN_HANDLER]
+    provides = [JBoxHandlerPlugin.PLUGIN_HANDLER,
+                JBoxHandlerPlugin.PLUGIN_HANDLER_AUTH,
+                JBoxHandlerPlugin.PLUGIN_HANDLER_AUTH_GOOGLE]
 
     @staticmethod
     def register(app):
