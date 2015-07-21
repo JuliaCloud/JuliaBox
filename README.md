@@ -15,7 +15,6 @@ The only constraint is imagination (and server cost).
 ## Features
 
 - Run [IJulia](https://github.com/JuliaLang/IJulia.jl) sessions in sandboxed [Docker](http://www.docker.com) containers.
-- A number of [packages](PACKAGES.md) are available by default.
 - A bash session is also started in the container, which can be used to run the Julia REPL.
 - File transfer facility into a session's container.
 - File synchronization with Google Drive.
