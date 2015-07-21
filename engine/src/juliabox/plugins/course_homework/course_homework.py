@@ -19,8 +19,8 @@ class HomeworkHandler(JBoxHandlerPlugin):
         return "/assets/plugins/course_homework/course_homework.js"
 
     @staticmethod
-    def get_uri():
-        return r"/jboxplugin/hw/"
+    def register(app):
+        app.add_handlers(".*$", [(r"/jboxplugin/hw/", HomeworkHandler)])
 
     def get(self):
         self.log_debug("Homework handler got GET request")

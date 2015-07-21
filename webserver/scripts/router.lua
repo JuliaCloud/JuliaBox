@@ -156,7 +156,7 @@ function M.jbox_route()
     local uri = ngx.var.uri
     local localforward
 
-    if (uri == "/") or (uri == "/hostlaunchipnb/") then
+    if (uri == "/") or (uri == "/hostlaunchipnb/") or ngx.re.match(uri, "/jboxauth/.+") then
         M.set_forward_addr(8888, "http", 8888)
         ngx.var.jbox_forward_addr = M.check_forward_addr(ngx.var.jbox_forward_addr, "http://127.0.0.1:8888")
         ngx.log(ngx.DEBUG, "final forward_addr: " .. ngx.var.jbox_forward_addr)

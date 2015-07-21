@@ -243,7 +243,7 @@ var JuliaBox = (function($, _, undefined){
 			if(_gauth == null) {
 				self.popup_confirm("You must authorize JuliaBox to access Google Drive. Would you like to do that now?", function(res) {
 					if(res) {
-						top.location.href = '/hostlaunchipnb/?state=ask_gdrive';
+						top.location.href = '/jboxauth/google/?state=ask_gdrive';
 					}
 				});
 			}

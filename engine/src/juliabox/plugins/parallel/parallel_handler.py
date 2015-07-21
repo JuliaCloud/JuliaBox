@@ -13,8 +13,10 @@ class ParallelUIModule(JBoxUIModulePlugin):
     TEMPLATE_PATH = os.path.dirname(__file__)
 
     @staticmethod
-    def get_template():
-        return os.path.join(ParallelUIModule.TEMPLATE_PATH, "user_cluster_html.tpl")
+    def get_template(plugin_type):
+        if plugin_type == JBoxUIModulePlugin.PLUGIN_CONFIG:
+            return os.path.join(ParallelUIModule.TEMPLATE_PATH, "user_cluster_html.tpl")
+        return None
 
     @staticmethod
     def get_user_id(handler):
@@ -40,8 +42,8 @@ class ParallelHandler(JBoxHandlerPlugin):
         return "/assets/plugins/parallel/parallel.js"
 
     @staticmethod
-    def get_uri():
-        return r"/jboxplugin/par/"
+    def register(app):
+        app.add_handlers(".*$", [(r"/jboxplugin/par/", ParallelHandler)])
 
     def get(self):
         return self.post()

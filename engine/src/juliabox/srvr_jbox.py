@@ -14,7 +14,7 @@ from jbox_tasks import JBoxAsyncJob
 from jbox_util import LoggerMixin, JBoxCfg
 from vol import VolMgr
 from jbox_container import JBoxContainer
-from handlers import AdminHandler, MainHandler, AuthHandler, PingHandler, CorsHandler
+from handlers import AdminHandler, MainHandler, PingHandler, CorsHandler
 from handlers import JBoxHandlerPlugin, JBoxUIModulePlugin
 
 
@@ -31,21 +31,18 @@ class JBox(LoggerMixin):
         JBoxAsyncJob.configure()
         JBoxAsyncJob.init(JBoxAsyncJob.MODE_PUB)
 
-        request_handlers = [
+        self.application = tornado.web.Application(handlers=[
             (r"/", MainHandler),
-            (r"/hostlaunchipnb/", AuthHandler),
             (r"/hostadmin/", AdminHandler),
             (r"/ping/", PingHandler),
             (r"/cors/", CorsHandler)
-        ]
+        ])
+        JBoxHandlerPlugin.add_plugin_handlers(self.application)
+        JBoxUIModulePlugin.create_include_files()
 
-        JBoxHandlerPlugin.add_plugin_handlers(request_handlers)
-        JBoxUIModulePlugin.create_include_file()
-        self.application = tornado.web.Application(request_handlers)
-
-        cookie_secret = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
-        self.application.settings["cookie_secret"] = cookie_secret
-        self.application.settings["google_oauth"] = JBoxCfg.get('google_oauth')
+        # cookie_secret = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
+        # use sesskey as cookie secret to be able to span multiple tornado servers
+        self.application.settings["cookie_secret"] = JBoxCfg.get('sesskey')
         self.application.listen(JBoxCfg.get('port'), address=socket.gethostname())
         self.application.listen(JBoxCfg.get('port'), address='localhost')
 

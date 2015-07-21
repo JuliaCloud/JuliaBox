@@ -83,24 +83,6 @@ class MainHandler(JBoxHandler):
                            cfg=JBoxCfg.nv,
                            js_includes=JBoxHandlerPlugin.PLUGIN_JAVASCRIPTS)
         else:
-            if JBoxCfg.get("gauth"):
-                jbuser = JBoxUserV2(user_id)
-                creds = jbuser.get_gtok()
-                if creds is not None:
-                    try:
-                        creds_json = json.loads(base64.b64decode(creds))
-                        creds_json = self.renew_creds(creds_json)
-                        authtok = creds_json['access_token']
-                    except:
-                        self.log_warn("stale stored creds. will renew on next use. user: " + user_id)
-                        creds = None
-                        authtok = None
-                else:
-                    authtok = None
-            else:
-                creds = None
-                authtok = None
-
             (shellport, uplport, ipnbport) = cont.get_host_ports()
 
             self.set_container_running({
@@ -108,8 +90,8 @@ class MainHandler(JBoxHandler):
                 "hostupload": uplport,
                 "hostipnb": ipnbport
             })
-            self.rendertpl("ipnbsess.tpl", sessname=sessname, cfg=JBoxCfg.nv, creds=creds, authtok=authtok,
-                           user_id=user_id, js_includes=JBoxHandlerPlugin.PLUGIN_JAVASCRIPTS)
+            self.rendertpl("ipnbsess.tpl",  sessname=sessname, cfg=JBoxCfg.nv, user_id=user_id,
+                           js_includes=JBoxHandlerPlugin.PLUGIN_JAVASCRIPTS)
 
     def chk_and_launch_docker(self, user_id):
         nhops = int(self.get_argument('h', 0))
