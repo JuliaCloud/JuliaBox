@@ -294,11 +294,11 @@ cfg = read_config()
 if __name__ == "__main__":
     application = tornado.web.Application([
         (r"/file-upload", UploadHandler),
-        (r"/ping", PingHandler),
+        (r"/file-list", BrowseHandler),
         (r"/sync", SyncHandler),
         (r"/sshkey", SSHKeyHandler),
         (r"/pkginfo", PkgInfoHandler),
-        (r"/", BrowseHandler)
+        (r"/", PingHandler)
     ])
     application.listen(cfg['port'])
     tornado.ioloop.IOLoop.instance().start()

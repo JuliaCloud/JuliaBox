@@ -13,6 +13,6 @@ class CorsHandler(JBoxHandler):
             self.finish()
         else:
             args = self.pack()
-            url = "//" + CloudHost.notebook_websocket_hostname() + "/cors/?m=" + args
+            url = "//" + CloudHost.notebook_websocket_hostname() + "/jboxcors/?m=" + args
             self.log_debug("redirecting to " + url)
             self.redirect(url)

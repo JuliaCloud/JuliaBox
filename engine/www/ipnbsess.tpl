@@ -4,11 +4,11 @@
 <script type="text/javascript">
     var tab_init = {
         '#ijulia': {'status': true},
-        '#console': {'status': false, 'content': '<iframe src="/hostshell/" id="console-frame" frameborder="0" height="100%" width="100%"></iframe>'},
+        '#console': {'status': false, 'content': '<iframe src="/jci_shell/" id="console-frame" frameborder="0" height="100%" width="100%"></iframe>'},
         '#docs': {'status': false, 'content': '<iframe id="docs-frame" src="//julia.readthedocs.org/en/latest/" frameborder="0" height="100%" width="100%"></iframe>'},
-        '#admin': {'status': false, 'content': '<iframe src="/hostadmin/" id="admin-frame" frameborder="0" height="100%" width="100%"></iframe>'},
-        '#filesync': {'status': false, 'content': '<iframe src="/hostupload/sync" id="filesync-frame" frameborder="0" height="100%" style="float: left" width="100%"></iframe>'},
-        '#fileman': {'status': false, 'content': '<iframe src="/hostupload/" id="upload-frame" frameborder="0" height="100%" style="float: left" width="100%"></iframe>'}
+        '#admin': {'status': false, 'content': '<iframe src="/jboxadmin/" id="admin-frame" frameborder="0" height="100%" width="100%"></iframe>'},
+        '#filesync': {'status': false, 'content': '<iframe src="/jci_file/sync" id="filesync-frame" frameborder="0" height="100%" style="float: left" width="100%"></iframe>'},
+        '#fileman': {'status': false, 'content': '<iframe src="/jci_file/file-list" id="upload-frame" frameborder="0" height="100%" style="float: left" width="100%"></iframe>'}
     };
 
     var ping_timer;
@@ -73,8 +73,8 @@
 {% block body %}
 <div class="tab-content modules">
     <div id="ijulia" class="tab-pane active">
-        <iframe src="/hostipnbsession/" id="ijulia-frame" frameborder="0" height="100%" width="100%"></iframe>
-        <iframe src="/cors/" id="ijulia-cors" frameborder="0" height="0" width="0" style="display: none"></iframe>
+        <iframe src="/jci_nb/" id="ijulia-frame" frameborder="0" height="100%" width="100%"></iframe>
+        <iframe src="/jboxcors/" id="ijulia-cors" frameborder="0" height="0" width="0" style="display: none"></iframe>
     </div>
     <div id="console" class="tab-pane content-pad"></div>
     <div id="docs" class="tab-pane"></div>

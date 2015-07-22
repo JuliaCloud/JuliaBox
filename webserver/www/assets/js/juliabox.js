@@ -12,7 +12,7 @@ var JuliaBox = (function($, _, undefined){
 	    send_keep_alive: function() {
 	    	if((_ping_fails > _max_ping_fails) || _loggedout) return;
 	        $.ajax({
-	        	url: '/ping/',
+	        	url: '/jboxping/',
 	        	type: 'GET',
 	        	timeout: 5000,
 	        	success: function(res) {
@@ -62,7 +62,7 @@ var JuliaBox = (function($, _, undefined){
 	    show_ssh_key: function() {
 	    	s = function(sshkey){ bootbox.alert('<pre>' + sshkey.data + '</pre>'); };
 	    	f = function() { bootbox.alert("Oops. Unexpected error while retrieving the ssh key.<br/><br/>Please try again later."); };
-	    	self.comm('/hostupload/sshkey', 'GET', null, s, f);
+	    	self.comm('/jci_file/sshkey', 'GET', null, s, f);
 	    },
 
 	    show_packages: function(ver) {
@@ -73,7 +73,7 @@ var JuliaBox = (function($, _, undefined){
 	    	        }).find("div.modal-dialog").addClass("bootbox90");
 	    	};
 	    	f = function() { bootbox.alert("Oops. Unexpected error while retrieving packages list.<br/><br/>Please try again later."); };
-	    	self.comm('/hostupload/pkginfo', 'GET', {'ver': ver}, s, f);
+	    	self.comm('/jci_file/pkginfo', 'GET', {'ver': ver}, s, f);
 	    },
 
 	    switch_julia_image: function(disp_curr, disp_switch) {
@@ -87,7 +87,7 @@ var JuliaBox = (function($, _, undefined){
 	    	    }
 	    	};
 	    	f = function() { bootbox.alert("Oops. Unexpected error while switching Julia image.<br/><br/>Please try again later."); };
-	    	self.comm('/hostadmin/', 'GET', {'switch_julia_img': true}, s, f);
+	    	self.comm('/jboxadmin/', 'GET', {'switch_julia_img': true}, s, f);
 	    },
 
 	    set_julia_image_type: function(disp_curr, disp_switch, curr_img_type) {
@@ -134,7 +134,7 @@ var JuliaBox = (function($, _, undefined){
 	    	    else bootbox.alert('<pre>' + cfg.data + '</pre>');
 	    	};
 	    	f = function() { bootbox.alert("Oops. Unexpected error while retrieving config.<br/><br/>Please try again later."); };
-	    	self.comm('/hostadmin/', 'GET', {'show_cfg': true}, s, f);
+	    	self.comm('/jboxadmin/', 'GET', {'show_cfg': true}, s, f);
         },
 
         show_stats: function(stat_name, title) {
@@ -151,7 +151,7 @@ var JuliaBox = (function($, _, undefined){
 	    	    }
 	    	};
 	    	f = function() { bootbox.alert("Oops. Unexpected error while retrieving stats.<br/><br/>Please try again later."); };
-	    	self.comm('/hostadmin/', 'GET', {'stats': stat_name}, s, f);
+	    	self.comm('/jboxadmin/', 'GET', {'stats': stat_name}, s, f);
         },
 
         show_instance_info: function(stat_name, title) {
@@ -167,7 +167,7 @@ var JuliaBox = (function($, _, undefined){
 	    	    }
 	    	};
 	    	f = function() { bootbox.alert("Oops. Unexpected error while retrieving stats.<br/><br/>Please try again later."); };
-	    	self.comm('/hostadmin/', 'GET', {'instance_info': stat_name}, s, f);
+	    	self.comm('/jboxadmin/', 'GET', {'instance_info': stat_name}, s, f);
         },
 
 		init_gauth_tok: function(tok) {
@@ -233,7 +233,7 @@ var JuliaBox = (function($, _, undefined){
 			}
 			self.inpage_alert('info', 'Adding repository...');
 			s = function(res) {
-				$('#filesync-frame').attr('src', '/hostupload/sync');
+				$('#filesync-frame').attr('src', '/jci_file/sync');
 				if(res.code == 0) {
 					self.inpage_alert('success', 'Repository added successfully');
 				}
@@ -245,7 +245,7 @@ var JuliaBox = (function($, _, undefined){
 				}
 			};
 			f = function() { self.inpage_alert('danger', 'Error adding repository.'); };
-    		self.comm('/hostupload/sync', 'POST', {'action': 'addgit', 'repo': repo, 'loc': loc, 'branch': branch}, s, f);
+    		self.comm('/jci_file/sync', 'POST', {'action': 'addgit', 'repo': repo, 'loc': loc, 'branch': branch}, s, f);
 		},
 
 		sync_auth_gdrive: function(fn) {
@@ -269,7 +269,7 @@ var JuliaBox = (function($, _, undefined){
 				return;
 			}
 			s = function(res) {
-				$('#filesync-frame').attr('src', '/hostupload/sync');
+				$('#filesync-frame').attr('src', '/jci_file/sync');
 				if(res.code == 0) {
 					self.inpage_alert('success', 'Repository added successfully');
 				}
@@ -280,7 +280,7 @@ var JuliaBox = (function($, _, undefined){
 			f = function() { self.inpage_alert('danger', 'Error adding repository.'); };
 			self.sync_auth_gdrive(function(){
 				self.inpage_alert('info', 'Adding repository...');
-	    		self.comm('/hostupload/sync', 'POST', data, s, f);
+	    		self.comm('/jci_file/sync', 'POST', data, s, f);
 			});
 		},
 
@@ -298,7 +298,7 @@ var JuliaBox = (function($, _, undefined){
 				}
 			};
 			f = function() { self.inpage_alert('danger', 'Error synchronizing repository.'); };
-    		self.comm('/hostupload/sync', 'POST', {'action': 'syncgit', 'repo': repo}, s, f);
+    		self.comm('/jci_file/sync', 'POST', {'action': 'syncgit', 'repo': repo}, s, f);
 		},
 
 		sync_syncgdrive: function(repo) {
@@ -314,14 +314,14 @@ var JuliaBox = (function($, _, undefined){
 			f = function() { self.inpage_alert('danger', 'Error synchronizing repository.'); };
 			self.sync_auth_gdrive(function(){
 				self.inpage_alert('info', 'Synchronizing repository...');
-	    		self.comm('/hostupload/sync', 'POST', data, s, f);
+	    		self.comm('/jci_file/sync', 'POST', data, s, f);
 	   		});
 		},
 
 		sync_delgit: function(repo) {
 			self.inpage_alert('warning', 'Deleting repository...');
 			s = function(res) {
-				$('#filesync-frame').attr('src', '/hostupload/sync');
+				$('#filesync-frame').attr('src', '/jci_file/sync');
 				if(res.code == 0) {
 					self.inpage_alert('success', 'Repository deleted successfully');
 				}
@@ -330,13 +330,13 @@ var JuliaBox = (function($, _, undefined){
 				}
 			};
 			f = function() { self.inpage_alert('danger', 'Error deleting repository.'); };
-    		self.comm('/hostupload/sync', 'POST', {'action': 'delgit', 'repo': repo}, s, f);
+    		self.comm('/jci_file/sync', 'POST', {'action': 'delgit', 'repo': repo}, s, f);
 		},
 
 		sync_delgdrive: function(repo) {
 			data = {'action': 'delgdrive', 'repo': repo, 'gauth': _gauth};
 			s = function(res) {
-				$('#filesync-frame').attr('src', '/hostupload/sync');
+				$('#filesync-frame').attr('src', '/jci_file/sync');
 				if(res.code == 0) {
 					self.inpage_alert('success', 'Repository deleted successfully');
 				}
@@ -347,7 +347,7 @@ var JuliaBox = (function($, _, undefined){
 			f = function() { self.inpage_alert('danger', 'Error deleting repository.'); };
 			self.sync_auth_gdrive(function(){
 				self.inpage_alert('warning', 'Deleting repository...');
-	    		self.comm('/hostupload/sync', 'POST', data, s, f);
+	    		self.comm('/jci_file/sync', 'POST', data, s, f);
 	   		});
 		},
 		
@@ -387,7 +387,7 @@ var JuliaBox = (function($, _, undefined){
     	
     	logout_at_browser: function () {
 			for (var it in $.cookie()) {
-				if(["sessname", "hostshell", "hostupload", "hostipnb", "sign", "juliabox", "instance_id"].indexOf(it) > -1) {
+				if((it.indexOf("jb_") == 0) || (it.indexOf("jp_") == 0)) {
 					$.removeCookie(it);
 				}
 			}
@@ -398,7 +398,7 @@ var JuliaBox = (function($, _, undefined){
 		do_logout: function () {
 			s = function(res) {};
 			f = function() {};
-    		self.comm('/hostadmin/', 'GET', { 'logout' : 'me' }, s, f);
+    		self.comm('/jboxadmin/', 'GET', { 'logout' : 'me' }, s, f);
 		},
 
     	logout: function () {
@@ -406,7 +406,7 @@ var JuliaBox = (function($, _, undefined){
 			f = function() { self.logout_at_browser(); };
     		self.popup_confirm('Logout from JuliaBox?', function(res) {
     			if(res) {
-    			    self.comm('/hostadmin/', 'GET', { 'logout' : 'me' }, s, f);
+    			    self.comm('/jboxadmin/', 'GET', { 'logout' : 'me' }, s, f);
     			}
     		});
     	},

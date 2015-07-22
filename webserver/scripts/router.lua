@@ -7,13 +7,13 @@ ngx.log(ngx.DEBUG, "juliabox.router.lua initialized.\npackage path:\n" .. packag
 
 local socketM = require "socket"
 local httpM  = require "resty.http"
+local cjson = require "cjson"
 
 local local_hostname = socketM.dns.gethostname()
 local local_ipaddr = socketM.dns.toip(local_hostname)
+local json = cjson.new()
 
 local key = ngx.var.SESSKEY
-local cookienames = {"hostipnb", "hostshell", "hostupload", "instance_id", "sessname"}
-table.sort(cookienames)
 
 function M.unquote(s)
     if s ~= nil and s:find'^"' then
@@ -22,25 +22,49 @@ function M.unquote(s)
     return s
 end
 
-function M.is_valid_session()
-    local toks = {}
-    for i,cname in ipairs(cookienames) do
-        local varname = "cookie_" .. cname
-        local cval = ngx.var[varname]
-        if cval ~= nil then
-            table.insert(toks, cname)
-            table.insert(toks, M.unquote(cval))
-        end
+function M.is_valid_auth()
+    local is_valid = false
+    local succ, src, authjson = pcall(function()
+        local auth = M.unquote(ngx.var.cookie_jb_auth)
+        auth = ngx.decode_base64(auth)
+        auth = json.decode(auth)
+        return auth["u"] .. auth["t"], auth
+    end)
+    if succ then
+        local digest = ngx.hmac_sha1(key, src)
+        local b64 = ngx.encode_base64(digest)
+        is_valid = (b64 == authjson["x"])
+    else
+        ngx.log(ngx.WARN, "Exception parsing auth " .. (src or ""))
     end
-    local src = table.concat(toks, "_")
-    local digest = ngx.hmac_sha1(key, src)
-    local b64 = ngx.encode_base64(digest)
-    local is_valid = (b64 == M.unquote(ngx.var.cookie_sign))
+    return is_valid, authjson
+end
+
+function M.is_valid_session()
+    local is_valid = false
+    local succ, src, sessjson = pcall(function()
+        local sess = M.unquote(ngx.var.cookie_jb_sess)
+        sess = ngx.decode_base64(sess)
+        sess = json.decode(sess)
+        return (sess["c"] .. sess["i"] .. sess["t"]), sess
+    end)
+    if succ then
+        local digest = ngx.hmac_sha1(key, src)
+        local b64 = ngx.encode_base64(digest)
+        is_valid = (b64 == sessjson["x"])
+    else
+        ngx.log(ngx.WARN, "Exception parsing session " .. (src or ""))
+    end
 
     if is_valid == false then
-        ngx.log(ngx.WARN, "invalid session b64(" .. src .. ") = " .. b64 .. " != " .. (M.unquote(ngx.var.cookie_sign) or ""))
+        ngx.log(ngx.WARN, "invalid session")
     end
-    return is_valid
+    return is_valid, sessjson
+end
+
+function M.get_authsig()
+    local is_valid, authjson = M.is_valid_auth()
+    return is_valid and authjson["x"] or ""
 end
 
 function M.rewrite_uri()
@@ -48,7 +72,7 @@ function M.rewrite_uri()
     local match
 
     ngx.log(ngx.DEBUG, "checking whether to rewrite uri: " .. uri)
-    match = ngx.re.match(uri, "^/hostupload/(.*)") or ngx.re.match(uri, "^/hostshell/(.*)") or ngx.re.match(uri, "^/hostipnbsession/(.*)")
+    match = ngx.re.match(uri, "^/jci_[a-zA-Z0-9_\\-]{1,50}/(.*)")
 
     if match then
         local rewriteuri = "/" .. (match[1] or "")
@@ -145,55 +169,62 @@ function M.delay_till_available(outgoing, path)
 end
 
 function M.forbid_invalid_session()
-    if M.is_valid_session() == false then
+    local is_valid, sessjson = M.is_valid_session()
+    if is_valid == false then
         ngx.say("Signature mismatch")
         ngx.exit(ngx.HTTP_FORBIDDEN)
     end
+    return sessjson
+end
+
+function M.get_validated_port(sessjson, portname)
+    local is_valid = false
+    local succ, src, portjson = pcall(function()
+        local portcookie = M.unquote(ngx.var["cookie_jp_" .. portname])
+        portcookie = ngx.decode_base64(portcookie)
+        portcookie = json.decode(portcookie)
+        local authsig = M.get_authsig()
+        local sesssig = sessjson["x"]
+        return authsig .. sesssig .. portname .. portcookie["p"], portcookie
+    end)
+
+    if succ then
+        local digest = ngx.hmac_sha1(key, src)
+        local b64 = ngx.encode_base64(digest)
+        is_valid = (b64 == portjson["x"])
+    else
+        ngx.log(ngx.WARN, "Exception parsing port " .. portname .. ". Error: " .. (src or ""))
+    end
+    return is_valid and portjson["p"] or ""
 end
 
 function M.jbox_route()
-    local match
     local uri = ngx.var.uri
     local localforward
 
-    if (uri == "/") or (uri == "/hostlaunchipnb/") or ngx.re.match(uri, "/jboxauth/.+") then
+    -- route to juliabox container manager
+    if (uri == "/") or ngx.re.match(uri, "^/jbox[a-zA-Z0-9_\\-]{1,50}/.*") then
         M.set_forward_addr(8888, "http", 8888)
-        ngx.var.jbox_forward_addr = M.check_forward_addr(ngx.var.jbox_forward_addr, "http://127.0.0.1:8888")
+        if (uri == "/") or ngx.re.match(uri, "/jboxauth/.+") then
+            ngx.var.jbox_forward_addr = M.check_forward_addr(ngx.var.jbox_forward_addr, "http://127.0.0.1:8888")
+        else
+            M.forbid_invalid_session()
+        end
         ngx.log(ngx.DEBUG, "final forward_addr: " .. ngx.var.jbox_forward_addr)
         return
     end
 
-    if ngx.re.match(uri, "/(hostadmin|ping|cors|jboxplugin)+/") then
-        M.set_forward_addr(8888, "http", 8888)
-        ngx.log(ngx.DEBUG, "final forward_addr: " .. ngx.var.jbox_forward_addr)
-        return
-    end
-
-    match = ngx.re.match(uri, "^/hostupload/.*")
+    local match = ngx.re.match(uri, "^/jci_([a-zA-Z0-9_\\-]{1,50})/.*")
     if match then
-        M.forbid_invalid_session()
-        localforward = M.set_forward_addr(ngx.var.cookie_hostupload, nil, nil)
-        M.delay_till_available(ngx.var.jbox_forward_addr, "/ping")
-        if localforward then M.rewrite_uri() end
-        ngx.var.jbox_forward_addr = ngx.var.jbox_forward_addr .. ngx.var.uri .. (ngx.var.is_args or "") .. (ngx.var.query_string or "")
-        ngx.log(ngx.DEBUG, "final forward_addr: " .. ngx.var.jbox_forward_addr)
-        return
-    end
+        local sessjson = M.forbid_invalid_session()
+        local portname = match[1]
+        local portnum = M.get_validated_port(sessjson, portname)
+        if portnum == "" then
+            ngx.say("Invalid/no port specified for " .. portname)
+            ngx.exit(ngx.HTTP_FORBIDDEN)
+        end
 
-    match = ngx.re.match(uri, "^/hostshell/.*")
-    if match then
-        M.forbid_invalid_session()
-        localforward = M.set_forward_addr(ngx.var.cookie_hostshell, nil, nil)
-        M.delay_till_available(ngx.var.jbox_forward_addr, "/")
-        if localforward then M.rewrite_uri() end
-        ngx.var.jbox_forward_addr = ngx.var.jbox_forward_addr .. ngx.var.uri .. (ngx.var.is_args or "") .. (ngx.var.query_string or "")
-        ngx.log(ngx.DEBUG, "final forward_addr: " .. ngx.var.jbox_forward_addr)
-        return
-    end
-
-    if uri == "/hostipnbsession/" then
-        M.forbid_invalid_session()
-        localforward = M.set_forward_addr(ngx.var.cookie_hostipnb, nil, nil)
+        localforward = M.set_forward_addr(portnum, nil, nil)
         M.delay_till_available(ngx.var.jbox_forward_addr, "/")
         if localforward then M.rewrite_uri() end
         ngx.var.jbox_forward_addr = ngx.var.jbox_forward_addr .. ngx.var.uri .. (ngx.var.is_args or "") .. (ngx.var.query_string or "")
@@ -202,8 +233,13 @@ function M.jbox_route()
     end
 
     -- all others
-    M.forbid_invalid_session()
-    M.set_forward_addr(ngx.var.cookie_hostipnb, nil, nil)
+    local sessjson = M.forbid_invalid_session()
+    local portnum = M.get_validated_port(sessjson, "nb")
+    if portnum == "" then
+        ngx.say("Invalid/no port specified for nb")
+        ngx.exit(ngx.HTTP_FORBIDDEN)
+    end
+    M.set_forward_addr(portnum, nil, nil)
     ngx.log(ngx.DEBUG, "final websock forward_addr: " .. ngx.var.jbox_forward_addr)
     return
 end
