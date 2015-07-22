@@ -6,6 +6,7 @@ var JuliaBox = (function($, _, undefined){
 	var _ping_fails = 0;
 	var _max_ping_fails = 4;
 	var _loggedout = false;
+	var _plugin_features = {}
 
 	var self = {
 	    send_keep_alive: function() {
@@ -49,6 +50,14 @@ var JuliaBox = (function($, _, undefined){
 	    		}
 	    	});
 	    },
+
+		set_plugin_features: function(features) {
+			self._plugin_features = features;
+		},
+
+		has_plugin_feature: function(feature) {
+			return (feature in self._plugin_features)
+		},
 
 	    show_ssh_key: function() {
 	    	s = function(sshkey){ bootbox.alert('<pre>' + sshkey.data + '</pre>'); };
@@ -243,7 +252,7 @@ var JuliaBox = (function($, _, undefined){
 			if(_gauth == null) {
 				self.popup_confirm("You must authorize JuliaBox to access Google Drive. Would you like to do that now?", function(res) {
 					if(res) {
-						top.location.href = '/hostlaunchipnb/?state=ask_gdrive';
+						top.location.href = '/jboxauth/google/?state=ask_gdrive';
 					}
 				});
 			}

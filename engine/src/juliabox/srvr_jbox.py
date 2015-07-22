@@ -9,12 +9,13 @@ import tornado.auth
 
 from cloud.aws import CloudHost
 import db
-from db import JBoxDynConfig, JBoxUserV2, is_cluster_leader, is_proposed_cluster_leader
+from db import JBoxDynConfig, JBoxUserV2, is_cluster_leader, is_proposed_cluster_leader, JBoxDBPlugin
 from jbox_tasks import JBoxAsyncJob
 from jbox_util import LoggerMixin, JBoxCfg
-from vol import VolMgr
+from jbox_tasks import JBoxHousekeepingPlugin
+from vol import VolMgr, JBoxVol
 from jbox_container import JBoxContainer
-from handlers import AdminHandler, MainHandler, AuthHandler, PingHandler, CorsHandler
+from handlers import AdminHandler, MainHandler, PingHandler, CorsHandler
 from handlers import JBoxHandlerPlugin, JBoxUIModulePlugin
 
 
@@ -31,21 +32,19 @@ class JBox(LoggerMixin):
         JBoxAsyncJob.configure()
         JBoxAsyncJob.init(JBoxAsyncJob.MODE_PUB)
 
-        request_handlers = [
+        self.application = tornado.web.Application(handlers=[
             (r"/", MainHandler),
-            (r"/hostlaunchipnb/", AuthHandler),
             (r"/hostadmin/", AdminHandler),
             (r"/ping/", PingHandler),
             (r"/cors/", CorsHandler)
-        ]
+        ])
+        JBoxHandlerPlugin.add_plugin_handlers(self.application)
+        JBoxUIModulePlugin.create_include_files()
 
-        JBoxHandlerPlugin.add_plugin_handlers(request_handlers)
-        JBoxUIModulePlugin.create_include_file()
-        self.application = tornado.web.Application(request_handlers)
-
-        cookie_secret = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
-        self.application.settings["cookie_secret"] = cookie_secret
-        self.application.settings["google_oauth"] = JBoxCfg.get('google_oauth')
+        # cookie_secret = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
+        # use sesskey as cookie secret to be able to span multiple tornado servers
+        self.application.settings["cookie_secret"] = JBoxCfg.get('sesskey')
+        self.application.settings["plugin_features"] = JBox._get_pluggedin_features()
         self.application.listen(JBoxCfg.get('port'), address=socket.gethostname())
         self.application.listen(JBoxCfg.get('port'), address='localhost')
 
@@ -56,6 +55,18 @@ class JBox(LoggerMixin):
         self.log_info("Container maintenance every " + str(run_interval / (60 * 1000)) + " minutes")
         self.ct = tornado.ioloop.PeriodicCallback(JBox.do_housekeeping, run_interval, self.ioloop)
         self.sigct = tornado.ioloop.PeriodicCallback(JBox.do_signals, 1000, self.ioloop)
+
+    @staticmethod
+    def _get_pluggedin_features():
+        feature_providers = dict()
+        for pluginclass in [JBoxHousekeepingPlugin, JBoxDBPlugin, JBoxHandlerPlugin, JBoxUIModulePlugin, JBoxVol]:
+            for plugin in pluginclass.plugins:
+                for feature in plugin.provides:
+                    if feature in feature_providers:
+                        feature_providers[feature].append(plugin)
+                    else:
+                        feature_providers[feature] = [plugin]
+        return feature_providers
 
     def run(self):
         if CloudHost.ENABLED['route53']:

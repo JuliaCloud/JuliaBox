@@ -8,7 +8,7 @@ DOCKER_IMAGE=juliabox/juliabox
 DOCKER_IMAGE_VER=$(grep "^# Version:" ${JBOX_DIR}/docker/Dockerfile | cut -d":" -f2)
 
 function build_web_engines {
-    for pycfile in `find $JBOX_DIR} -name "*.pyc" -print`
+    for pycfile in `find ${JBOX_DIR} -name "*.pyc" -print`
     do
         sudo rm $pycfile
     done

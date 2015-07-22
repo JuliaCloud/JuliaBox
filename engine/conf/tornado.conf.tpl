@@ -5,8 +5,6 @@
     # debug:10, info:20, warning:30, error:40
     "jbox_log_level": 10,
     "root_log_level": 40,
-    # Use Google Authentication (True/False)
-    "gauth" : True,
 
     # Number of active containers to allow per instance
     "numlocalmax" : 30,
@@ -41,7 +39,8 @@
 
     # The docker image to launch
     "docker_image" : "juliabox/juliabox",
-    
+
+    # if using Google auth, the API key and secret to use
     "google_oauth": {
         "key": "",
         "secret": ""
@@ -112,6 +111,7 @@ Welcome to JuliaBox. We hope you will like it and also share with your friends.
         "juliabox.plugins.vol_defpkg",
         "juliabox.plugins.course_homework",
         "juliabox.plugins.parallel",
+        "juliabox.plugins.auth_google",
         ""
     ],
 

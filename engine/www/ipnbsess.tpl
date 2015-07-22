@@ -41,19 +41,12 @@
             JuliaBox.logout();
         });
 
+        JuliaBox.set_plugin_features({% raw plugin_features %});
         JuliaBox.init_inpage_alert($('#msg_body'), $('#in_page_alert'));
-        {%if None != creds %}
-        JuliaBox.init_gauth_tok("{{creds}}");
-        $().gdrive('init', {
-            'devkey': 'AIzaSyADAHw6De_orDrpcP9_hC9utXqESDpaut8',
-            'appid': '64159081293-43o683d0pcgdq6gn7ms86liljoeklvh3.apps.googleusercontent.com',
-            'authtok': '{{authtok}}',
-            'user': '{{user_id}}'
-        });
-        {% end %}
         ping_timer = setInterval(do_ping, 15000);
     });
 </script>
+{% include "../../../www/session_modules.tpl" %}
 <style>
     .bootbox100 { margin: 0 auto; width: 1000px; }
     .bootbox90 { margin: 0 auto; width: 900px; }

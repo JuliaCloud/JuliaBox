@@ -14,6 +14,15 @@ from pydrive.drive import GoogleDrive
 
 
 class GDriveSync:
+    """Synchronizes folders from Google Drive.
+
+    Requires credentials to be provided as base64 encoded JSON representation of OAuth2Credentials, in form field gauth.
+
+    If credentials are not found, the Google authentication plugin is invoked
+    with state as ask_gdrive (/jboxauth/google?state=ask_gdrive). On successful
+    authentication and authorization, the plugin must call JuliaBox.init_gauth_tok
+    on the browser with appropriately formatted credentials.
+    """
     CREDSB64 = None
     CREDS = None
     GAUTH = None
@@ -175,7 +184,7 @@ class GDriveSync:
                 'auth_uri': GOOGLE_AUTH_URI,
                 'token_uri': GOOGLE_TOKEN_URI,
                 'revoke_uri': GOOGLE_REVOKE_URI,
-                'redirect_uri': 'http://juliabox.org/hostlaunchipnb/'
+                'redirect_uri': 'http://juliabox.org/jboxauth/google/'
             }
         }
         gauth.LoadClientConfigSettings()

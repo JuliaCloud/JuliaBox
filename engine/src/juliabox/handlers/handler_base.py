@@ -14,7 +14,7 @@ from juliabox.jbox_container import JBoxContainer
 from juliabox.jbox_tasks import JBoxAsyncJob
 from juliabox.jbox_crypto import signstr
 from juliabox.cloud.aws import CloudHost
-from juliabox.db import is_proposed_cluster_leader
+from juliabox.db import is_proposed_cluster_leader, JBoxUserV2, JBoxDynConfig
 from juliabox.jbox_crypto import encrypt, decrypt
 
 
@@ -269,6 +269,58 @@ class JBoxHandler(JBoxCookies):
         self.set_header('Connection', 'close')
         self.request.connection.no_keep_alive = True
 
+    @staticmethod
+    def is_user_activated(jbuser):
+        reg_allowed = JBoxDynConfig.get_allow_registration(CloudHost.INSTALL_ID)
+        if jbuser.is_new:
+            if not reg_allowed:
+                activation_state = JBoxUserV2.ACTIVATION_REQUESTED
+            else:
+                activation_state = JBoxUserV2.ACTIVATION_GRANTED
+            jbuser.set_activation_state(JBoxUserV2.ACTIVATION_CODE_AUTO, activation_state)
+            jbuser.save()
+        else:
+            activation_code, activation_state = jbuser.get_activation_state()
+            if reg_allowed and (activation_state != JBoxUserV2.ACTIVATION_GRANTED):
+                activation_state = JBoxUserV2.ACTIVATION_GRANTED
+                jbuser.set_activation_state(JBoxUserV2.ACTIVATION_CODE_AUTO, activation_state)
+                jbuser.save()
+            elif activation_state != JBoxUserV2.ACTIVATION_GRANTED:
+                if not ((activation_state == JBoxUserV2.ACTIVATION_REQUESTED) and
+                        (activation_code == JBoxUserV2.ACTIVATION_CODE_AUTO)):
+                    activation_state = JBoxUserV2.ACTIVATION_REQUESTED
+                    jbuser.set_activation_state(JBoxUserV2.ACTIVATION_CODE_AUTO, activation_state)
+                    jbuser.save()
+
+        return activation_state == JBoxUserV2.ACTIVATION_GRANTED
+
+    def post_auth_launch_container(self, user_id):
+        jbuser = JBoxUserV2(user_id, create=True)
+        if not JBoxHandlerPlugin.is_user_activated(jbuser):
+            self.redirect('/?pending_activation=' + user_id)
+            return
+
+        self.set_authenticated(user_id)
+        if jbuser.is_new:
+            jbuser.save()
+
+        if self.try_launch_container(user_id, max_hop=False):
+            self.set_container_initialized(CloudHost.instance_local_ip(), user_id)
+        else:
+            redirect_instance = CloudHost.get_redirect_instance_id()
+            if redirect_instance is not None:
+                redirect_ip = CloudHost.instance_local_ip(redirect_instance)
+                self.set_redirect_instance_id(redirect_ip)
+        self.redirect('/')
+
+    def post_auth_store_credentials(self, user_id, authtype, credtok):
+        # TODO: make this generic for other authentication/authorization modes
+        jbuser = JBoxUserV2(user_id, create=True)
+        jbuser.set_gtok(base64.b64encode(credtok))
+        jbuser.save()
+        self.redirect('/')
+        return
+
 
 class JBoxUIModulePlugin(LoggerMixin):
     """ Enables providing additional sections in a JuliaBox screen.
@@ -282,17 +334,28 @@ class JBoxUIModulePlugin(LoggerMixin):
 
     __metaclass__ = JBoxPluginType
 
-    PLUGIN_CONFIG = 'config'
+    PLUGIN_CONFIG = 'ui.config.section'
+    PLUGIN_AUTH = 'ui.auth.btn'
+    PLUGIN_SESSION = 'ui.session.head'
 
     @staticmethod
-    def create_include_file():
-        incl_file_path = os.path.join(os.path.dirname(__file__), "../../../www/admin_modules.tpl")
-        with open(incl_file_path, 'w') as incl_file:
-            for plugin in JBoxUIModulePlugin.plugins:
-                JBoxUIModulePlugin.log_info("Found plugin %r provides %r", plugin, plugin.provides)
-                template_file = plugin.get_template()
+    def create_include_files():
+        JBoxUIModulePlugin._gen_include(JBoxUIModulePlugin.PLUGIN_CONFIG, "admin")
+        JBoxUIModulePlugin._gen_include(JBoxUIModulePlugin.PLUGIN_AUTH, "auth")
+        JBoxUIModulePlugin._gen_include(JBoxUIModulePlugin.PLUGIN_SESSION, "session")
 
-                incl_file.write('{%% module Template("%s") %%}\n' % (template_file,))
+    @staticmethod
+    def _gen_include(plugin_type, plugin_type_name):
+        # TODO: make template location configurable. For now, www must be located under engine folder.
+        incl_file_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "www", plugin_type_name + "_modules.tpl")
+        with open(incl_file_path, 'w') as incl_file:
+            for plugin in JBoxUIModulePlugin.jbox_get_plugins(plugin_type):
+                JBoxUIModulePlugin.log_info("Found %s plugin %r provides %r", plugin_type_name, plugin, plugin.provides)
+                template_file = plugin.get_template(plugin_type)
+                if template_file is None:
+                    JBoxUIModulePlugin.log_info("No %s template provided by %r", plugin_type_name, plugin)
+                else:
+                    incl_file.write('{%% module Template("%s") %%}\n' % (template_file,))
 
 
 class JBoxHandlerPlugin(JBoxHandler):
@@ -300,10 +363,12 @@ class JBoxHandlerPlugin(JBoxHandler):
 
     It is a plugin mount point, looking for features:
     - handler (handles requests to a URL spec)
+    - auth (provides authentication/authorization to JuliaBox)
     - js (provides javascript file to be included at top level)
 
     Methods expected in the plugin:
-    - get_uri: Provide URI handled
+    - register: Register self with a URL pattern
+    - get_template: return template_file to include in the login screen, if any
     - get_js: Provide javascript path to be included at top level if any
     - should also provide methods required from a tornado request handler
     """
@@ -311,15 +376,18 @@ class JBoxHandlerPlugin(JBoxHandler):
     __metaclass__ = JBoxPluginType
 
     PLUGIN_HANDLER = 'handler'
-    PLUGIN_JS = 'js'
+    PLUGIN_HANDLER_AUTH = 'handler.auth'
+    PLUGIN_HANDLER_AUTH_ZERO = 'handler.auth.zero'
+    PLUGIN_HANDLER_AUTH_GOOGLE = 'handler.auth.google'
+    PLUGIN_JS = 'handler.js.top'
 
     PLUGIN_JAVASCRIPTS = []
 
     @staticmethod
-    def add_plugin_handlers(l):
+    def add_plugin_handlers(app):
         for plugin in JBoxHandlerPlugin.jbox_get_plugins(JBoxHandlerPlugin.PLUGIN_HANDLER):
             JBoxHandlerPlugin.log_info("Found plugin %r provides %r", plugin, plugin.provides)
-            l.append((plugin.get_uri(), plugin))
+            plugin.register(app)
 
         for plugin in JBoxHandlerPlugin.jbox_get_plugins(JBoxHandlerPlugin.PLUGIN_JS):
             JBoxHandlerPlugin.log_info("Found plugin %r provides %r", plugin, plugin.provides)

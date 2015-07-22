@@ -41,7 +41,3 @@ Thumbs.db
 *.conf
 *.user
 *.pid
-
-# Installation folder #
-#######################
-host/install
