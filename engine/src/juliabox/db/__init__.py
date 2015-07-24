@@ -1,7 +1,6 @@
 __author__ = 'tan'
 from db_base import JBoxDB, JBoxDBPlugin
 from user_v2 import JBoxUserV2
-from invites import JBoxInvite
 from accounting_v2 import JBoxAccountingV2
 from container import JBoxSessionProps
 from dynconfig import JBoxDynConfig
@@ -11,7 +10,6 @@ from juliabox.jbox_util import JBoxCfg
 
 def configure():
     JBoxUserV2.NAME = JBoxCfg.get('cloud_host.cloud_cfg', JBoxUserV2.NAME)
-    JBoxInvite.NAME = JBoxCfg.get('cloud_host.jbox_invites', JBoxInvite.NAME)
     JBoxAccountingV2.NAME = JBoxCfg.get('cloud_host.jbox_accounting_v2', JBoxAccountingV2.NAME)
     JBoxSessionProps.NAME = JBoxCfg.get('cloud_host.jbox_session', JBoxSessionProps.NAME)
     JBoxDynConfig.NAME = JBoxCfg.get('cloud_host.jbox_dynconfig', JBoxDynConfig.NAME)

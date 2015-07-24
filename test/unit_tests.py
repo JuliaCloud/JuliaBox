@@ -2,7 +2,7 @@ import datetime
 
 import docker
 
-from db import JBoxDynConfig, JBoxAccountingV2, JBoxSessionProps, JBoxUserV2, JBoxInvite
+from db import JBoxDynConfig, JBoxAccountingV2, JBoxSessionProps, JBoxUserV2
 from jbox_util import read_config, LoggerMixin, unique_sessname
 from juliabox import db
 from juliabox.cloud.aws import CloudHost
@@ -76,10 +76,6 @@ class TestDBTables(LoggerMixin):
 
         num_pending_activations = JBoxUserV2.count_pending_activations()
         TestDBTables.log_debug("pending activations: %d", num_pending_activations)
-
-        resultset = JBoxInvite.table().scan()
-        result_arr = [obj for obj in resultset]
-        TestDBTables.log_debug("got array: %r", result_arr)
 
         count_created = JBoxUserV2.count_created(48)
         TestDBTables.log_debug("accounts created in last 1 hour: %d", count_created)

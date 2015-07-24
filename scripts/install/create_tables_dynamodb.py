@@ -2,7 +2,7 @@
 
 from boto.dynamodb2.table import Table
 
-from juliabox.db import JBoxUserV2, JBoxInvite, JBoxAccountingV2, JBoxDynConfig, \
+from juliabox.db import JBoxUserV2, JBoxAccountingV2, JBoxDynConfig, \
     JBoxSessionProps, JBoxDBPlugin
 
 # import any plugins that contribute tables
@@ -17,7 +17,7 @@ def table_exists(name):
     except:
         return False
 
-tables = [JBoxUserV2, JBoxInvite, JBoxAccountingV2, JBoxDynConfig, JBoxSessionProps]
+tables = [JBoxUserV2, JBoxAccountingV2, JBoxDynConfig, JBoxSessionProps]
 for plugin in JBoxDBPlugin.plugins:
     tables.append(plugin)
 
