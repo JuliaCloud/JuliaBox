@@ -19,20 +19,18 @@ from juliabox.jbox_crypto import encrypt, decrypt
 
 
 class JBoxCookies(RequestHandler, LoggerMixin):
-    COOKIE_AUTH = 'juliabox'
     AUTH_VALID_DAYS = 30
     AUTH_VALID_SECS = (AUTH_VALID_DAYS * 24 * 60 * 60)
 
-    COOKIE_SESSID = 'sessname'
-    COOKIE_INSTANCEID = 'instance_id'
-    COOKIE_PORT_SHELL = 'hostshell'
-    COOKIE_PORT_UPL = 'hostupload'
-    COOKIE_PORT_IPNB = 'hostipnb'
-    COOKIE_LOADING = 'loading'
-    COOKIE_SIGN = 'sign'
+    COOKIE_AUTH = 'jb_auth'
+    COOKIE_SESS = 'jb_sess'
+    COOKIE_INSTANCEID = 'jb_iid'
+    COOKIE_LOADING = 'jb_loading'
 
-    ALL_SESSION_COOKIES = [COOKIE_SESSID, COOKIE_SIGN, COOKIE_LOADING, COOKIE_INSTANCEID,
-                           COOKIE_PORT_SHELL, COOKIE_PORT_UPL, COOKIE_PORT_IPNB]
+    COOKIE_PFX_PORT = 'jp_'
+    COOKIE_PORT_SHELL = 'shell'
+    COOKIE_PORT_UPL = 'file'
+    COOKIE_PORT_IPNB = 'nb'
 
     def __init__(self, application, request, **kwargs):
         super(JBoxCookies, self).__init__(application, request, **kwargs)
@@ -45,6 +43,13 @@ class JBoxCookies(RequestHandler, LoggerMixin):
         self._valid_session = None
 
     def set_authenticated(self, user_id):
+        """ Marks user_id as authenticated with a cookie named COOKIE_AUTH (juliabox).
+        Cookie contains:
+        - Creation timestamp and is treated as valid for AUTH_VALID_SECS time.
+        - Signature for validity check.
+        :param user_id: the user id being marked as authenticated
+        :return: None
+        """
         t = datetime.datetime.now(pytz.utc).isoformat()
         sign = signstr(user_id + t, JBoxCfg.get('sesskey'))
 
@@ -52,26 +57,58 @@ class JBoxCookies(RequestHandler, LoggerMixin):
         self.set_cookie(JBoxCookies.COOKIE_AUTH, base64.b64encode(json.dumps(jbox_cookie)))
 
     def set_redirect_instance_id(self, instance_id):
+        """ Sets a cookie COOKIE_INSTANCEID (instance_id) to mark a destination for the router
+        to redirect the next request to. This is used to implement stickyness for dedicated
+        sessions. But this can also be used to route requests for load balancing.
+        :param instance_id: Host to redirect to (typically an internal IP address inaccessible from public network)
+        :return: None
+        """
         self._set_container_cookies({
             JBoxCookies.COOKIE_INSTANCEID: instance_id
         })
 
     def set_container_initialized(self, instance_id, user_id):
-        self._set_container(ports={
-            JBoxCookies.COOKIE_PORT_SHELL: 0,
-            JBoxCookies.COOKIE_PORT_UPL: 0,
-            JBoxCookies.COOKIE_PORT_IPNB: 0
-        }, instance_id=instance_id, user_id=user_id)
+        """ Marks a container as being allocated to a user session.
+        Sets a cookie named COOKIE_SESS (jb_sess). Cookie contains:
+        - Container id (session name / docker container name).
+        - Container location (instance id).
+        - Creation time stamp.
+        - Signature for validity check.
+        It also clears any stale port mapping cookies, and sets the loading state to 1.
+        :param instance_id: The instance where container is allocated, to redirect future requests to.
+        :param user_id: The user id for which container is allocated.
+        :return: None
+        """
+        t = datetime.datetime.now(pytz.utc).isoformat()
+        cid = unique_sessname(user_id)
+        sign = signstr(cid + instance_id + t, JBoxCfg.get('sesskey'))
+
+        sess_cookie = {'c': cid, 't': t, 'i': instance_id, 'x': sign}
+        self._set_container_cookies({
+            JBoxCookies.COOKIE_SESS: base64.b64encode(json.dumps(sess_cookie))
+        })
+        self._clear_container_ports()
         self.set_loading_state(1)
+
+    def set_container_ports(self, ports):
+        """ Sets cookies to mark the ports being accessible.
+        :param ports: dict of portname and port numbers. Port name can be referred to in the URL path.
+        :return:
+        """
+        sig1 = self._get_sig(JBoxCookies.COOKIE_AUTH)
+        sig2 = self._get_sig(JBoxCookies.COOKIE_SESS)
+
+        cookies = dict()
+        for portname, portnum in ports.iteritems():
+            sign = signstr(sig1 + sig2 + portname + str(portnum), JBoxCfg.get('sesskey'))
+            port_cookie = {'p': portnum, 'x': sign}
+            cookies[JBoxCookies.COOKIE_PFX_PORT + portname] = base64.b64encode(json.dumps(port_cookie))
+        self._set_container_cookies(cookies)
 
     def set_loading_state(self, loading=1):
         self._set_container_cookies({
             JBoxCookies.COOKIE_LOADING: loading
         })
-
-    def set_container_running(self, ports):
-        self._set_container(ports)
-        self.clear_loading()
 
     def get_user_id(self, validate=True):
         if (self._user_id is None) or (validate and (not self._valid_user)):
@@ -94,7 +131,7 @@ class JBoxCookies(RequestHandler, LoggerMixin):
                     self._valid_user = True
                 self._user_id = jbox_cookie['u']
             except:
-                self.log_error("exception while reading cookie")
+                self.log_error("exception while reading auth cookie")
                 traceback.print_exc()
                 return None
         return self._user_id
@@ -124,32 +161,36 @@ class JBoxCookies(RequestHandler, LoggerMixin):
         return self.get_session_id(validate=True) is not None
 
     def clear_container(self):
-        for name in JBoxCookies.ALL_SESSION_COOKIES:
-            self.clear_cookie(name)
-
-    def clear_instance_affinity(self):
-        self.clear_cookie(JBoxCookies.COOKIE_INSTANCEID)
+        self.clear_cookie(JBoxCookies.COOKIE_SESS)
+        self._clear_container_ports()
+    #
+    # def clear_instance_affinity(self):
+    #     self.clear_cookie(JBoxCookies.COOKIE_INSTANCEID)
+    #
+    # def clear_authentication(self):
+    #     self.clear_cookie(JBoxCookies.COOKIE_AUTH)
 
     def clear_loading(self):
         self.clear_cookie(JBoxCookies.COOKIE_LOADING)
 
-    def clear_authentication(self):
-        self.clear_cookie(JBoxCookies.COOKIE_AUTH)
-
     def pack(self):
         args = dict()
-        for cname in JBoxCookies.ALL_SESSION_COOKIES:
-            args[cname] = self.get_cookie(cname)
+        for cookie in [JBoxCookies.COOKIE_SESS, JBoxCookies.COOKIE_INSTANCEID, JBoxCookies.COOKIE_AUTH]:
+            args[cookie] = self.get_cookie(cookie)
+        for cookie in self.cookies:
+            if cookie.startswith(JBoxCookies.COOKIE_PFX_PORT):
+                args[cookie] = self.get_cookie(cookie)
         return tornado.escape.url_escape(base64.b64encode(encrypt(json.dumps(args), JBoxCfg.get('sesskey'))))
 
     def unpack(self, packed):
         args = json.loads(decrypt(base64.b64decode(packed), JBoxCfg.get('sesskey')))
-        for cname in JBoxCookies.ALL_SESSION_COOKIES:
-            cval = args[cname]
+        for oldcookie in self.cookies:
+            if oldcookie not in args or args[oldcookie] is None:
+                self.clear_cookie(oldcookie)
+
+        for cname, cval in args.iteritems():
             if cval is not None:
-                self.set_cookie(cname, args[cname])
-            else:
-                self.clear_cookie(cname)
+                self.set_cookie(cname, cval)
 
     def _set_container_cookies(self, cookies):
         max_session_time = JBoxCfg.get('expire')
@@ -160,60 +201,93 @@ class JBoxCookies(RequestHandler, LoggerMixin):
         for n, v in cookies.iteritems():
             self.set_cookie(n, str(v), expires=expires)
 
-    @staticmethod
-    def _sign_cookies(cookies):
-        signcomps = []
-        for k in sorted(cookies):
-            signcomps.append(k)
-            signcomps.append(str(cookies[k]))
-
-        #JBoxCookies.log_debug("signing cookies [%s]", '_'.join(signcomps))
-        cookies[JBoxCookies.COOKIE_SIGN] = signstr('_'.join(signcomps), JBoxCfg.get('sesskey'))
-
-    def _set_container(self, ports, instance_id=None, user_id=None):
-        if instance_id is None:
-            instance_id = self.get_instance_id()
-
-        if user_id is None:
-            user_id = self.get_user_id()
-
-        cookies = {
-            JBoxCookies.COOKIE_SESSID: unique_sessname(user_id),
-            JBoxCookies.COOKIE_INSTANCEID: instance_id
-        }
-        cookies.update(ports)
-        self._sign_cookies(cookies)
-        #self.log_debug("setting container cookies: %r", cookies)
-        self._set_container_cookies(cookies)
-
     def _get_container(self, validate=True):
         if (self._session_id is None) or (validate and (not self._valid_session)):
+            lenpfx = len(JBoxCookies.COOKIE_PFX_PORT)
             rcvd_cookies = dict()
-            for cname in [JBoxCookies.COOKIE_SESSID, JBoxCookies.COOKIE_INSTANCEID,
-                          JBoxCookies.COOKIE_PORT_SHELL, JBoxCookies.COOKIE_PORT_UPL, JBoxCookies.COOKIE_PORT_IPNB]:
+            for cname in [JBoxCookies.COOKIE_SESS, JBoxCookies.COOKIE_INSTANCEID]:
                 rcvd_cookies[cname] = unquote(self.get_cookie(cname))
 
-            if rcvd_cookies[JBoxCookies.COOKIE_SESSID] is None:
+            for cookie in self.cookies:
+                if cookie.startswith(JBoxCookies.COOKIE_PFX_PORT):
+                    rcvd_cookies[cookie] = unquote(self.get_cookie(cookie))
+
+            # self.log_debug("received cookies %r", rcvd_cookies)
+            try:
+                sess_cookie = rcvd_cookies[JBoxCookies.COOKIE_SESS]
+                sess_cookie = json.loads(base64.b64decode(sess_cookie))
+                # self.log_debug("received sess cookie %r", sess_cookie)
+                self._session_id = sess_cookie['c']
+                self._instance_id = sess_cookie['i']
+                # self.log_debug("received sess_id %r, inst_id %r", self._session_id, self._instance_id)
+                self._ports = dict()
+                for port_cookie, port_val in rcvd_cookies.iteritems():
+                    if port_cookie.startswith(JBoxCookies.COOKIE_PFX_PORT):
+                        portname = port_cookie[lenpfx:]
+                        port_val = base64.b64decode(port_val)
+                        # self.log_debug("read port %s=%s", port_cookie, port_val)
+                        port_val = json.loads(port_val)
+                        if len(portname) > 0:
+                            self._ports[portname] = port_val['p']
+            except:
+                self._valid_session = False
+                self.log_error("exception while reading sess/port cookie")
+                traceback.print_exc()
                 return False
 
             if validate:
-                signval = self.get_cookie(JBoxCookies.COOKIE_SIGN)
-                if signval is None:
-                    self.log_info('invalid session %s. signature missing', rcvd_cookies[JBoxCookies.COOKIE_SESSID])
-                    return False
-                signval = signval.replace('"', '')
-                self._sign_cookies(rcvd_cookies)
-                if rcvd_cookies[JBoxCookies.COOKIE_SIGN] != signval:
-                    self.log_info('invalid session %s. signature mismatch', rcvd_cookies[JBoxCookies.COOKIE_SESSID])
-                    return False
-                self._valid_session = True
+                # validate the session
+                try:
+                    sign = signstr(sess_cookie['c'] + sess_cookie['i'] + sess_cookie['t'], JBoxCfg.get('sesskey'))
+                    if sign != sess_cookie['x']:
+                        self._valid_session = False
+                        self.log_info("signature mismatch for %s", sess_cookie['c'])
+                        return False
 
-            self._session_id = rcvd_cookies[JBoxCookies.COOKIE_SESSID]
-            self._instance_id = rcvd_cookies[JBoxCookies.COOKIE_INSTANCEID]
-            self._ports = dict()
-            for cname in [JBoxCookies.COOKIE_PORT_SHELL, JBoxCookies.COOKIE_PORT_UPL, JBoxCookies.COOKIE_PORT_IPNB]:
-                self._ports[cname] = rcvd_cookies[cname]
+                    d = isodate.parse_datetime(sess_cookie['t'])
+                    age = (datetime.datetime.now(pytz.utc) - d).total_seconds()
+                    if age > JBoxCookies.AUTH_VALID_SECS:
+                        self.log_info("cookie for %s older than allowed days: %r", sess_cookie['c'], sess_cookie['t'])
+                        return False
+                    self._valid_session = True
+                except:
+                    self.log_error("exception while validating sess/port cookie")
+                    traceback.print_exc()
+                    return False
+
+                # validate the ports
+                # failure to validate a port still returns True, but removes ports from the port list
+                sig1 = self._get_sig(JBoxCookies.COOKIE_AUTH)
+                sig2 = sess_cookie['x']
+
+                for port_cookie, port_val in rcvd_cookies.iteritems():
+                    if port_cookie.startswith(JBoxCookies.COOKIE_PFX_PORT):
+                        portname = port_cookie[lenpfx:]
+                        try:
+                            port_val = base64.b64decode(port_val)
+                            # self.log_debug("session %s, port %s=%s", self._session_id, portname, port_val)
+                            port_val = json.loads(port_val)
+                            sign = signstr(sig1 + sig2 + portname + str(port_val['p']), JBoxCfg.get('sesskey'))
+                            if sign != port_val['x']:
+                                self.log_info('session %s port %s has signature mismatch', self._session_id, portname)
+                                del self._ports[portname]
+                        except:
+                            self.log_error('exception parsing session %r port %r', self._session_id, portname)
+                            traceback.print_exc()
+                            del self._ports[portname]
         return True
+
+    def _clear_container_ports(self):
+        for cookie in self.cookies:
+            if cookie.startswith(JBoxCookies.COOKIE_PFX_PORT):
+                self.clear_cookie(cookie)
+
+    def _get_sig(self, cookiename):
+        cookie = self.get_cookie(cookiename)
+        if cookie is None:
+            raise Exception("Signature %s not found", cookiename)
+        cookie = json.loads(base64.b64decode(cookie))
+        return cookie['x']
 
 
 class JBoxHandler(JBoxCookies):

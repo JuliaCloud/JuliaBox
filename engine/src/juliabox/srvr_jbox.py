@@ -34,9 +34,9 @@ class JBox(LoggerMixin):
 
         self.application = tornado.web.Application(handlers=[
             (r"/", MainHandler),
-            (r"/hostadmin/", AdminHandler),
-            (r"/ping/", PingHandler),
-            (r"/cors/", CorsHandler)
+            (r"/jboxadmin/", AdminHandler),
+            (r"/jboxping/", PingHandler),
+            (r"/jboxcors/", CorsHandler)
         ])
         JBoxHandlerPlugin.add_plugin_handlers(self.application)
         JBoxUIModulePlugin.create_include_files()
@@ -63,9 +63,9 @@ class JBox(LoggerMixin):
             for plugin in pluginclass.plugins:
                 for feature in plugin.provides:
                     if feature in feature_providers:
-                        feature_providers[feature].append(plugin)
+                        feature_providers[feature].append(plugin.__name__)
                     else:
-                        feature_providers[feature] = [plugin]
+                        feature_providers[feature] = [plugin.__name__]
         return feature_providers
 
     def run(self):

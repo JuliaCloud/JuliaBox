@@ -64,7 +64,7 @@ http {
             include jbox_router.incl;
         }
 
-        location ~ /(jboxauth|hostadmin|ping|cors|jboxplugin|hostupload|hostshell|hostipnbsession)+/.* {
+        location ~ "/(jbox|jci_)+[a-zA-Z0-9_\-]{1,50}/.*" {
             include jbox_router.incl;
         }
 

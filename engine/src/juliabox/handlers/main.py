@@ -47,14 +47,14 @@ class MainHandler(JBoxHandler):
         self.log_debug("AJAX monitoring loading of session [%s] user[%s]...", sessname, user_id)
         cont = JBoxContainer.get_by_name(sessname)
         if (cont is None) or (not cont.is_running()):
-            loading_step = int(self.get_cookie("loading", 0))
+            loading_step = int(self.get_loading_state(), 0)
             if loading_step > 30:
                 self.log_error("Could not start instance. Session [%s] for user [%s] didn't load.", sessname, user_id)
                 self.write({'code': -1})
                 return
 
             loading_step += 1
-            self.set_cookie("loading", str(loading_step))
+            self.set_loading_state(loading_step)
             self.write({'code': 0})
         else:
             self.write({'code': 1})
@@ -64,7 +64,7 @@ class MainHandler(JBoxHandler):
         self.log_debug("Monitoring loading of session [%s] user[%s]...", sessname, user_id)
         cont = JBoxContainer.get_by_name(sessname)
         if (cont is None) or (not cont.is_running()):
-            loading_step = int(self.get_cookie("loading", 0))
+            loading_step = int(self.get_loading_state(), 0)
             if loading_step > 30:
                 self.log_error("Could not start instance. Session [%s] for user [%s] didn't load.", sessname, user_id)
                 self.clear_container()
@@ -77,7 +77,7 @@ class MainHandler(JBoxHandler):
             else:
                 loading_step += 1
 
-            self.set_cookie("loading", str(loading_step))
+            self.set_loading_state(loading_step)
             self.rendertpl("loading.tpl",
                            user_id=user_id,
                            cfg=JBoxCfg.nv,
@@ -85,19 +85,15 @@ class MainHandler(JBoxHandler):
         else:
             (shellport, uplport, ipnbport) = cont.get_host_ports()
 
-            self.set_container_running({
-                "hostshell": shellport,
-                "hostupload": uplport,
-                "hostipnb": ipnbport
+            self.set_container_ports({
+                JBoxHandler.COOKIE_PORT_SHELL: shellport,
+                JBoxHandler.COOKIE_PORT_UPL: uplport,
+                JBoxHandler.COOKIE_PORT_IPNB: ipnbport
             })
-
-            plugin_features = self.application.settings["plugin_features"]
-            for feature in plugin_features:
-                provider_types = plugin_features[feature]
-                plugin_features[feature] = [typ.__name__ for typ in provider_types]
+            self.clear_loading()
 
             self.rendertpl("ipnbsess.tpl",  sessname=sessname, cfg=JBoxCfg.nv, user_id=user_id,
-                           plugin_features=json.dumps(plugin_features),
+                           plugin_features=json.dumps(self.application.settings["plugin_features"]),
                            js_includes=JBoxHandlerPlugin.PLUGIN_JAVASCRIPTS)
 
     def chk_and_launch_docker(self, user_id):

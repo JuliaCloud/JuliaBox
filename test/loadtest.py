@@ -13,32 +13,32 @@ class Sightseer(TaskSet):
             
     @task(1)    
     def admin(self):
-        resp = self.client.get('/hostadmin/')
+        resp = self.client.get('/jboxadmin/')
         self.stop_on_error(resp)
 
     @task(1)    
     def filesync(self):
-        resp = self.client.get('/hostupload/sync')
+        resp = self.client.get('/jci_upload/sync')
         self.stop_on_error(resp)
 
     @task(5)    
     def fileman(self):
-        resp = self.client.get('/hostupload/')
+        resp = self.client.get('/jci_upload/file-list')
         self.stop_on_error(resp)
 
     @task(1)    
     def console(self):
-        resp = self.client.get('/hostshell/')
+        resp = self.client.get('/jci_shell/')
         self.stop_on_error(resp)
 
     @task(3)    
     def ijulia(self):
-        resp = self.client.get('/hostipnbsession/')
+        resp = self.client.get('/jci_notebook/')
         self.stop_on_error(resp)
 
     @task(10)    
     def ping(self):
-        resp = self.client.get('/ping/')
+        resp = self.client.get('/')
         self.stop_on_error(resp)
 
     @task(2)
@@ -58,7 +58,7 @@ class NotebookViewer(TaskSet):
         self.add_git()
     
     def add_git(self):
-        with self.client.post('/hostupload/sync', {'action': 'addgit', 'repo': 'https://github.com/jiahao/ijulia-notebooks.git', 'loc': 'ijulia-notebooks', 'branch': 'master'}, catch_response=True) as resp:
+        with self.client.post('/jci_upload/sync', {'action': 'addgit', 'repo': 'https://github.com/jiahao/ijulia-notebooks.git', 'loc': 'ijulia-notebooks', 'branch': 'master'}, catch_response=True) as resp:
             try:
                 resp_json = json.loads(resp.content)
                 
@@ -74,7 +74,7 @@ class NotebookViewer(TaskSet):
     
 #     @task(1)
 #     def sync_git(self):
-#         with self.client.post('/hostupload/sync', {'action': 'syncgit', 'repo': 'https://github.com/jiahao/ijulia-notebooks.git'}, catch_response=True) as resp:
+#         with self.client.post('/jci_upload/sync', {'action': 'syncgit', 'repo': 'https://github.com/jiahao/ijulia-notebooks.git'}, catch_response=True) as resp:
 #             resp_json = json.loads(resp.content)
 #             
 #             if resp_json['code'] != 0:
@@ -125,7 +125,7 @@ class NotebookViewer(TaskSet):
 #         self.add_git()
 #     
 #     def add_git(self):
-#         with self.client.post('/hostupload/sync', {'action': 'addgit', 'repo': 'https://github.com/jiahao/ijulia-notebooks.git', 'loc': 'ijulia-notebooks', 'branch': 'master'}, catch_response=True) as resp:
+#         with self.client.post('/jci_upload/sync', {'action': 'addgit', 'repo': 'https://github.com/jiahao/ijulia-notebooks.git', 'loc': 'ijulia-notebooks', 'branch': 'master'}, catch_response=True) as resp:
 #             try:
 #                 resp_json = json.loads(resp.content)
 #                 
@@ -270,7 +270,7 @@ class MetaBehavior1(TaskSet):
 
     def login(self):
         uid = uuid.uuid1().hex
-        self.client.get('/hostlaunchipnb/?sessname=' + uid)
+        self.client.get('/jboxauth/?user_id=' + uid)
 
         
 class JuliaBoxLoad(HttpLocust):
