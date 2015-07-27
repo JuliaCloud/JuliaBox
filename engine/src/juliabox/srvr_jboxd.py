@@ -2,13 +2,13 @@ import threading
 import json
 import time
 import signal
-#import os
+# import os
 import sys
 
 from cloud.aws import CloudHost
 import db
 from db import JBoxUserV2, JBoxDynConfig
-from jbox_tasks import JBoxAsyncJob, JBoxHousekeepingPlugin
+from jbox_tasks import JBoxAsyncJob, JBoxHousekeepingPlugin, JBoxdPlugin
 from jbox_util import LoggerMixin, JBoxCfg, retry
 from jbox_container import JBoxContainer
 from vol import VolMgr
@@ -178,6 +178,20 @@ class JBoxd(LoggerMixin):
             for plugin in JBoxHousekeepingPlugin.jbox_get_plugins(feature):
                 JBoxd.schedule_thread(cmd, plugin.do_housekeeping, (plugin.__name__, feature))
 
+    @staticmethod
+    @jboxd_method
+    def plugin_action(plugin_type, plugin_class, data):
+        matching_plugin = None
+        for plugin in JBoxdPlugin.jbox_get_plugins(plugin_type):
+            if plugin_class is None:
+                matching_plugin = plugin
+                break
+            elif plugin_class == plugin.__name__:
+                matching_plugin = plugin
+                break
+        if matching_plugin is not None:
+            matching_plugin.do_task(matching_plugin.__name__, plugin_type, data)
+
     def process_offline(self):
         self.log_debug("processing offline...")
         cmd, data = JBoxd.QUEUE.recv()
@@ -200,6 +214,9 @@ class JBoxd(LoggerMixin):
         elif cmd == JBoxAsyncJob.CMD_PLUGIN_MAINTENANCE:
             JBoxd.schedule_housekeeping(cmd, data)
             return
+        elif cmd == JBoxAsyncJob.CMD_PLUGIN_TASK:
+            args = (data[0], data[1], data[2])
+            fn = JBoxd.plugin_action
         else:
             self.log_error("Unknown command " + str(cmd))
             return
@@ -235,7 +252,7 @@ class JBoxd(LoggerMixin):
         JBoxd.shutdown = True
         JBoxd.log_info("Received signal %r. Shutting down.", signum)
         sys.exit(0)
-        #os._exit(0)
+        # os._exit(0)
 
     def run(self):
         JBoxd.log_debug("Setting up signal handlers")

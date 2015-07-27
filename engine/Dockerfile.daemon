@@ -25,6 +25,7 @@ RUN echo "juser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Provide env with command prefix required to access host mnt namespace
 ENV HOST_MNT_PFX="nsenter --target 1 --proc /hostproc --mnt --" \
+    CONT_MNT_PFX="nsenter --target {{CPID}} --proc /hostproc --mnt --" \
     HOST_IPC_PFX="nsenter --target 1 --proc /hostproc --ipc --"
 
 USER juser

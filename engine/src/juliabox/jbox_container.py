@@ -428,7 +428,7 @@ class JBoxContainer(LoggerMixin):
         if self.is_running() or self.is_restarting():
             self.kill()
 
-        for disktype in (JBoxVol.PLUGIN_USERHOME, JBoxVol.PLUGIN_PKGBUNDLE):
+        for disktype in (JBoxVol.PLUGIN_USERHOME, JBoxVol.PLUGIN_PKGBUNDLE, JBoxVol.PLUGIN_DATA):
             disk = VolMgr.get_disk_from_container(self.dockid, disktype)
             if disk is not None:
                 disk.release(backup=backup)

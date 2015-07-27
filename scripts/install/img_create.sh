@@ -20,20 +20,27 @@ function build_web_engines {
         IMGTAG="juliabox/$1"
         DOCKERFILE=${JBOX_DIR}/$2
         DOCKERDIR=$(dirname ${DOCKERFILE})
+        echo ""
+        echo "======================================================"
         echo "Building docker image ${IMGTAG} from ${DOCKERFILE} ..."
+        echo "======================================================"
         sudo docker build -t ${IMGTAG} -f ${DOCKERFILE} ${DOCKERDIR}
         unset IFS
     done
 }
 
 function build_docker_image {
+    echo "======================================================"
     echo "Building docker image ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ..."
+    echo "======================================================"
     sudo docker build --rm=true -t ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ${JBOX_DIR}/docker/
     sudo docker tag -f ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:latest
 }
 
 function pull_docker_image {
+    echo "======================================================"
     echo "Pulling docker image ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER} ..."
+    echo "======================================================"
     sudo docker pull tanmaykm/juliabox:${DOCKER_IMAGE_VER}
     sudo docker tag -f tanmaykm/juliabox:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:${DOCKER_IMAGE_VER}
     sudo docker tag -f tanmaykm/juliabox:${DOCKER_IMAGE_VER} ${DOCKER_IMAGE}:latest

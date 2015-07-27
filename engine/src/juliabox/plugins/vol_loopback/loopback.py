@@ -65,7 +65,7 @@ class JBoxLoopbackVol(JBoxVol):
                 for disk_id in disk_ids:
                     JBoxLoopbackVol._mark_disk_used(disk_id)
                     nfree -= 1
-            JBoxLoopbackVol.log_info("Disk free: " + str(nfree) + "/" + str(JBoxLoopbackVol.MAX_DISKS))
+            JBoxLoopbackVol.log_info("Loopback Disk free: " + str(nfree) + "/" + str(JBoxLoopbackVol.MAX_DISKS))
         finally:
             JBoxLoopbackVol.LOCK.release()
 

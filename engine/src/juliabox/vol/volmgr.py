@@ -71,7 +71,9 @@ class VolMgr(LoggerMixin):
 
     @staticmethod
     def refresh_user_home_image():
-        for plugin in JBoxVol.plugins:
+        for plugin in JBoxVol.jbox_get_plugins(JBoxVol.PLUGIN_USERHOME):
+            plugin.refresh_user_home_image()
+        for plugin in JBoxVol.jbox_get_plugins(JBoxVol.PLUGIN_PKGBUNDLE):
             plugin.refresh_user_home_image()
 
     @staticmethod
@@ -108,11 +110,14 @@ class VolMgr(LoggerMixin):
 
     @staticmethod
     def used_pct():
-        pct = 0.0
+        pct_home = 0.0
         for plugin in JBoxVol.jbox_get_plugins(JBoxVol.PLUGIN_USERHOME):
-            pct += plugin.disk_ids_used_pct()
+            pct_home += plugin.disk_ids_used_pct()
+        pct_data = 0.0
+        for plugin in JBoxVol.jbox_get_plugins(JBoxVol.PLUGIN_DATA):
+            pct_data += plugin.disk_ids_used_pct()
 
-        return min(100, max(0, pct))
+        return min(100, max(pct_data, pct_home))
 
     @staticmethod
     def get_pkg_mount_for_user(email):

@@ -27,6 +27,9 @@ RUN mkdir /opt/julia_packages
 RUN echo 'push!(LOAD_PATH, "/opt/julia_packages/.julia/v0.4/")' >> /opt/julia_0.4.0/etc/julia/juliarc.jl
 RUN echo 'push!(LOAD_PATH, "/opt/julia_packages/.julia/v0.3/")' >> /opt/julia_0.3.10/etc/julia/juliarc.jl
 
+# Data volumes shall be mounted at /mnt/data
+RUN mkdir /mnt/data
+
 USER juser
 ENV HOME /home/juser
 ENV PATH /usr/local/texlive/2014/bin/x86_64-linux:/usr/local/bin:/usr/bin:/bin:/sbin:/usr/sbin:/opt/julia/bin

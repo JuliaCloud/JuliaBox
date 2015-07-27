@@ -17,6 +17,7 @@ class JBoxAsyncJob(LoggerMixin):
     CMD_REFRESH_DISKS = 5
     CMD_COLLECT_STATS = 6
     CMD_PLUGIN_MAINTENANCE = 9
+    CMD_PLUGIN_TASK = 10
 
     CMD_REQ_RESP = 50
     CMD_SESSION_STATUS = 51
@@ -185,6 +186,26 @@ class JBoxAsyncJob(LoggerMixin):
     def async_plugin_maintenance(is_leader):
         JBoxAsyncJob.log_info("scheduling plugin maintenance. leader:%r", is_leader)
         JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_PLUGIN_MAINTENANCE, is_leader)
+
+    @staticmethod
+    def async_plugin_task(target_class, data):
+        JBoxAsyncJob.log_info("invoking plugin task. target_class:%s", target_class)
+        JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_PLUGIN_TASK, (JBoxdPlugin.PLUGIN_CMD, target_class, data))
+
+
+class JBoxdPlugin(LoggerMixin):
+    """ Base class for plugins providing asynchronous tasks.
+
+    It is a plugin mount point, looking for features:
+    - async_task
+
+    Methods expected:
+    - do_task: invoked with plugin class name, feature in context, and data as argument
+    """
+
+    __metaclass__ = JBoxPluginType
+
+    PLUGIN_CMD = 'async_cmd'
 
 
 class JBoxHousekeepingPlugin(LoggerMixin):

@@ -26,3 +26,7 @@ truncate -s 0 .bash_history
 truncate -s 0 /var/awslogs/etc/aws.conf
 
 for id in `docker ps -a | cut -d" " -f1 | grep -v CONTAINER`; do echo $id; docker kill $id; docker rm $id; done
+service docker stop
+cp /jboxengine/data/julia_packages.tar.gz ~/julia_packages.tar.gz
+cp /jboxengine/data/user_home.tar.gz ~/user_home.tar.gz
+umount /jboxengine

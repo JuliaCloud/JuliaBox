@@ -47,6 +47,10 @@ def retry(tries, delay=1, backoff=2):
 
                 mtries -= 1      # consume an attempt
                 time.sleep(mdelay)  # wait...
+                # tend = time.time() + mdelay
+                # while time.time() < tend:
+                #     LoggerMixin.log_debug("sleeping...")
+                #     time.sleep(tend - time.time())  # wait...
                 mdelay *= backoff  # make future wait longer
 
                 rv = f(*args, **kwargs)  # Try again
@@ -129,6 +133,17 @@ def unquote(s):
 def create_host_mnt_command(cmd):
     pfx = os.getenv('HOST_MNT_PFX')
     if pfx:
+        cmd = pfx + " " + cmd
+    hcmd = sh.sudo
+    for comp in cmd.split():
+        hcmd = hcmd.bake(comp)
+    return hcmd
+
+
+def create_container_mnt_command(container_pid, cmd):
+    pfx = os.getenv('CONT_MNT_PFX')
+    if pfx:
+        pfx = pfx.replace('{{CPID}}', str(container_pid))
         cmd = pfx + " " + cmd
     hcmd = sh.sudo
     for comp in cmd.split():
