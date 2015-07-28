@@ -97,6 +97,9 @@ class MainHandler(JBoxHandler):
                            js_includes=JBoxHandlerPlugin.PLUGIN_JAVASCRIPTS)
 
     def chk_and_launch_docker(self, user_id):
+        if self.redirect_to_logged_in_instance(user_id):
+            return
+
         nhops = int(self.get_argument('h', 0))
         numhopmax = JBoxCfg.get('numhopmax', 0)
         max_hop = nhops > numhopmax

@@ -88,7 +88,7 @@ class JBoxAsyncJob(LoggerMixin):
 
     def sendrecv(self, cmd, data, dest=None, port=None):
         if (dest is None) or (dest == 'localhost'):
-            dest = '127.0.0.1'
+            dest = CloudHost.instance_local_ip()
         else:
             dest = CloudHost.instance_local_ip(dest)
         if port is None:
@@ -179,7 +179,7 @@ class JBoxAsyncJob(LoggerMixin):
 
     @staticmethod
     def sync_session_status(instance_id):
-        JBoxAsyncJob.log_debug("fetching session status from %s", instance_id)
+        JBoxAsyncJob.log_debug("fetching session status from %r", instance_id)
         return JBoxAsyncJob.get().sendrecv(JBoxAsyncJob.CMD_SESSION_STATUS, {}, dest=instance_id)
 
     @staticmethod
