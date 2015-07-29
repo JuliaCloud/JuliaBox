@@ -74,7 +74,7 @@ class JBoxUserV2(JBoxDB):
     ACTIVATION_CODE_AUTO = 'AUTO'
     
     RES_PROF_BASIC = 0
-    RES_PROF_DISK_EBS_1G = 1 << 0
+    RES_PROF_DISK_EBS_10G = 1 << 0
 
     RES_PROF_JULIA_PKG_PRECOMP = 1 << 12
     RES_PROF_CLUSTER = 1 << 13
@@ -327,8 +327,8 @@ class JBoxUserV2(JBoxDB):
         if res_profile_val == JBoxUserV2.RES_PROF_BASIC:
             res_profile['basic'] += 1
         else:
-            if (res_profile_val & JBoxUserV2.RES_PROF_DISK_EBS_1G) == JBoxUserV2.RES_PROF_DISK_EBS_1G:
-                res_profile['disk_ebs_1G'] += 1
+            if (res_profile_val & JBoxUserV2.RES_PROF_DISK_EBS_10G) == JBoxUserV2.RES_PROF_DISK_EBS_10G:
+                res_profile['disk_ebs_10G'] += 1
             elif (res_profile_val & JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP) == JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP:
                 res_profile['julia_packages_precompiled'] += 1
             elif (res_profile_val & JBoxUserV2.RES_PROF_CLUSTER) == JBoxUserV2.RES_PROF_CLUSTER:

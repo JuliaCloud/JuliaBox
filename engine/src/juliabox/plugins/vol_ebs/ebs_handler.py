@@ -24,7 +24,7 @@ class JBoxEBSVolAsyncTask(JBoxdPlugin):
         sessname = data['sessname']
 
         user = JBoxUserV2(user_id)
-        is_allowed = user.has_resource_profile(JBoxUserV2.RES_PROF_DISK_EBS_1G)
+        is_allowed = user.has_resource_profile(JBoxUserV2.RES_PROF_DISK_EBS_10G)
         if not is_allowed:
             JBoxEBSVolAsyncTask.log_error("Data volume access not allowed for user")
             return
@@ -89,7 +89,7 @@ class JBoxEBSVolUIModule(JBoxUIModulePlugin):
     def is_allowed(handler):
         user_id = JBoxEBSVolUIModule.get_user_id(handler)
         user = JBoxUserV2(user_id)
-        return user.has_resource_profile(JBoxUserV2.RES_PROF_DISK_EBS_1G)
+        return user.has_resource_profile(JBoxUserV2.RES_PROF_DISK_EBS_10G)
 
 
 class JBoxEBSVolHandler(JBoxHandlerPlugin):
@@ -153,6 +153,6 @@ class JBoxEBSVolHandler(JBoxHandlerPlugin):
 
         self.log_debug("EBS disk state: %r", state_code)
         return {
-            'disk_size': '1GB',
+            'disk_size': '10 GB',
             'state': state_code
         }

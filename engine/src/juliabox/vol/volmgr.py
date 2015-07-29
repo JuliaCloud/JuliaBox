@@ -139,14 +139,7 @@ class VolMgr(LoggerMixin):
             custom_jimg = '/opt/julia_packages/jimg/stable/sys.ji'
             ipython_profile = 'jboxjulia'
 
-        plugin = None
-        if user.has_resource_profile(JBoxUserV2.RES_PROF_DISK_EBS_1G):
-            plugin = JBoxVol.jbox_get_plugin(JBoxVol.PLUGIN_EBS_USERHOME)
-
-        # if no EBS plugin configured, use the base plugin
-        if plugin is None:
-            plugin = JBoxVol.jbox_get_plugin(JBoxVol.PLUGIN_USERHOME)
-
+        plugin = JBoxVol.jbox_get_plugin(JBoxVol.PLUGIN_USERHOME)
         if plugin is None:
             raise Exception("No plugin found for %s" % (JBoxVol.PLUGIN_USERHOME,))
 

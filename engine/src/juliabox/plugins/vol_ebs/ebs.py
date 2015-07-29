@@ -25,7 +25,7 @@ class JBoxEBSVol(JBoxVol):
     @staticmethod
     def configure():
         num_disks_max = JBoxCfg.get('numdisksmax')
-        JBoxEBSVol.DISK_LIMIT = 1
+        JBoxEBSVol.DISK_LIMIT = 10
         JBoxEBSVol.MAX_DISKS = num_disks_max
         JBoxEBSVol.DISK_TEMPLATE_SNAPSHOT = JBoxCfg.get('cloud_host.ebs_template')
 
