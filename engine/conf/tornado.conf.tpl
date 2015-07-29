@@ -56,7 +56,6 @@
     	"cloudwatch": True,
     	"autoscale": True,
     	"route53": True,
-    	"ebs": True,
         "ses": True,
 
     	"autoscale_group": "juliabox",
@@ -73,7 +72,6 @@
 
 	    # EBS disk template snapshot id
 	    "ebs_template": None,
-	    "ebs_mnt_location": "/jboxengine/data/disks/ebs",
 
     	"dummy" : "dummy"
     },

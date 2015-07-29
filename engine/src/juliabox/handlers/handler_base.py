@@ -368,6 +368,35 @@ class JBoxHandler(JBoxCookies):
 
         return activation_state == JBoxUserV2.ACTIVATION_GRANTED
 
+    @staticmethod
+    def find_logged_in_instance(user_id):
+        container_id = "/" + unique_sessname(user_id)
+        if CloudHost.ENABLED['autoscale'] and CloudHost.AUTOSCALE_GROUP is not None:
+            instances = CloudHost.get_autoscaled_instances()
+        else:
+            instances = ['localhost']
+
+        for inst in instances:
+            sessions = JBoxAsyncJob.sync_session_status(inst)['data']
+            if len(sessions) > 0:
+                if container_id in sessions:
+                    return inst
+        return None
+
+    def redirect_to_logged_in_instance(self, user_id):
+        loggedin_instance = self.find_logged_in_instance(user_id)
+        if loggedin_instance is not None \
+                and loggedin_instance != CloudHost.instance_id() \
+                and loggedin_instance != 'localhost':
+            # redirect to the instance that has the user's session
+            self.log_info("Already logged in to %s. Redirecting", loggedin_instance)
+            redirect_ip = CloudHost.instance_local_ip(loggedin_instance)
+            self.set_redirect_instance_id(redirect_ip)
+            self.redirect('/')
+            return True
+        self.log_info("Logged in %s", "nowhere" if loggedin_instance is None else "here already")
+        return False
+
     def post_auth_launch_container(self, user_id):
         jbuser = JBoxUserV2(user_id, create=True)
         if not JBoxHandlerPlugin.is_user_activated(jbuser):
@@ -378,9 +407,14 @@ class JBoxHandler(JBoxCookies):
         if jbuser.is_new:
             jbuser.save()
 
+        if self.redirect_to_logged_in_instance(user_id):
+            return
+
+        # check if the current instance is appropriate for launching this
         if self.try_launch_container(user_id, max_hop=False):
             self.set_container_initialized(CloudHost.instance_local_ip(), user_id)
         else:
+            # redirect to an appropriate instance
             redirect_instance = CloudHost.get_redirect_instance_id()
             if redirect_instance is not None:
                 redirect_ip = CloudHost.instance_local_ip(redirect_instance)

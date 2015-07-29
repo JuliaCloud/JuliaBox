@@ -6,6 +6,7 @@ from juliabox.jbox_util import ensure_delete, make_sure_path_exists, JBoxCfg
 from juliabox.vol import JBoxVol
 from juliabox.jbox_container import JBoxContainer
 
+
 class JBoxDefaultPackagesVol(JBoxVol):
     provides = [JBoxVol.PLUGIN_PKGBUNDLE]
 

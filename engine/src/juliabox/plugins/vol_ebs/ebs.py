@@ -1,50 +1,36 @@
 import os
 import threading
 import time
-#import sh
 from string import ascii_lowercase
 
 from juliabox.cloud.awsebsvol import EBSVol
 from juliabox.cloud.aws import CloudHost
 from juliabox.db import JBoxSessionProps
 from juliabox.jbox_util import unique_sessname, JBoxCfg
-# from juliabox.jbox_util import create_host_mnt_command
 from juliabox.vol import JBoxVol
 from disk_state_tbl import JBoxDiskState
-from juliabox.jbox_container import JBoxContainer
 
 
 class JBoxEBSVol(JBoxVol):
-    provides = [JBoxVol.PLUGIN_USERHOME, JBoxVol.PLUGIN_EBS_USERHOME]
+    provides = [JBoxVol.PLUGIN_EBS_DATA, JBoxVol.PLUGIN_DATA]
 
     DEVICES = []
     MAX_DISKS = 0
-    FS_LOC = None
     DISK_LIMIT = None
     DISK_USE_STATUS = {}
     DISK_RESERVE_TIME = {}
     DISK_TEMPLATE_SNAPSHOT = None
     LOCK = None
-    # SH_READ_FSTAB = None
 
     @staticmethod
     def configure():
-        # JBoxEBSVol.SH_READ_FSTAB = create_host_mnt_command("cat /etc/fstab")
         num_disks_max = JBoxCfg.get('numdisksmax')
-        JBoxEBSVol.FS_LOC = os.path.expanduser(JBoxCfg.get('cloud_host.ebs_mnt_location'))
-        JBoxEBSVol.DISK_LIMIT = 1
+        JBoxEBSVol.DISK_LIMIT = 10
         JBoxEBSVol.MAX_DISKS = num_disks_max
         JBoxEBSVol.DISK_TEMPLATE_SNAPSHOT = JBoxCfg.get('cloud_host.ebs_template')
 
         JBoxEBSVol.DEVICES = JBoxEBSVol._guess_configured_devices('xvd', num_disks_max)
         JBoxEBSVol.log_debug("Assuming %d EBS volumes configured in range xvdba..xvdcz", len(JBoxEBSVol.DEVICES))
-        # JBoxEBSVol.DEVICES = JBoxEBSVol._get_configured_devices(JBoxEBSVol.FS_LOC)
-        # if len(JBoxEBSVol.DEVICES) < num_disks_max:
-        #     JBoxEBSVol.log_error("Not enough EBS mount points configured. Found %d, configured %d",
-        #                          len(JBoxEBSVol.DEVICES), num_disks_max)
-        #     raise Exception("Not enough EBS mount points configured")
-        # else:
-        #     JBoxEBSVol.log_debug("Found %d EBS volumes configured", len(JBoxEBSVol.DEVICES))
 
         JBoxEBSVol.LOCK = threading.Lock()
         JBoxEBSVol.refresh_disk_use_status()
@@ -52,23 +38,6 @@ class JBoxEBSVol(JBoxVol):
     @classmethod
     def get_disk_allocated_size(cls):
         return JBoxEBSVol.DISK_LIMIT * 1000000000
-
-    # @staticmethod
-    # def _id_from_device(dev_path):
-    #     return dev_path.split('/')[-1]
-    #
-    # @staticmethod
-    # def _get_configured_devices(fs_loc):
-    #     devices = []
-    #     for line in JBoxEBSVol.SH_READ_FSTAB():
-    #         line = line.strip()
-    #         if (len(line) == 0) or line.startswith('#'):
-    #             continue
-    #         comps = line.split()
-    #         if (len(comps) == 6) and comps[1].startswith(fs_loc):
-    #             device = comps[0]
-    #             devices.append(JBoxEBSVol._id_from_device(device))
-    #     return devices
 
     @staticmethod
     def _guess_configured_devices(devidpfx, num_disks):
@@ -81,25 +50,8 @@ class JBoxEBSVol(JBoxVol):
         return devices
 
     @staticmethod
-    def _get_disk_ids_used(cid):
-        used = []
-        props = JBoxEBSVol.dckr().inspect_container(cid)
-        try:
-            vols = props['Volumes']
-            for _cpath, hpath in vols.iteritems():
-                if hpath.startswith(JBoxEBSVol.FS_LOC):
-                    used.append(hpath.split('/')[-1])
-        except:
-            JBoxEBSVol.log_error("error finding disk ids used in " + cid)
-            return []
-        return used
-
-    @staticmethod
-    def refresh_user_home_image():
-        pass
-
-    @staticmethod
     def refresh_disk_use_status(container_id_list=None):
+        JBoxEBSVol.log_debug("Refrshing EBS disk use status")
         JBoxEBSVol.LOCK.acquire()
         try:
             nfree = 0
@@ -111,17 +63,20 @@ class JBoxEBSVol(JBoxVol):
                     JBoxEBSVol.DISK_USE_STATUS[dev] = False
                     nfree += 1
 
-            if container_id_list is None:
-                container_id_list = [cdesc['Id'] for cdesc in JBoxContainer.session_containers(allcontainers=True)]
-
-            for cid in container_id_list:
-                disk_ids = JBoxEBSVol._get_disk_ids_used(cid)
-                for disk_id in disk_ids:
-                    JBoxEBSVol._mark_disk_used(disk_id)
-                    nfree -= 1
-            JBoxEBSVol.log_info("Disk free: " + str(nfree) + "/" + str(JBoxEBSVol.MAX_DISKS))
+            for device, volume in JBoxEBSVol.get_mapped_volumes().iteritems():
+                JBoxEBSVol.DISK_USE_STATUS[os.path.basename(device)] = True
+                nfree -= 1
+            JBoxEBSVol.log_info("EBS Disk free: " + str(nfree) + "/" + str(JBoxEBSVol.MAX_DISKS))
+        except:
+            JBoxEBSVol.log_exception("Exception refrshing EBS disk use status")
         finally:
             JBoxEBSVol.LOCK.release()
+
+    @staticmethod
+    def get_mapped_volumes():
+        allmaps = EBSVol.get_mapped_volumes()
+        JBoxEBSVol.log_debug("Devices mapped: %r", allmaps)
+        return dict((d,v) for d, v in allmaps.iteritems() if os.path.basename(d) in JBoxEBSVol.DEVICES)
 
     @staticmethod
     def _get_unused_disk_id():
@@ -157,6 +112,11 @@ class JBoxEBSVol(JBoxVol):
             JBoxEBSVol.LOCK.release()
 
     @staticmethod
+    def is_mount_path(fs_path):
+        # EBS volumes are not mounted on host
+        return False
+
+    @staticmethod
     def disk_ids_used_pct():
         pct = (sum(JBoxEBSVol.DISK_USE_STATUS.values()) * 100) / len(JBoxEBSVol.DISK_USE_STATUS)
         return min(100, max(0, pct))
@@ -187,69 +147,48 @@ class JBoxEBSVol(JBoxVol):
 
             JBoxEBSVol.log_debug("will use snapshot id %s for %s", snap_id, user_email)
 
-            _dev_path, mnt_path, vol_id = EBSVol.create_new_volume(snap_id, disk_id, JBoxEBSVol.FS_LOC,
-                                                                   tag=user_email, disk_sz_gb=JBoxEBSVol.DISK_LIMIT)
+            dev_path, vol_id = EBSVol.create_new_volume(snap_id, disk_id, tag=user_email,
+                                                        disk_sz_gb=JBoxEBSVol.DISK_LIMIT)
             existing_disk = JBoxDiskState(cluster_id=CloudHost.INSTALL_ID, region_id=CloudHost.REGION,
                                           user_id=user_email,
                                           volume_id=vol_id,
                                           attach_time=None,
                                           create=True)
         else:
-            _dev_path, mnt_path = EBSVol.attach_volume(existing_disk.get_volume_id(), disk_id, JBoxEBSVol.FS_LOC)
-            existing_disk.set_attach_time()
-            snap_id = None
+            dev_path = EBSVol.attach_volume(existing_disk.get_volume_id(), disk_id)
 
-        existing_disk.set_state(JBoxDiskState.STATE_ATTACHED)
+        existing_disk.set_state(JBoxDiskState.STATE_ATTACHING)
         existing_disk.save()
 
-        ebsvol = JBoxEBSVol(mnt_path, user_email=user_email)
-
-        if snap_id == JBoxEBSVol.DISK_TEMPLATE_SNAPSHOT:
-            JBoxEBSVol.log_debug("creating home folder on blank volume for %s", user_email)
-            ebsvol.restore_user_home(True)
-            ebsvol.restore()
-        else:
-            JBoxEBSVol.log_debug("updating home folder on existing volume for %s", user_email)
-            ebsvol.restore_user_home(False)
-        #    snap_age_days = CloudHost.get_snapshot_age(snap_id).total_seconds()/(60*60*24)
-        #    if snap_age_days > 7:
-        #        ebsvol.restore_user_home()
-        JBoxEBSVol.log_debug("setting up instance configuration on disk for %s", user_email)
-        ebsvol.setup_instance_config()
-
-        return ebsvol
-
-    @staticmethod
-    def is_mount_path(fs_path):
-        return fs_path.startswith(JBoxEBSVol.FS_LOC)
+        return JBoxEBSVol(dev_path, user_email=user_email)
 
     @staticmethod
     def get_disk_from_container(cid):
-        disk_ids_used = JBoxEBSVol._get_disk_ids_used(cid)
-        if len(disk_ids_used) == 0:
-            return None
-
-        disk_id_used = disk_ids_used[0]
-        disk_path = os.path.join(JBoxEBSVol.FS_LOC, str(disk_id_used))
         container_name = JBoxVol.get_cname(cid)
         sessname = container_name[1:]
-        return JBoxEBSVol(disk_path, sessname=sessname)
+        for dev, vol in JBoxEBSVol.get_mapped_volumes().iteritems():
+            vol = EBSVol.get_volume(vol.volume_id)
+            if 'Name' in vol.tags:
+                name = vol.tags['Name']
+                if unique_sessname(name) == sessname:
+                    return JBoxEBSVol(dev, sessname=sessname)
+        return None
 
     def _backup(self, clear_volume=False):
         sess_props = JBoxSessionProps(self.sessname)
         desc = sess_props.get_user_id() + " JuliaBox Backup"
         disk_id = self.disk_path.split('/')[-1]
         snap_id = EBSVol.snapshot_volume(dev_id=disk_id, tag=self.sessname, description=desc, wait_till_complete=False)
-        # old_snap_id = sess_props.get_snapshot_id()
-        # sess_props.set_snapshot_id(snap_id)
-        # sess_props.save()
-        # if old_snap_id is not None:
-        #    CloudHost.delete_snapshot(old_snap_id)
         return snap_id
 
     def release(self, backup=False):
+        sess_props = JBoxSessionProps(self.sessname)
+        existing_disk = JBoxDiskState(cluster_id=CloudHost.INSTALL_ID, region_id=CloudHost.REGION,
+                                      user_id=sess_props.get_user_id())
+        existing_disk.set_state(JBoxDiskState.STATE_DETACHING)
+        existing_disk.save()
+
         disk_id = self.disk_path.split('/')[-1]
-        EBSVol.unmount_device(disk_id, JBoxEBSVol.FS_LOC)
         if backup:
             snap_id = self._backup()
         else:
@@ -257,11 +196,8 @@ class JBoxEBSVol(JBoxVol):
         vol_id = EBSVol.get_volume_id_from_device(disk_id)
         EBSVol.detach_volume(vol_id, delete=False)
 
-        sess_props = JBoxSessionProps(self.sessname)
-        existing_disk = JBoxDiskState(cluster_id=CloudHost.INSTALL_ID, region_id=CloudHost.REGION,
-                                      user_id=sess_props.get_user_id())
         if snap_id is not None:
             existing_disk.add_snapshot_id(snap_id)
-        existing_disk.set_detach_time()
+
         existing_disk.set_state(JBoxDiskState.STATE_DETACHED)
         existing_disk.save()

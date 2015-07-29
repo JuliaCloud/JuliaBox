@@ -1,9 +1,9 @@
 #! /usr/bin/env bash
 # Mount JuliaBox loopback volumes
 
-if [ $# -ne 5 ]
+if [ $# -ne 4 ]
 then
-    echo "Usage: sudo mount_fs.sh <data_location> <ndisks> <ds_size_mb> <fs_user_id> <ebs(0/1)>"
+    echo "Usage: sudo mount_fs.sh <data_location> <ndisks> <ds_size_mb> <fs_user_id>"
     exit 1
 fi
 
@@ -17,7 +17,6 @@ DATA_LOC=$1
 NDISKS=$2
 FS_SIZE_MB=$3
 ID=$4
-HAVE_EBS=$5
 
 echo "Creating and mounting $NDISKS user disks of size $FS_SIZE_MB MB each..."
 
@@ -26,39 +25,11 @@ function error_exit {
 	exit 1
 }
 
-function make_ebs_fstab_entries {
-    let var=1
-    for pfx1 in {b..c}
-    do
-        for pfx2 in {a..z}
-        do
-            if [ $var -le $2 ]
-            then
-                dev_id="xvd${pfx1}${pfx2}"
-                fstab_line="/dev/${dev_id} $1/${dev_id} ext4 rw,user,exec,noatime 0 0"
-                found_line=$( grep -ic "${fstab_line}" /etc/fstab )
-                if [ $found_line -ne 1 ]
-                then
-                    echo "${fstab_line}" >> /etc/fstab
-                fi
-                let var=var+1
-            fi
-        done
-    done
-}
-
 FS_DIR=${DATA_LOC}/disks
 LOOP_IMG_DIR=${FS_DIR}/loop/img
 LOOP_MNT_DIR=${FS_DIR}/loop/mnt
-EBS_DIR=${FS_DIR}/ebs
 echo "    Creating folders to hold filesystems..."
-mkdir -p ${FS_DIR} ${LOOP_IMG_DIR} ${LOOP_MNT_DIR} ${EBS_DIR} || error_exit "Could not create folders to hold filesystems"
-
-if [ $HAVE_EBS -eq 1 ]
-then
-    echo "    Creating fstab entries..."
-    make_ebs_fstab_entries ${EBS_DIR} ${NDISKS}
-fi
+mkdir -p ${FS_DIR} ${LOOP_IMG_DIR} ${LOOP_MNT_DIR} || error_exit "Could not create folders to hold filesystems"
 
 echo "    Stopping docker to make sure no loop devices are in use..."
 service docker stop
@@ -101,17 +72,6 @@ do
 done
 
 rm -f ${LOOP_MNT_DIR}/jimg
-
-if [ $HAVE_EBS -eq 1 ]
-then
-    echo "    Creating mount points for EBS devices..."
-    ebs_mnt_dirs=`grep "${EBS_DIR}" /etc/fstab | cut -d" " -f2`
-    for ebs_mnt_dir in ${ebs_mnt_dirs}
-    do
-        mkdir -p ${ebs_mnt_dir}
-    done
-    chown -R ${ID}:${ID} ${EBS_DIR}
-fi
 
 echo ""
 echo "DONE"

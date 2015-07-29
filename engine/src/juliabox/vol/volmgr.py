@@ -71,7 +71,9 @@ class VolMgr(LoggerMixin):
 
     @staticmethod
     def refresh_user_home_image():
-        for plugin in JBoxVol.plugins:
+        for plugin in JBoxVol.jbox_get_plugins(JBoxVol.PLUGIN_USERHOME):
+            plugin.refresh_user_home_image()
+        for plugin in JBoxVol.jbox_get_plugins(JBoxVol.PLUGIN_PKGBUNDLE):
             plugin.refresh_user_home_image()
 
     @staticmethod
@@ -108,11 +110,14 @@ class VolMgr(LoggerMixin):
 
     @staticmethod
     def used_pct():
-        pct = 0.0
+        pct_home = 0.0
         for plugin in JBoxVol.jbox_get_plugins(JBoxVol.PLUGIN_USERHOME):
-            pct += plugin.disk_ids_used_pct()
+            pct_home += plugin.disk_ids_used_pct()
+        pct_data = 0.0
+        for plugin in JBoxVol.jbox_get_plugins(JBoxVol.PLUGIN_DATA):
+            pct_data += plugin.disk_ids_used_pct()
 
-        return min(100, max(0, pct))
+        return min(100, max(pct_data, pct_home))
 
     @staticmethod
     def get_pkg_mount_for_user(email):
@@ -134,14 +139,7 @@ class VolMgr(LoggerMixin):
             custom_jimg = '/opt/julia_packages/jimg/stable/sys.ji'
             ipython_profile = 'jboxjulia'
 
-        plugin = None
-        if user.has_resource_profile(JBoxUserV2.RES_PROF_DISK_EBS_1G):
-            plugin = JBoxVol.jbox_get_plugin(JBoxVol.PLUGIN_EBS_USERHOME)
-
-        # if no EBS plugin configured, use the base plugin
-        if plugin is None:
-            plugin = JBoxVol.jbox_get_plugin(JBoxVol.PLUGIN_USERHOME)
-
+        plugin = JBoxVol.jbox_get_plugin(JBoxVol.PLUGIN_USERHOME)
         if plugin is None:
             raise Exception("No plugin found for %s" % (JBoxVol.PLUGIN_USERHOME,))
 

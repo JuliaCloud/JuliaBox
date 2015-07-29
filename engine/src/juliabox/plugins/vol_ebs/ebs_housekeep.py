@@ -1,5 +1,6 @@
 __author__ = 'tan'
 import pytz
+import os
 import datetime
 
 from juliabox.jbox_tasks import JBoxHousekeepingPlugin
@@ -7,16 +8,45 @@ from juliabox.db import JBoxSessionProps
 from juliabox.cloud.awsebsvol import EBSVol
 from juliabox.jbox_util import unique_sessname
 from juliabox.srvr_jboxd import jboxd_method
+from juliabox.jbox_container import JBoxContainer
 
 from disk_state_tbl import JBoxDiskState
+from ebs import JBoxEBSVol
 
 
 class JBoxEBSHousekeep(JBoxHousekeepingPlugin):
-    provides = [JBoxHousekeepingPlugin.PLUGIN_CLUSTER_HOUSEKEEPING]
+    provides = [JBoxHousekeepingPlugin.PLUGIN_CLUSTER_HOUSEKEEPING, JBoxHousekeepingPlugin.PLUGIN_NODE_HOUSEKEEPING]
 
     @staticmethod
     @jboxd_method
-    def do_housekeeping(_name, _mode):
+    def do_housekeeping(_name, mode):
+        if mode == JBoxHousekeepingPlugin.PLUGIN_CLUSTER_HOUSEKEEPING:
+            JBoxEBSHousekeep.do_cluster_housekeeping()
+        elif mode == JBoxHousekeepingPlugin.PLUGIN_NODE_HOUSEKEEPING:
+            JBoxEBSHousekeep.do_node_housekeeping()
+
+    @staticmethod
+    def do_node_housekeeping():
+        JBoxEBSHousekeep.log_debug("starting node housekeeping")
+        for device, vol in JBoxEBSVol.get_mapped_volumes().iteritems():
+            deviceid = os.path.basename(device)
+            vol_id = vol.volume_id
+            vol = EBSVol.get_volume(vol_id)
+            user_id = vol.tags['Name'] if 'Name' in vol.tags else None
+            if user_id is None:
+                continue
+            sessname = unique_sessname(user_id)
+            cont = JBoxContainer.get_by_name(sessname)
+            if cont is not None:
+                continue
+            JBoxEBSHousekeep.log_debug("Found orphaned volume %s for %s, %s", vol_id, user_id, sessname)
+            ebsvol = JBoxEBSVol(deviceid, sessname=sessname)
+            ebsvol.release(backup=True)
+        JBoxEBSHousekeep.log_debug("finished node housekeeping")
+
+    @staticmethod
+    def do_cluster_housekeeping():
+        JBoxEBSHousekeep.log_debug("starting cluster housekeeping")
         detached_disks = JBoxDiskState.get_detached_disks()
         time_now = datetime.datetime.now(pytz.utc)
         for disk_key in detached_disks:
@@ -47,3 +77,4 @@ class JBoxEBSHousekeep(JBoxHousekeepingPlugin):
                     EBSVol.detach_volume(vol_id, delete=True)
             else:
                 JBoxEBSHousekeep.log_debug("ongoing snapshots of user %s: %r", user_id, incomplete_snapshots)
+        JBoxEBSHousekeep.log_debug("finished cluster housekeeping")

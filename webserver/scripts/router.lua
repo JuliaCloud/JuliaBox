@@ -207,7 +207,7 @@ function M.jbox_route()
         M.set_forward_addr(8888, "http", 8888)
         if (uri == "/") or ngx.re.match(uri, "/jboxauth/.+") then
             ngx.var.jbox_forward_addr = M.check_forward_addr(ngx.var.jbox_forward_addr, "http://127.0.0.1:8888")
-        else
+        elseif not ngx.re.match(uri, "/jboxcors/.*") then
             M.forbid_invalid_session()
         end
         ngx.log(ngx.DEBUG, "final forward_addr: " .. ngx.var.jbox_forward_addr)

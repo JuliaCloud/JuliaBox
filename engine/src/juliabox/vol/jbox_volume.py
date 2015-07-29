@@ -11,6 +11,7 @@ from juliabox.cloud.aws import CloudHost
 from juliabox.jbox_util import unique_sessname, ensure_delete, esc_sessname, get_user_name, parse_iso_time
 from juliabox.jbox_util import LoggerMixin, JBoxCfg, make_sure_path_exists
 from juliabox.jbox_util import JBoxPluginType
+from juliabox.jbox_util import create_host_mnt_command, create_container_mnt_command
 from juliabox.jbox_crypto import ssh_keygen
 
 
@@ -19,9 +20,11 @@ class JBoxVol(LoggerMixin):
     Volumes are always mounted as user home now. We shall have other mount points in future for data folders.
 
     It is a plugin mount point, looking for features:
-    - userhome (provides replacement for user home folder)
-    - ebs.userhome (AWS EBS volumes - requirement indicated through user's resource profile)
-    - pkgbundle (provides replacement for Julia packages and precompiled images)
+    - vol.userhome (provides replacement for user home folder)
+    - vol.data (provides larger data disks that can be additionally mounted)
+    - vol.pkgbundle (provides replacement for Julia packages and precompiled images)
+    - vol.userhome.ebs (user home folder on EBS  - requirement indicated through user's resource profile)
+    - vol.userhome.local (user home folder provided on local(loopback) volumes)
 
     Methods expected in the plugin:
     - configure: Initialize self. Configuration file can be accessed through JBoxCfg.
@@ -38,9 +41,11 @@ class JBoxVol(LoggerMixin):
 
     __metaclass__ = JBoxPluginType
     PLUGIN_USERHOME = 'vol.userhome'
+    PLUGIN_DATA = 'vol.data'
+    PLUGIN_PKGBUNDLE = 'vol.pkgbundle'
     PLUGIN_EBS_USERHOME = 'vol.userhome.ebs'
     PLUGIN_LOCAL_USERHOME = 'vol.userhome.local'
-    PLUGIN_PKGBUNDLE = 'vol.pkgbundle'
+    PLUGIN_EBS_DATA = 'vol.data.ebs'
 
     BACKUP_LOC = None
     DCKR = None
@@ -53,10 +58,14 @@ class JBoxVol(LoggerMixin):
     # includes Julia packages and compiled images to be linked into from user home folder
     PKG_IMG = None
     PKG_MOUNT_POINT = '/opt/julia_packages'
+    # mount point for data disk on the container
+    DATA_MOUNT_POINT = '/mnt/data'
 
     # files that must be restored from user home for proper functioning of JuliaBox
     USER_HOME_ESSENTIALS = ['.juliabox', '.ipython/README', '.ipython/kernels',
                             '.ipython/profile_julia', '.ipython/profile_default', '.ipython/profile_jboxjulia']
+
+    SH_DEVICE_VERSION = None
 
     def __init__(self, disk_path, user_email=None, user_name=None, sessname=None, old_sessname=None):
         self.disk_path = disk_path
@@ -94,6 +103,12 @@ class JBoxVol(LoggerMixin):
         props = JBoxVol.DCKR.inspect_container(cid)
         return props['Name'] if ('Name' in props) else None
 
+    @classmethod
+    def get_pid(cls, cid):
+        props = JBoxVol.DCKR.inspect_container(cid)
+        state = props['State']
+        return state['Pid'] if state['Running'] else None
+
     # this is template method
     @staticmethod
     def configure():
@@ -115,6 +130,48 @@ class JBoxVol(LoggerMixin):
 
         if len(JBoxVol.plugins) == 0:
             JBoxVol.log_warn("No plugins found!")
+
+        if JBoxVol.SH_DEVICE_VERSION is None:
+            JBoxVol.SH_DEVICE_VERSION = create_host_mnt_command('stat --format 0x%t,0x%T')
+
+    @staticmethod
+    def duplicate_host_blockdevice(device, cpid):
+        device_versions = JBoxVol.SH_DEVICE_VERSION(device)
+        device_versions = [int(x, 16) for x in device_versions.split(',')]
+
+        # mknod the same device in the container
+        # can check existing device as: sh -c "[ -b /dev/loop1 ] || mknod --mode 0600 /dev/loop1 b 7 0
+        # but safer not to overwrite any existing device and throw error instead
+        mknod_cmd = "mknod --mode 0600 %s  b %d %d" % (device, device_versions[0], device_versions[1])
+        cmknod = create_container_mnt_command(cpid, mknod_cmd)
+        cmknod()
+        return True
+
+    @staticmethod
+    def mount_host_device(device, cid, container_path):
+        try:
+            cpid = JBoxVol.get_pid(cid)
+            JBoxVol.duplicate_host_blockdevice(device, cpid)
+            mount_cmd = "mount %s %s" % (device, container_path)
+            cmount = create_container_mnt_command(cpid, mount_cmd)
+            cmount()
+            return True
+        except:
+            JBoxVol.log_exception("Exception mounting device %s at %s/%s", device. cid, container_path)
+            return False
+
+    @staticmethod
+    def unmount_host_device(device, cid):
+        try:
+            cpid = JBoxVol.get_pid(cid)
+            cumount = create_container_mnt_command(cpid, "umount %s" % (device,))
+            crmdev = create_container_mnt_command(cpid, "rm %s" % (device,))
+            cumount()
+            crmdev()
+            return True
+        except:
+            JBoxVol.log_exception("Exception unmounting device %s from %s", device. cid)
+            return False
 
     def debug_str(self):
         return self._dbg_str

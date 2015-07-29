@@ -28,6 +28,8 @@ class JBoxDiskState(JBoxDBPlugin):
     TABLE = None
 
     STATE_ATTACHED = 1
+    STATE_ATTACHING = 2
+    STATE_DETACHING = 3
     STATE_DETACHED = 0
 
     def __init__(self, disk_key=None, cluster_id=None, region_id=None, user_id=None, volume_id=None,
@@ -81,10 +83,15 @@ class JBoxDiskState(JBoxDBPlugin):
         return JBoxDiskState.epoch_secs_to_datetime(int(self.item['detach_time']))
 
     def get_state(self):
-        return self.get_attrib('state')
+        state = self.get_attrib('state')
+        return int(state) if state is not None else None
 
-    def set_state(self, state):
+    def set_state(self, state, time=None):
         self.set_attrib('state', state)
+        if state == JBoxDiskState.STATE_ATTACHING or state == JBoxDiskState.STATE_ATTACHED:
+            self.set_attach_time(time)
+        else:
+            self.set_detach_time(time)
 
     def get_user_id(self):
         return self.get_attrib('user_id')
