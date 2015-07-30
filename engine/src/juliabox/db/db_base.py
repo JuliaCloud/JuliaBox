@@ -77,16 +77,22 @@ class JBoxDBPlugin(JBoxDB):
     DynamoDB is the only type of database supported as of now.
 
     It is a plugin mount point, looking for features:
-    - dynamodb.table (tables hosted on dynamodb)
+    - db.table.dynamodb (tables hosted on dynamodb)
+    - db.usage.accounting (table that records usage accounting)
 
-    Plugins are expected to have:
+    DynamoDB table providers are expected to have:
     - NAME: attribute holding table name
     - SCHEMA and INDEXES: attributes holding table structure
     - TABLE: attribute to hold the table reference
+
+    Usage accounting providers (may be moved later to a separate plugin) are expected to have:
+    - record_session_time method:record start and end times of a session
+    - get_stats method: provide usage statistics for a given range of dates
 
     Plugins can take help of base methods provided in JBoxDB.
     """
 
     PLUGIN_DYNAMODB_TABLE = "db.table.dynamodb"
+    PLUGIN_USAGE_ACCOUNTING = "db.usage.accounting"
 
     __metaclass__ = JBoxPluginType

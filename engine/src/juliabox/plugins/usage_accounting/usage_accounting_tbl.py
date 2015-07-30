@@ -1,14 +1,17 @@
 import datetime
 import pytz
 import json
+import random
 
 from boto.dynamodb2.fields import HashKey, RangeKey, AllIndex, IncludeIndex
 from boto.dynamodb2.types import NUMBER, STRING
 
-from juliabox.db import JBoxDB
+from juliabox.db import JBoxDBPlugin
 
 
-class JBoxAccountingV2(JBoxDB):
+class JBoxAccountingV2(JBoxDBPlugin):
+    provides = [JBoxDBPlugin.PLUGIN_DYNAMODB_TABLE]
+
     NAME = 'jbox_accounting_v2'
 
     SCHEMA = [
@@ -54,7 +57,7 @@ class JBoxAccountingV2(JBoxDB):
         self.is_new = True
 
     @staticmethod
-    def query_stats_date(date):
+    def _query_stats_date(date):
         # TODO: caching items is not a good idea. Should cache computed data instead.
         if None == JBoxAccountingV2.table():
             return []
@@ -85,7 +88,7 @@ class JBoxAccountingV2(JBoxDB):
         image_count = {}
         container_freq = {}
         for date in dates:
-            items = JBoxAccountingV2.query_stats_date(date)
+            items = JBoxAccountingV2._query_stats_date(date)
             for x in items:
                 item_count += 1
                 if 'start_time' in x:
@@ -118,3 +121,21 @@ class JBoxAccountingV2(JBoxDB):
             images_used=image_count,
             unique_users=len(container_freq),
             active_users=active_users)
+
+    @staticmethod
+    def record_session_time(container_name, images_used, time_created, time_finished):
+        for retry in range(1, 10):
+            try:
+                start_time = time_created
+                finish_time = time_finished
+                if retry > 1:
+                    finish_time += datetime.timedelta(microseconds=random.randint(1, 100))
+                acct = JBoxAccountingV2(container_name, json.dumps(images_used),
+                                        start_time, stop_time=finish_time)
+                acct.save()
+                break
+            except:
+                if retry == 10:
+                    JBoxAccountingV2.log_exception("error recording usage")
+                else:
+                    JBoxAccountingV2.log_warn("error recording usage, shall retry.")

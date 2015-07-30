@@ -110,6 +110,7 @@ Welcome to JuliaBox. We hope you will like it and also share with your friends.
         "juliabox.plugins.course_homework",
         "juliabox.plugins.parallel",
         "juliabox.plugins.auth_google",
+        "juliabox.plugins.usage_accounting",
         ""
     ],
 

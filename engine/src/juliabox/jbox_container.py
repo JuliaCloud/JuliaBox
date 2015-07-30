@@ -7,7 +7,7 @@ import random
 import psutil
 
 from cloud.aws import CloudHost
-from db import JBoxAccountingV2
+from db import JBoxDBPlugin
 from jbox_tasks import JBoxAsyncJob
 from jbox_util import LoggerMixin, JBoxCfg, parse_iso_time
 from vol import VolMgr, JBoxVol
@@ -439,18 +439,6 @@ class JBoxContainer(LoggerMixin):
         JBoxContainer.log_info("Deleted %s", self.debug_str())
 
     def record_usage(self):
-        for retry in range(1, 10):
-            try:
-                start_time = self.time_created()
-                finish_time = self.time_finished()
-                if retry > 1:
-                    finish_time += datetime.timedelta(microseconds=random.randint(1, 100))
-                acct = JBoxAccountingV2(self.get_name(), json.dumps(self.get_image_names()),
-                                        start_time, stop_time=finish_time)
-                acct.save()
-                break
-            except:
-                if retry == 10:
-                    self.log_exception("error recording usage")
-                else:
-                    self.log_warn("error recording usage, shall retry.")
+        plugin = JBoxDBPlugin.jbox_get_plugin(JBoxDBPlugin.PLUGIN_USAGE_ACCOUNTING)
+        if plugin is not None:
+            plugin.record_session_time(self.get_name(), self.get_image_names(), self.time_created(), self.time_finished())

@@ -141,7 +141,8 @@ class JBoxDynConfig(JBoxDB):
             return msg['msg']
 
         if del_expired:
-            JBoxDynConfig.table().delete_item(name='.'.join([cluster, 'message']))
+            record.delete()
+            # JBoxDynConfig.table().delete_item(name='.'.join([cluster, 'message']))
 
         return None
 

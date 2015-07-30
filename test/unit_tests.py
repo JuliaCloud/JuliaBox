@@ -2,7 +2,7 @@ import datetime
 
 import docker
 
-from db import JBoxDynConfig, JBoxAccountingV2, JBoxSessionProps, JBoxUserV2
+from db import JBoxDynConfig, JBoxSessionProps, JBoxUserV2
 from jbox_util import read_config, LoggerMixin, unique_sessname
 from juliabox import db
 from juliabox.cloud.aws import CloudHost
@@ -37,12 +37,6 @@ TESTCLSTR = 'testcluster'
 class TestDBTables(LoggerMixin):
     @staticmethod
     def test():
-        yday = datetime.datetime.now() - datetime.timedelta(hours=24)
-        stats = JBoxAccountingV2.get_stats(dates=(yday,))
-        TestDBTables.log_debug("stats for yesterday: %s", repr(stats))
-        stats = JBoxAccountingV2.get_stats()
-        TestDBTables.log_debug("stats for today: %s", repr(stats))
-
         sprops = JBoxSessionProps(unique_sessname('tanmaykm@gmail.com'))
         TestDBTables.log_debug("JBoxSessionProps. user_id: %s, snapshot_id: %s, message: %s",
                                sprops.get_user_id(),
