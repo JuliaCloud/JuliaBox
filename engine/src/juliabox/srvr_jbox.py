@@ -1,5 +1,3 @@
-import random
-import string
 import socket
 import signal
 
@@ -69,13 +67,8 @@ class JBox(LoggerMixin):
         return feature_providers
 
     def run(self):
-        if CloudHost.ENABLED['route53']:
-            try:
-                CloudHost.deregister_instance_dns()
-                JBox.log_warn("Prior dns registration was found for the instance")
-            except:
-                JBox.log_debug("No prior dns registration found for the instance")
-            CloudHost.register_instance_dns()
+        CloudHost.deregister_instance_dns()
+        CloudHost.register_instance_dns()
         JBoxContainer.publish_container_stats()
         JBox.do_update_user_home_image()
         JBoxAsyncJob.async_refresh_disks()

@@ -3,7 +3,6 @@ import datetime
 import boto.ec2
 import boto.ec2.cloudwatch
 import boto.ec2.autoscale
-import boto.route53
 import boto.ses
 from boto.ec2.autoscale import LaunchConfiguration, AutoScalingGroup
 from boto.ec2.autoscale.tag import Tag

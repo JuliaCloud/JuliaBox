@@ -49,15 +49,14 @@
     "cloud_host": {
     	"install_id": "JuliaBox",
     	"region": "us-east-1",
+        "domain": "juliabox.org",
 
     	# Enable/disable features
     	"cloudwatch": True,
     	"autoscale": True,
-    	"route53": True,
         "ses": True,
 
     	"autoscale_group": "juliabox",
-    	"route53_domain": "juliabox.org",
 
         # Average cluster load at which to initiate scale up
     	"scale_up_at_load": 70,
@@ -119,6 +118,7 @@ Welcome to JuliaBox. We hope you will like it and also share with your friends.
         "juliabox.plugins.usage_accounting",
         "juliabox.plugins.db_dynamodb",
         "juliabox.plugins.bucket_s3",
+        "juliabox.plugins.dns_route53",
         ""
     ],
 

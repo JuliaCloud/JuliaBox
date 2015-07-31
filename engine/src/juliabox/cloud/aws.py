@@ -6,11 +6,11 @@ import traceback
 import boto.ec2
 import boto.ec2.cloudwatch
 import boto.ec2.autoscale
-import boto.route53
 import boto.ses
 import boto.utils
 import psutil
 
+from juliabox.cloud import JBoxCloudPlugin
 from juliabox.jbox_util import LoggerMixin, JBoxCfg, parse_iso_time, retry
 
 
@@ -20,9 +20,6 @@ class CloudHost(LoggerMixin):
     INSTALL_ID = 'JuliaBox'
 
     EC2_CONN = None
-
-    ROUTE53_CONN = None
-    ROUTE53_DOMAIN = ''
 
     CLOUDWATCH_CONN = None
 
@@ -82,9 +79,10 @@ class CloudHost(LoggerMixin):
 
     @staticmethod
     def notebook_websocket_hostname():
-        if CloudHost.ENABLED['route53']:
-            return CloudHost.make_instance_dns_name()
-        return CloudHost.instance_public_hostname()
+        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_DNS)
+        if plugin is None:
+            return CloudHost.instance_public_hostname()
+        return CloudHost.make_instance_dns_name()
 
     @staticmethod
     def instance_public_hostname(instance_id=None):
@@ -167,14 +165,11 @@ class CloudHost(LoggerMixin):
     def configure():
         CloudHost.ENABLED['cloudwatch'] = JBoxCfg.get('cloud_host.cloudwatch', True)
         CloudHost.ENABLED['autoscale'] = JBoxCfg.get('cloud_host.autoscale', True)
-        CloudHost.ENABLED['route53'] = JBoxCfg.get('cloud_host.route53', True)
         CloudHost.ENABLED['ses'] = JBoxCfg.get('cloud_host.ses', True)
 
         CloudHost.SCALE_UP_AT_LOAD = JBoxCfg.get('cloud_host.scale_up_at_load', 80)
         CloudHost.SCALE_UP_POLICY = JBoxCfg.get('cloud_host.scale_up_policy', None)
         CloudHost.AUTOSCALE_GROUP = JBoxCfg.get('cloud_host.autoscale_group', None)
-
-        CloudHost.ROUTE53_DOMAIN = JBoxCfg.get('cloud_host.route53_domain', None)
 
         CloudHost.INSTALL_ID = JBoxCfg.get('cloud_host.install_id', 'JuliaBox')
         CloudHost.REGION = JBoxCfg.get('cloud_host.region', 'us-east-1')
@@ -184,12 +179,6 @@ class CloudHost(LoggerMixin):
         if (CloudHost.EC2_CONN is None) and CloudHost.ENABLED['cloudwatch']:
             CloudHost.EC2_CONN = boto.ec2.connect_to_region(CloudHost.REGION)
         return CloudHost.EC2_CONN
-
-    @staticmethod
-    def connect_route53():
-        if (CloudHost.ROUTE53_CONN is None) and CloudHost.ENABLED['route53']:
-            CloudHost.ROUTE53_CONN = boto.route53.connect_to_region(CloudHost.REGION)
-        return CloudHost.ROUTE53_CONN
 
     @staticmethod
     def connect_ses():
@@ -202,29 +191,24 @@ class CloudHost(LoggerMixin):
         dns_name = CloudHost.instance_id() if instance_id is None else instance_id
         if CloudHost.AUTOSCALE_GROUP is not None:
             dns_name += ('-' + CloudHost.AUTOSCALE_GROUP)
-        dns_name += ('.' + CloudHost.ROUTE53_DOMAIN)
+        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_DNS)
+        dns_name += ('.' + plugin.domain())
 
         return dns_name
 
     @staticmethod
     def register_instance_dns():
-        if not CloudHost.ENABLED['route53']:
+        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_DNS)
+        if plugin is None:
             return
-
-        dns_name = CloudHost.make_instance_dns_name()
-
-        zone = CloudHost.connect_route53().get_zone(CloudHost.ROUTE53_DOMAIN)
-        zone.add_cname(dns_name, CloudHost.instance_public_hostname())
+        plugin.add_cname(CloudHost.make_instance_dns_name(), CloudHost.instance_public_hostname())
 
     @staticmethod
     def deregister_instance_dns():
-        if not CloudHost.ENABLED['route53']:
+        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_DNS)
+        if plugin is None:
             return
-
-        dns_name = CloudHost.make_instance_dns_name()
-
-        zone = CloudHost.connect_route53().get_zone(CloudHost.ROUTE53_DOMAIN)
-        zone.delete_cname(dns_name)
+        plugin.delete_cname(CloudHost.make_instance_dns_name())
 
     @staticmethod
     def connect_cloudwatch():

@@ -19,13 +19,11 @@ db.configure_db(cfg)
 CloudHost.configure(has_s3=cloud_cfg['s3'],
                     has_cloudwatch=cloud_cfg['cloudwatch'],
                     has_autoscale=cloud_cfg['autoscale'],
-                    has_route53=cloud_cfg['route53'],
                     has_ebs=cloud_cfg['ebs'],
                     has_ses=cloud_cfg['ses'],
                     scale_up_at_load=cloud_cfg['scale_up_at_load'],
                     scale_up_policy=cloud_cfg['scale_up_policy'],
                     autoscale_group=cloud_cfg['autoscale_group'],
-                    route53_domain=cloud_cfg['route53_domain'],
                     region=cloud_cfg['region'],
                     install_id=cloud_cfg['install_id'])
 
