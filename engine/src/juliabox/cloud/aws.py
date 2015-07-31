@@ -171,11 +171,9 @@ class CloudHost(LoggerMixin):
     @staticmethod
     def configure():
         CloudHost.ENABLED['s3'] = JBoxCfg.get('cloud_host.s3', True)
-        CloudHost.ENABLED['dynamodb'] = JBoxCfg.get('cloud_host.dynamodb', True)
         CloudHost.ENABLED['cloudwatch'] = JBoxCfg.get('cloud_host.cloudwatch', True)
         CloudHost.ENABLED['autoscale'] = JBoxCfg.get('cloud_host.autoscale', True)
         CloudHost.ENABLED['route53'] = JBoxCfg.get('cloud_host.route53', True)
-        CloudHost.ENABLED['ebs'] = JBoxCfg.get('cloud_host.ebs', True)
         CloudHost.ENABLED['ses'] = JBoxCfg.get('cloud_host.ses', True)
 
         CloudHost.SCALE_UP_AT_LOAD = JBoxCfg.get('cloud_host.scale_up_at_load', 80)

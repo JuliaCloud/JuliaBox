@@ -2,9 +2,8 @@ import json
 
 from boto.dynamodb2.fields import HashKey
 from boto.dynamodb2.types import STRING
-import boto.dynamodb2.exceptions
 
-from juliabox.db import JBoxDB
+from juliabox.db import JBoxDB, JBoxDBItemNotFound
 
 
 class JBoxSessionProps(JBoxDB):
@@ -18,15 +17,14 @@ class JBoxSessionProps(JBoxDB):
 
     TABLE = None
 
-    def __init__(self, session_id, create=False, user_id=None):
-        if self.table() is None:
-            return
+    KEYS = ['session_id']
+    ATTRIBUTES = ['user_id', 'snapshot_id', 'message']
 
-        self.item = None
+    def __init__(self, session_id, create=False, user_id=None):
         try:
-            self.item = self.table().get_item(session_id=session_id)
+            self.item = self.fetch(session_id=session_id)
             self.is_new = False
-        except boto.dynamodb2.exceptions.ItemNotFound:
+        except JBoxDBItemNotFound:
             if create:
                 data = {
                     'session_id': session_id
@@ -34,7 +32,7 @@ class JBoxSessionProps(JBoxDB):
                 if user_id is not None:
                     data['user_id'] = user_id
                 self.create(data)
-                self.item = self.table().get_item(session_id=session_id)
+                self.item = self.fetch(session_id=session_id)
                 self.is_new = True
             else:
                 raise

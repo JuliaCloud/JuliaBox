@@ -1,9 +1,9 @@
 # Docker file for JuliaBox
-# Version:33
+# Version:34
 
-FROM julialang/juliaboxpkgdist:v0.3.10
+#FROM julialang/juliaboxpkgdist:v0.3.11
 # Switching the base to the bare julia image helps during JuliaBox development by reducing image size
-#FROM julialang/julia:v0.3.10
+FROM julialang/julia:v0.3.11
 
 MAINTAINER Tanmay Mohapatra
 
@@ -25,7 +25,7 @@ RUN ln -fs /opt/julia_0.4.0 /opt/julia_nightly
 # They are added to LOAD_PATH through respective juliarc.jl scripts.
 RUN mkdir /opt/julia_packages
 RUN echo 'push!(LOAD_PATH, "/opt/julia_packages/.julia/v0.4/")' >> /opt/julia_0.4.0/etc/julia/juliarc.jl
-RUN echo 'push!(LOAD_PATH, "/opt/julia_packages/.julia/v0.3/")' >> /opt/julia_0.3.10/etc/julia/juliarc.jl
+RUN echo 'push!(LOAD_PATH, "/opt/julia_packages/.julia/v0.3/")' >> /opt/julia_0.3.11/etc/julia/juliarc.jl
 
 # Data volumes shall be mounted at /mnt/data
 RUN mkdir /mnt/data

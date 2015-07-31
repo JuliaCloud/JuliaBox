@@ -1,49 +1,63 @@
 import datetime
 import pytz
 
-from boto.dynamodb2.table import Table
-
-from juliabox.cloud.aws import CloudHost
 from juliabox.jbox_util import LoggerMixin, JBoxCfg, JBoxPluginType
 
 
+class JBoxDBItemNotFound(Exception):
+    pass
+
+
 class JBoxDB(LoggerMixin):
+    DB_IMPL = None
+
+    @staticmethod
+    def configure():
+        JBoxDB.DB_IMPL = JBoxDBPlugin.jbox_get_plugin(JBoxDBPlugin.PLUGIN_DB)
+        JBoxDB.DB_IMPL.configure()
+
     @classmethod
     def table(cls):
-        if (cls.TABLE is None) and (CloudHost.ENABLED['dynamodb']) and (cls.NAME is not None):
-            cls.TABLE = Table(cls.NAME)
-            cls.log_info(cls.__name__ + " initialized to " + cls.NAME)
+        if cls.TABLE is None:
+            cls.TABLE = JBoxDB.DB_IMPL.table_open(cls.NAME)
+            cls.log_info("%s initialized to %s with %s", cls.__name__, cls.NAME, JBoxDB.DB_IMPL.__name__)
         return cls.TABLE
 
     @classmethod
     def create(cls, data):
-        if not cls.table().put_item(data=data):
-            raise Exception("Error creating record")
+        JBoxDB.DB_IMPL.record_create(cls.table(), data)
+
+    @classmethod
+    def fetch(cls, **kwargs):
+        return JBoxDB.DB_IMPL.record_fetch(cls.table(), **kwargs)
+
+    @classmethod
+    def scan(cls, **kwargs):
+        return JBoxDB.DB_IMPL.record_scan(cls.table(), **kwargs)
+
+    @classmethod
+    def query(cls, **kwargs):
+        return JBoxDB.DB_IMPL.record_query(cls.table(), **kwargs)
+
+    @classmethod
+    def query_count(cls, **kwargs):
+        return JBoxDB.DB_IMPL.record_count(cls.table(), **kwargs)
 
     def save(self):
-        cls = self.__class__
-        if cls.TABLE is None:
-            return
-        self.item.save()
+        JBoxDB.DB_IMPL.record_save(self.__class__.table(), self.item)
 
     def delete(self):
-        cls = self.__class__
-        if cls.TABLE is None:
-            return
-        self.item.delete()
+        JBoxDB.DB_IMPL.record_delete(self.__class__.table(), self.item)
 
     def get_attrib(self, name, default=None):
-        if self.item is not None:
-            return self.item.get(name, default)
-        else:
-            return None
+        attr = self.item.get(name, default)
+        return attr if (attr is not None) else default
 
     def set_attrib(self, name, value):
-        if self.item is not None:
-            self.item[name] = value
+        self.item[name] = value
 
     def del_attrib(self, name):
-        if (self.item is not None) and (name in self.item):
+        if name in self.item:
             del self.item[name]
 
     @classmethod
@@ -77,16 +91,29 @@ class JBoxDBPlugin(JBoxDB):
     DynamoDB is the only type of database supported as of now.
 
     It is a plugin mount point, looking for features:
-    - dynamodb.table (tables hosted on dynamodb)
+    - db.table.dynamodb (tables hosted on dynamodb)
+    - db.usage.accounting (table that records usage accounting)
 
-    Plugins are expected to have:
+    DynamoDB table providers are expected to have:
     - NAME: attribute holding table name
     - SCHEMA and INDEXES: attributes holding table structure
     - TABLE: attribute to hold the table reference
 
+    Usage accounting providers (may be moved later to a separate plugin) are expected to have:
+    - record_session_time method:record start and end times of a session
+    - get_stats method: provide usage statistics for a given range of dates
+
     Plugins can take help of base methods provided in JBoxDB.
     """
 
+    PLUGIN_DB = "db"
+    PLUGIN_DB_DYNAMODB = "db.dynamodb"
+    PLUGIN_DB_RDBMS = "db.rdbms"
+
+    PLUGIN_TABLE = "db.table"
     PLUGIN_DYNAMODB_TABLE = "db.table.dynamodb"
+    PLUGIN_RDBMS_TABLE = "db.table.rdbms"
+
+    PLUGIN_USAGE_ACCOUNTING = "db.usage.accounting"
 
     __metaclass__ = JBoxPluginType

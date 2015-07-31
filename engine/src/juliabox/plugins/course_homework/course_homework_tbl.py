@@ -5,13 +5,12 @@ from decimal import Decimal
 
 from boto.dynamodb2.fields import HashKey, RangeKey
 from boto.dynamodb2.types import STRING
-import boto.dynamodb2.exceptions
 
-from juliabox.db import JBoxDBPlugin
+from juliabox.db import JBoxDBPlugin, JBoxDBItemNotFound
 
 
 class JBoxCourseHomework(JBoxDBPlugin):
-    provides = [JBoxDBPlugin.PLUGIN_DYNAMODB_TABLE]
+    provides = [JBoxDBPlugin.PLUGIN_DYNAMODB_TABLE, JBoxDBPlugin.PLUGIN_RDBMS_TABLE]
 
     NAME = 'jbox_coursehomework'
 
@@ -24,6 +23,11 @@ class JBoxCourseHomework(JBoxDBPlugin):
 
     TABLE = None
 
+    KEYS = ['question_gid', 'student_id']
+    ATTRIBUTES = ['course_id', 'problemset_id', 'question_id',
+                  'answer', 'attempts', 'score',
+                  'state', 'create_time']
+
     SEP = '|'
     ANSWER_KEY = '-'
 
@@ -32,10 +36,6 @@ class JBoxCourseHomework(JBoxDBPlugin):
     STATE_PENDING = 0
 
     def __init__(self, course_id, problemset_id, question_id, student_id, answer=None, state=None, create=False):
-        if self.table() is None:
-            return
-
-        self.item = None
         if create:
             if (answer is None) or (state is None) or (not JBoxCourseHomework.valid_state(state)) or\
                     (student_id is None) or (course_id is None) or (problemset_id is None) or (question_id is None):
@@ -59,7 +59,7 @@ class JBoxCourseHomework(JBoxDBPlugin):
             }
             self.create(data)
 
-        self.item = self.table().get_item(question_gid=question_gid, student_id=student_id)
+        self.item = self.fetch(question_gid=question_gid, student_id=student_id)
         self.is_new = create
 
     @staticmethod
@@ -116,7 +116,7 @@ class JBoxCourseHomework(JBoxDBPlugin):
                     rec.set_answer(answer, state)
                 else:
                     score = rec.get_attrib('score', 0)
-            except boto.dynamodb2.exceptions.ItemNotFound:
+            except JBoxDBItemNotFound:
                 rec = JBoxCourseHomework(course_id, problemset_id, question_id, student_id,
                                          answer=answer, state=state, create=True)
             if state == JBoxCourseHomework.STATE_INCORRECT:
@@ -134,14 +134,12 @@ class JBoxCourseHomework(JBoxDBPlugin):
             students = []
             question_gid = JBoxCourseHomework.question_gid(course_id, problemset_id, question_id)
             if student_id is None:
-                records = JBoxCourseHomework.table().query_2(question_gid__eq=question_gid,
-                                                             student_id__gt=' ')
+                records = JBoxCourseHomework.query(question_gid__eq=question_gid, student_id__gt=' ')
                 answers = None
             else:
-                records = JBoxCourseHomework.table().query_2(question_gid__eq=question_gid,
-                                                             student_id__eq=student_id)
-                answers = JBoxCourseHomework.table().query_2(question_gid__eq=question_gid,
-                                                             student_id__eq=JBoxCourseHomework.ANSWER_KEY)
+                records = JBoxCourseHomework.query(question_gid__eq=question_gid, student_id__eq=student_id)
+                answers = JBoxCourseHomework.query(question_gid__eq=question_gid,
+                                                   student_id__eq=JBoxCourseHomework.ANSWER_KEY)
 
             qmax_score = 0.0
             qmax_attempts = 0
@@ -195,8 +193,8 @@ class JBoxCourseHomework(JBoxDBPlugin):
 
         for question_id in question_ids:
             question_gid = JBoxCourseHomework.question_gid(course_id, problemset_id, question_id)
-            records = JBoxCourseHomework.table().query_2(question_gid__eq=question_gid,
-                                                         student_id__eq=JBoxCourseHomework.ANSWER_KEY)
+            records = JBoxCourseHomework.query(question_gid__eq=question_gid,
+                                               student_id__eq=JBoxCourseHomework.ANSWER_KEY)
 
             for rec in records:
                 score = float(rec['score'] if 'score' in rec else 0)

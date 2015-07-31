@@ -1,7 +1,6 @@
 __author__ = 'tan'
-from db_base import JBoxDB, JBoxDBPlugin
+from db_base import JBoxDB, JBoxDBPlugin, JBoxDBItemNotFound
 from user_v2 import JBoxUserV2
-from accounting_v2 import JBoxAccountingV2
 from container import JBoxSessionProps
 from dynconfig import JBoxDynConfig
 from juliabox.cloud.aws import CloudHost
@@ -9,14 +8,17 @@ from juliabox.jbox_util import JBoxCfg
 
 
 def configure():
-    JBoxUserV2.NAME = JBoxCfg.get('cloud_host.cloud_cfg', JBoxUserV2.NAME)
-    JBoxAccountingV2.NAME = JBoxCfg.get('cloud_host.jbox_accounting_v2', JBoxAccountingV2.NAME)
-    JBoxSessionProps.NAME = JBoxCfg.get('cloud_host.jbox_session', JBoxSessionProps.NAME)
-    JBoxDynConfig.NAME = JBoxCfg.get('cloud_host.jbox_dynconfig', JBoxDynConfig.NAME)
+    JBoxDB.configure()
+    tablenames = JBoxCfg.get('db.tables', dict())
 
-    for plugin in JBoxDBPlugin.plugins:
+    for cls in (JBoxUserV2, JBoxSessionProps, JBoxDynConfig):
+        cls.NAME = tablenames.get(cls.NAME, cls.NAME)
+        JBoxDB.log_info("%s provided by table %s", cls.__name__, cls.NAME)
+
+    for plugin in JBoxDBPlugin.jbox_get_plugins(JBoxDBPlugin.PLUGIN_TABLE):
         JBoxDB.log_info("Found plugin %r provides %r", plugin, plugin.provides)
-        plugin.NAME = JBoxCfg.get('cloud_host.' + plugin.NAME, plugin.NAME)
+        plugin.NAME = tablenames.get(plugin.NAME, plugin.NAME)
+        JBoxDB.log_info("%s provided by table %s", plugin.__name__, plugin.NAME)
 
 
 def is_proposed_cluster_leader():

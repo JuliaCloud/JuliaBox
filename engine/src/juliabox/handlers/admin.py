@@ -3,11 +3,11 @@ from datetime import datetime, timedelta
 import isodate
 
 from juliabox.cloud.aws import CloudHost
-from juliabox.jbox_util import unquote, JBoxCfg
+from juliabox.jbox_util import JBoxCfg
 from handler_base import JBoxHandler
 from juliabox.jbox_container import JBoxContainer
 from juliabox.jbox_tasks import JBoxAsyncJob
-from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxAccountingV2
+from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxDBPlugin
 
 
 class AdminHandler(JBoxHandler):
@@ -145,12 +145,16 @@ class AdminHandler(JBoxHandler):
 
     @staticmethod
     def get_session_stats():
+        plugin = JBoxDBPlugin.jbox_get_plugin(JBoxDBPlugin.PLUGIN_USAGE_ACCOUNTING)
+        if plugin is None:
+            return None
+
         today = datetime.now()
         week_dates = [today - timedelta(days=i) for i in range(6, -1, -1)]
         today_dates = [today]
         stats = {
-            'day': JBoxAccountingV2.get_stats(today_dates),
-            'week': JBoxAccountingV2.get_stats(week_dates)
+            'day': plugin.get_stats(today_dates),
+            'week': plugin.get_stats(week_dates)
         }
         return stats
 
