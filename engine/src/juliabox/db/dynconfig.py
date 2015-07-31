@@ -5,9 +5,8 @@ import pytz
 from boto.dynamodb2.fields import HashKey
 from boto.dynamodb2.types import STRING
 import isodate
-import boto.dynamodb2.exceptions
 
-from juliabox.db import JBoxDB
+from juliabox.db import JBoxDB, JBoxDBItemNotFound
 from juliabox.jbox_util import parse_iso_time
 
 
@@ -21,17 +20,17 @@ class JBoxDynConfig(JBoxDB):
     INDEXES = None
 
     TABLE = None
+
+    KEYS = ['name']
+    ATTRIBUTES = ['value']
+
     DEFAULT_REGISTRATION_RATE = 60
 
     def __init__(self, prop, create=False, value=None):
-        if self.table() is None:
-            return
-
-        self.item = None
         try:
-            self.item = self.table().get_item(name=prop)
+            self.item = self.fetch(name=prop)
             self.is_new = False
-        except boto.dynamodb2.exceptions.ItemNotFound:
+        except JBoxDBItemNotFound:
             if create:
                 data = {
                     'name': prop
@@ -39,7 +38,7 @@ class JBoxDynConfig(JBoxDB):
                 if value is not None:
                     data['value'] = value
                 self.create(data)
-                self.item = self.table().get_item(name=prop)
+                self.item = self.fetch(name=prop)
                 self.is_new = True
             else:
                 raise
@@ -59,7 +58,7 @@ class JBoxDynConfig(JBoxDB):
         try:
             record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'leader'))
             record.delete()
-        except boto.dynamodb2.exceptions.ItemNotFound:
+        except JBoxDBItemNotFound:
             return
 
     @staticmethod
@@ -73,7 +72,7 @@ class JBoxDynConfig(JBoxDB):
     def get_cluster_leader(cluster):
         try:
             return JBoxDynConfig(JBoxDynConfig._n(cluster, 'leader')).get_value()
-        except boto.dynamodb2.exceptions.ItemNotFound:
+        except JBoxDBItemNotFound:
             return None
 
     @staticmethod
@@ -87,7 +86,7 @@ class JBoxDynConfig(JBoxDB):
     def get_allow_registration(cluster):
         try:
             record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'allow_registration'))
-        except boto.dynamodb2.exceptions.ItemNotFound:
+        except JBoxDBItemNotFound:
             return True
 
         return record.get_value() == 'True'
@@ -96,7 +95,7 @@ class JBoxDynConfig(JBoxDB):
     def get_registration_hourly_rate(cluster):
         try:
             return int(JBoxDynConfig(JBoxDynConfig._n(cluster, 'registrations_hourly_rate')).get_value())
-        except boto.dynamodb2.exceptions.ItemNotFound:
+        except JBoxDBItemNotFound:
             return JBoxDynConfig.DEFAULT_REGISTRATION_RATE
 
     @staticmethod
@@ -125,7 +124,7 @@ class JBoxDynConfig(JBoxDB):
     def get_message(cluster, del_expired=True):
         try:
             record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'message'))
-        except boto.dynamodb2.exceptions.ItemNotFound:
+        except JBoxDBItemNotFound:
             return None
 
         msg = record.get_value()
@@ -136,13 +135,12 @@ class JBoxDynConfig(JBoxDB):
 
         tnow = datetime.datetime.now(pytz.utc)
         tvalid = parse_iso_time(msg['valid_till'])
-        #JBoxDynConfig.log_debug("tnow: %s, tvalid: %s", str(tnow), str(tvalid))
+        # JBoxDynConfig.log_debug("tnow: %s, tvalid: %s", str(tnow), str(tvalid))
         if tvalid >= tnow:
             return msg['msg']
 
         if del_expired:
             record.delete()
-            # JBoxDynConfig.table().delete_item(name='.'.join([cluster, 'message']))
 
         return None
 
@@ -150,7 +148,7 @@ class JBoxDynConfig(JBoxDB):
     def get_user_home_image(cluster):
         try:
             record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'user_home_image'))
-        except boto.dynamodb2.exceptions.ItemNotFound:
+        except JBoxDBItemNotFound:
             return None, None, None
         img = json.loads(record.get_value())
         pkg_file = img['pkg_file'] if 'pkg_file' in img else None
@@ -182,7 +180,7 @@ class JBoxDynConfig(JBoxDB):
     def get_stat_collected_date(cluster):
         try:
             record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'stat_date'))
-        except boto.dynamodb2.exceptions.ItemNotFound:
+        except JBoxDBItemNotFound:
             return None
         return parse_iso_time(record.get_value())
 
@@ -206,7 +204,7 @@ class JBoxDynConfig(JBoxDB):
     def get_stat(cluster, stat_name):
         try:
             record = JBoxDynConfig(JBoxDynConfig._n(cluster, stat_name))
-        except boto.dynamodb2.exceptions.ItemNotFound:
+        except JBoxDBItemNotFound:
             return None
         return json.loads(record.get_value())
 
@@ -215,7 +213,7 @@ class JBoxDynConfig(JBoxDB):
         try:
             course_key = '|'.join(['course', course_id])
             record = JBoxDynConfig(JBoxDynConfig._n(cluster, course_key))
-        except boto.dynamodb2.exceptions.ItemNotFound:
+        except JBoxDBItemNotFound:
             return None
         return json.loads(record.get_value())
 
@@ -230,10 +228,9 @@ class JBoxDynConfig(JBoxDB):
 
     @staticmethod
     def get_user_cluster_config(cluster):
-        #return json.loads('{"instance_cores": 32, "instance_type": "r3.8xlarge", "key_name": "jublr", "image_id": "ami-2261794a", "instance_cost": 2.8, "sec_grps": ["juliacluster"]}')
         try:
             record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'user_cluster'))
-        except boto.dynamodb2.exceptions.ItemNotFound:
+        except JBoxDBItemNotFound:
             return None
         return json.loads(record.get_value())
 

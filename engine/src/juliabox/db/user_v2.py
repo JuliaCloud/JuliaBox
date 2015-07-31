@@ -4,10 +4,9 @@ import json
 
 from boto.dynamodb2.fields import HashKey, RangeKey, GlobalKeysOnlyIndex
 from boto.dynamodb2.types import NUMBER, STRING
-import boto.dynamodb2.exceptions
 
 from juliabox.jbox_crypto import encrypt, decrypt
-from juliabox.db import JBoxDB
+from juliabox.db import JBoxDB, JBoxDBItemNotFound
 
 
 class JBoxUserV2(JBoxDB):
@@ -56,6 +55,12 @@ class JBoxUserV2(JBoxDB):
 
     TABLE = None
 
+    KEYS = ['user_id']
+    ATTRIBUTES = ['create_month', 'create_time', 'update_month', 'update_time',
+                  'status', 'activation_code', 'activation_status',
+                  'resource_profile', 'role',
+                  'gtok', 'courses_offered', 'balance', 'max_cluster_cores']
+
     STATUS_ACTIVE = 0
     STATUS_INACTIVE = 1
     
@@ -85,15 +90,10 @@ class JBoxUserV2(JBoxDB):
     DEF_MAX_CLUSTER_CORES = 64
 
     def __init__(self, user_id, create=False):
-        if self.table() is None:
-            self.is_new = False
-            self.item = None
-            return
-        
         try:
-            self.item = self.table().get_item(user_id=user_id)
+            self.item = self.fetch(user_id=user_id)
             self.is_new = False
-        except boto.dynamodb2.exceptions.ItemNotFound:
+        except JBoxDBItemNotFound:
             if create:
                 data = {
                     'user_id': user_id,
@@ -102,27 +102,23 @@ class JBoxUserV2(JBoxDB):
                 JBoxUserV2._set_time(data, "create")
                 JBoxUserV2._set_activation_state(data, '-', JBoxUserV2.ACTIVATION_NONE)
                 self.create(data)
-                self.item = self.table().get_item(user_id=user_id)
+                self.item = self.fetch(user_id=user_id)
                 self.is_new = True
             else:
                 raise
 
     def get_user_id(self):
-        return self.get_attrib('user_id', None)
+        return self.get_attrib('user_id')
 
     def get_status(self):
-        if self.item is not None:
-            return self.item.get('status', JBoxUserV2.STATUS_ACTIVE)
-        else:
-            return None
+        return self.get_attrib('status', JBoxUserV2.STATUS_ACTIVE)
 
     def get_role(self):
         return int(self.get_attrib('role', JBoxUserV2.ROLE_USER))
 
     def set_role(self, role):
-        if self.item is not None:
-            r = int(self.item.get('role', JBoxUserV2.ROLE_USER))
-            self.item['role'] = r | role
+        r = int(self.get_attrib('role', JBoxUserV2.ROLE_USER))
+        self.set_attrib('role', r | role)
 
     def has_role(self, role):
         return self.get_role() & role == role
@@ -131,8 +127,6 @@ class JBoxUserV2(JBoxDB):
         self.set_attrib('status', status)
 
     def set_time(self, prefix, dt=None):
-        if self.item is None:
-            return
         JBoxUserV2._set_time(self.item, prefix, dt)
 
     @staticmethod
@@ -147,22 +141,18 @@ class JBoxUserV2(JBoxDB):
         item[prefix + "_time"] = JBoxUserV2.datetime_to_epoch_secs(dt)
 
     def get_time(self, prefix):
-        if self.item is None:
-            return None
         if prefix not in ["create", "update"]:
             raise(Exception("invalid prefix for setting time"))
         return JBoxUserV2.epoch_secs_to_datetime(self.item[prefix + "_time"])
 
     def save(self, set_time=True):
-        if self.item is not None:
-            self.set_time("update")
+        self.set_time("update")
         super(JBoxUserV2, self).save()
 
     def set_activation_state(self, activation_code, activation_status):
-        if self.item is not None:
-            JBoxUserV2.log_debug("setting activation state of %s to %s, %d",
-                                 self.get_user_id(), activation_code, activation_status)
-            JBoxUserV2._set_activation_state(self.item, activation_code, activation_status)
+        JBoxUserV2.log_debug("setting activation state of %s to %s, %d",
+                             self.get_user_id(), activation_code, activation_status)
+        JBoxUserV2._set_activation_state(self.item, activation_code, activation_status)
 
     @staticmethod
     def _set_activation_state(item, activation_code, activation_status):
@@ -170,48 +160,36 @@ class JBoxUserV2(JBoxDB):
         item['activation_status'] = activation_status
 
     def get_activation_state(self):
-        if self.item is None:
-            return None, None
-        return self.item.get('activation_code', '-'), self.item.get('activation_status', JBoxUserV2.ACTIVATION_NONE)
+        return self.get_attrib('activation_code', '-'), self.get_attrib('activation_status', JBoxUserV2.ACTIVATION_NONE)
     
     def set_gtok(self, gtok):
-        if self.item is not None:
-            self.item['gtok'] = encrypt(gtok, self.enckey())
+        self.set_attrib('gtok', encrypt(gtok, self.enckey()))
 
     def get_gtok(self):
-        if self.item is None:
-            return None
-        gtok = self.item.get('gtok', None)
+        gtok = self.get_attrib('gtok')
         return decrypt(gtok, self.enckey()) if (gtok is not None) else None
 
     def set_container_type(self, image, resource_profile):
-        if self.item is not None:
-            self.item['image'] = image
-            self.item['resource_profile'] = resource_profile
+        self.set_attrib('image', image)
+        self.set_attrib('resource_profile', resource_profile)
     
     def get_container_type(self):
-        if self.item is None:
-            return None, None
-        return self.item.get('image', None), int(self.item.get('resource_profile', JBoxUserV2.RES_PROF_BASIC))
+        return self.get_attrib('image'), int(self.get_attrib('resource_profile', JBoxUserV2.RES_PROF_BASIC))
 
     def get_resource_profile(self):
-        if self.item is None:
-            return JBoxUserV2.RES_PROF_BASIC
-        return int(self.item.get('resource_profile', JBoxUserV2.RES_PROF_BASIC))
+        return int(self.get_attrib('resource_profile', JBoxUserV2.RES_PROF_BASIC))
 
     def set_resource_profile(self, mask):
-        if self.item is not None:
-            resource_profile = self.get_resource_profile()
-            new_resource_profile = resource_profile | mask
-            if new_resource_profile != resource_profile:
-                self.item['resource_profile'] = new_resource_profile
+        resource_profile = self.get_resource_profile()
+        new_resource_profile = resource_profile | mask
+        if new_resource_profile != resource_profile:
+            self.set_attrib('resource_profile', new_resource_profile)
 
     def unset_resource_profile(self, mask):
-        if self.item is not None:
-            resource_profile = self.get_resource_profile()
-            new_resource_profile = resource_profile & (~mask)
-            if new_resource_profile != resource_profile:
-                self.item['resource_profile'] = new_resource_profile
+        resource_profile = self.get_resource_profile()
+        new_resource_profile = resource_profile & (~mask)
+        if new_resource_profile != resource_profile:
+            self.set_attrib('resource_profile', new_resource_profile)
 
     def has_resource_profile(self, mask):
         resource_profile = self.get_resource_profile()
@@ -220,13 +198,10 @@ class JBoxUserV2(JBoxDB):
         return (resource_profile & mask) == mask
 
     def get_courses_offered(self):
-        if self.item is None:
-            return []
         return json.loads(self.get_attrib('courses_offered', '[]'))
 
     def set_courses_offered(self, courses_offered):
-        if self.item is not None:
-            self.item['courses_offered'] = json.dumps(courses_offered)
+        self.set_attrib('courses_offered', json.dumps(courses_offered))
 
     def set_balance(self, amt):
         self.set_attrib('balance', amt)
@@ -248,10 +223,10 @@ class JBoxUserV2(JBoxDB):
 
     @staticmethod
     def get_pending_activations(max_count):
-        records = JBoxUserV2.table().query_2(activation_code__eq=JBoxUserV2.ACTIVATION_CODE_AUTO,
-                                             activation_status__eq=JBoxUserV2.ACTIVATION_REQUESTED,
-                                             index='activation_code-activation_status-index',
-                                             limit=max_count)
+        records = JBoxUserV2.query(activation_code__eq=JBoxUserV2.ACTIVATION_CODE_AUTO,
+                                   activation_status__eq=JBoxUserV2.ACTIVATION_REQUESTED,
+                                   index='activation_code-activation_status-index',
+                                   limit=max_count)
         user_ids = []
         for rec in records:
             user_ids.append(rec['user_id'])
@@ -259,9 +234,9 @@ class JBoxUserV2(JBoxDB):
 
     @staticmethod
     def count_pending_activations():
-        count = JBoxUserV2.table().query_count(activation_code__eq='AUTO',
-                                               activation_status__eq=JBoxUserV2.ACTIVATION_REQUESTED,
-                                               index='activation_code-activation_status-index')
+        count = JBoxUserV2.query_count(activation_code__eq='AUTO',
+                                       activation_status__eq=JBoxUserV2.ACTIVATION_REQUESTED,
+                                       index='activation_code-activation_status-index')
         return count
 
     @staticmethod
@@ -280,9 +255,9 @@ class JBoxUserV2(JBoxDB):
         count = 0
         mon = from_month
         while mon <= till_month:
-            count += JBoxUserV2.table().query_count(create_month__eq=mon,
-                                                    create_time__between=(from_time, till_time),
-                                                    index='create_month-create_time-index')
+            count += JBoxUserV2.query_count(create_month__eq=mon,
+                                            create_time__between=(from_time, till_time),
+                                            index='create_month-create_time-index')
 
             JBoxUserV2.log_debug("adding accounts created in mon %d, from %d till %d. count %d",
                                  mon, from_time, till_time, count)
@@ -402,13 +377,13 @@ class JBoxUserV2(JBoxDB):
         for day in range(0, len(days)):
             last_n_days[day+1] = 0
 
-        result_set = JBoxUserV2.table().scan(attributes=('user_id',
-                                                         'create_month',
-                                                         'create_time',
-                                                         'gtok',
-                                                         'role',
-                                                         'resource_profile',
-                                                         'activation_status'))
+        result_set = JBoxUserV2.scan(attributes=('user_id',
+                                                 'create_month',
+                                                 'create_time',
+                                                 'gtok',
+                                                 'role',
+                                                 'resource_profile',
+                                                 'activation_status'))
         for user in result_set:
             JBoxUserV2.calc_stat(user, weeks, days)
 

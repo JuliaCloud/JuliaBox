@@ -17,7 +17,6 @@ LoggerMixin.DEFAULT_LEVEL = cfg['jbox_log_level']
 db.configure_db(cfg)
 
 CloudHost.configure(has_s3=cloud_cfg['s3'],
-                    has_dynamodb=cloud_cfg['dynamodb'],
                     has_cloudwatch=cloud_cfg['cloudwatch'],
                     has_autoscale=cloud_cfg['autoscale'],
                     has_route53=cloud_cfg['route53'],

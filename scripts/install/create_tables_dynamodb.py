@@ -19,7 +19,7 @@ def table_exists(name):
         return False
 
 tables = [JBoxUserV2, JBoxDynConfig, JBoxSessionProps]
-for plugin in JBoxDBPlugin.plugins:
+for plugin in JBoxDBPlugin.jbox_get_plugins(JBoxDBPlugin.PLUGIN_DYNAMODB_TABLE):
     tables.append(plugin)
 
 for cls in tables:

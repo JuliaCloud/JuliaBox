@@ -5,9 +5,8 @@ import pytz
 
 from boto.dynamodb2.fields import HashKey, GlobalKeysOnlyIndex
 from boto.dynamodb2.types import NUMBER, STRING
-import boto.dynamodb2.exceptions
 
-from juliabox.db import JBoxDBPlugin
+from juliabox.db import JBoxDBPlugin, JBoxDBItemNotFound
 
 
 class JBoxDiskState(JBoxDBPlugin):
@@ -34,18 +33,14 @@ class JBoxDiskState(JBoxDBPlugin):
 
     def __init__(self, disk_key=None, cluster_id=None, region_id=None, user_id=None, volume_id=None,
                  attach_time=None, create=False):
-        if self.table() is None:
-            return
-
-        self.item = None
         if create and ((cluster_id is None) or (region_id is None) or (user_id is None)):
             raise AssertionError
         if disk_key is None:
             disk_key = '_'.join([user_id, cluster_id, region_id])
         try:
-            self.item = self.table().get_item(disk_key=disk_key)
+            self.item = self.fetch(disk_key=disk_key)
             self.is_new = False
-        except boto.dynamodb2.exceptions.ItemNotFound:
+        except JBoxDBItemNotFound:
             if create:
                 data = {
                     'disk_key': disk_key,
@@ -61,7 +56,7 @@ class JBoxDiskState(JBoxDBPlugin):
                     data['attach_time'] = JBoxDiskState.datetime_to_epoch_secs(attach_time)
 
                 self.create(data)
-                self.item = self.table().get_item(disk_key=disk_key)
+                self.item = self.fetch(disk_key=disk_key)
                 self.is_new = True
             else:
                 raise
@@ -135,9 +130,9 @@ class JBoxDiskState(JBoxDBPlugin):
     def get_detached_disks(max_count=None):
         disk_keys = []
         try:
-            records = JBoxDiskState.table().query_2(state__eq=JBoxDiskState.STATE_DETACHED,
-                                                    index='state-index',
-                                                    limit=max_count)
+            records = JBoxDiskState.query(state__eq=JBoxDiskState.STATE_DETACHED,
+                                          index='state-index',
+                                          limit=max_count)
             for rec in records:
                 disk_keys.append(rec['disk_key'])
         except:

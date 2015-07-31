@@ -34,9 +34,6 @@ class JBoxAccountingV2(JBoxDBPlugin):
     _stats_cache = {}
 
     def __init__(self, container_id, image_id, start_time, stop_time=None):
-        if None == self.table():
-            return
-
         if None == stop_time:
             stop_datetime = datetime.datetime.now(pytz.utc)
         else:
@@ -53,15 +50,12 @@ class JBoxAccountingV2(JBoxDBPlugin):
             'start_date': JBoxAccountingV2.datetime_to_yyyymmdd(start_time)
         }
         self.create(data)
-        self.item = self.table().get_item(stop_date=stop_date, stop_time=stop_time)
+        self.item = self.fetch(stop_date=stop_date, stop_time=stop_time)
         self.is_new = True
 
     @staticmethod
     def _query_stats_date(date):
         # TODO: caching items is not a good idea. Should cache computed data instead.
-        if None == JBoxAccountingV2.table():
-            return []
-
         today = datetime.datetime.now()
         date_day = JBoxAccountingV2.datetime_to_yyyymmdd(date)
         today_day = JBoxAccountingV2.datetime_to_yyyymmdd(today)
@@ -70,7 +64,7 @@ class JBoxAccountingV2(JBoxDBPlugin):
         if date_day in JBoxAccountingV2._stats_cache:
             return JBoxAccountingV2._stats_cache[date_day]
 
-        res = JBoxAccountingV2.table().query_2(stop_date__eq=date_day, stop_time__gte=0)
+        res = JBoxAccountingV2.query(stop_date__eq=date_day, stop_time__gte=0)
 
         items = []
         for item in res:

@@ -52,7 +52,6 @@
 
     	# Enable/disable features
     	"s3": True,
-    	"dynamodb": True,
     	"cloudwatch": True,
     	"autoscale": True,
     	"route53": True,
@@ -103,6 +102,14 @@ Welcome to JuliaBox. We hope you will like it and also share with your friends.
     "user_home_image" : "/jboxengine/data/user_home.tar.gz",
     "pkg_image": "/jboxengine/data/julia_packages.tar.gz",
 
+    "db": {
+        # default connect string for sqlite database
+        "connect_str": "/jboxengine/data/db/juliabox.db",
+        # table name mappings
+        # "tables" : {
+        # }
+    },
+
     "plugins": [
         "juliabox.plugins.vol_loopback",
         "juliabox.plugins.vol_ebs",
@@ -111,6 +118,7 @@ Welcome to JuliaBox. We hope you will like it and also share with your friends.
         "juliabox.plugins.parallel",
         "juliabox.plugins.auth_google",
         "juliabox.plugins.usage_accounting",
+        "juliabox.plugins.db_dynamodb",
         ""
     ],
 
