@@ -51,7 +51,6 @@
     	"region": "us-east-1",
 
     	# Enable/disable features
-    	"s3": True,
     	"cloudwatch": True,
     	"autoscale": True,
     	"route53": True,
@@ -119,6 +118,7 @@ Welcome to JuliaBox. We hope you will like it and also share with your friends.
         "juliabox.plugins.auth_google",
         "juliabox.plugins.usage_accounting",
         "juliabox.plugins.db_dynamodb",
+        "juliabox.plugins.bucket_s3",
         ""
     ],
 

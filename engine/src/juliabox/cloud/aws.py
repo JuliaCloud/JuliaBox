@@ -1,5 +1,4 @@
 import datetime
-import os
 import pytz
 import sys
 import traceback
@@ -9,7 +8,6 @@ import boto.ec2.cloudwatch
 import boto.ec2.autoscale
 import boto.route53
 import boto.ses
-from boto.s3.key import Key
 import boto.utils
 import psutil
 
@@ -25,9 +23,6 @@ class CloudHost(LoggerMixin):
 
     ROUTE53_CONN = None
     ROUTE53_DOMAIN = ''
-
-    S3_CONN = None
-    S3_BUCKETS = {}
 
     CLOUDWATCH_CONN = None
 
@@ -170,7 +165,6 @@ class CloudHost(LoggerMixin):
 
     @staticmethod
     def configure():
-        CloudHost.ENABLED['s3'] = JBoxCfg.get('cloud_host.s3', True)
         CloudHost.ENABLED['cloudwatch'] = JBoxCfg.get('cloud_host.cloudwatch', True)
         CloudHost.ENABLED['autoscale'] = JBoxCfg.get('cloud_host.autoscale', True)
         CloudHost.ENABLED['route53'] = JBoxCfg.get('cloud_host.route53', True)
@@ -231,21 +225,6 @@ class CloudHost(LoggerMixin):
 
         zone = CloudHost.connect_route53().get_zone(CloudHost.ROUTE53_DOMAIN)
         zone.delete_cname(dns_name)
-
-    @staticmethod
-    def connect_s3():
-        if (CloudHost.S3_CONN is None) and CloudHost.ENABLED['s3']:
-            CloudHost.S3_CONN = boto.connect_s3()
-        return CloudHost.S3_CONN
-
-    @staticmethod
-    def connect_s3_bucket(bucket):
-        if not CloudHost.ENABLED['s3']:
-            return None
-
-        if bucket not in CloudHost.S3_BUCKETS:
-            CloudHost.S3_BUCKETS[bucket] = CloudHost.connect_s3().get_bucket(bucket)
-        return CloudHost.S3_BUCKETS[bucket]
 
     @staticmethod
     def connect_cloudwatch():
@@ -620,68 +599,6 @@ class CloudHost(LoggerMixin):
                         stats[instance] = instance_load
 
         return stats
-
-    @staticmethod
-    def push_file_to_s3(bucket, local_file, metadata=None):
-        if not CloudHost.ENABLED['s3']:
-            return None
-
-        key_name = os.path.basename(local_file)
-        k = Key(CloudHost.connect_s3_bucket(bucket))
-        k.key = key_name
-        if metadata is not None:
-            for meta_name, meta_value in metadata.iteritems():
-                k.set_metadata(meta_name, meta_value)
-        k.set_contents_from_filename(local_file)
-        return k
-
-    @staticmethod
-    def pull_file_from_s3(bucket, local_file, metadata_only=False):
-        if not CloudHost.ENABLED['s3']:
-            return None
-
-        key_name = os.path.basename(local_file)
-        k = CloudHost.connect_s3_bucket(bucket).get_key(key_name)
-        if (k is not None) and (not metadata_only):
-            k.get_contents_to_filename(local_file)
-        return k
-
-    @staticmethod
-    def del_file_from_s3(bucket, local_file):
-        if not CloudHost.ENABLED['s3']:
-            return None
-
-        key_name = os.path.basename(local_file)
-        k = CloudHost.connect_s3_bucket(bucket).delete_key(key_name)
-        return k
-
-    @staticmethod
-    def copy_file_in_s3(from_file, to_file, from_bucket, to_bucket=None):
-        if not CloudHost.ENABLED['s3']:
-            return None
-
-        if to_bucket is None:
-            to_bucket = from_bucket
-
-        from_key_name = os.path.basename(from_file)
-        to_key_name = os.path.basename(to_file)
-
-        k = CloudHost.connect_s3_bucket(from_bucket).get_key(from_key_name)
-        if k is None:
-            return None
-        k_new = k.copy(to_bucket, to_key_name)
-        return k_new
-
-    @staticmethod
-    def move_file_in_s3(from_file, to_file, from_bucket, to_bucket=None):
-        if not CloudHost.ENABLED['s3']:
-            return None
-
-        k_new = CloudHost.copy_file_in_s3(from_file, to_file, from_bucket, to_bucket)
-        if k_new is None:
-            return None
-        CloudHost.del_file_from_s3(from_bucket, from_file)
-        return k_new
 
     @staticmethod
     def _state_check(obj, state):

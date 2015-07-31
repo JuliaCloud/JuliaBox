@@ -7,6 +7,7 @@ import errno
 import json
 import pytz
 
+from juliabox.cloud import JBoxCloudPlugin
 from juliabox.cloud.aws import CloudHost
 from juliabox.jbox_util import unique_sessname, ensure_delete, esc_sessname, get_user_name, parse_iso_time
 from juliabox.jbox_util import LoggerMixin, JBoxCfg, make_sure_path_exists
@@ -338,10 +339,11 @@ class JBoxVol(LoggerMixin):
             return time.timezone
 
     @staticmethod
-    def pull_from_s3(local_file, metadata_only=False):
-        if JBoxVol.BACKUP_BUCKET is None:
+    def pull_from_bucketstore(local_file, metadata_only=False):
+        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_BUCKETSTORE)
+        if plugin is None or JBoxVol.BACKUP_BUCKET is None:
             return None
-        return CloudHost.pull_file_from_s3(JBoxVol.BACKUP_BUCKET, local_file, metadata_only=metadata_only)
+        return plugin.pull(JBoxVol.BACKUP_BUCKET, local_file, metadata_only=metadata_only)
 
     def _backup(self, clear_volume=False):
         JBoxVol.log_info("Backing up " + self.sessname + " at " + str(JBoxVol.BACKUP_LOC))
@@ -363,9 +365,10 @@ class JBoxVol(LoggerMixin):
         # Upload to S3 if so configured. Delete from local if successful.
         bkup_file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(bkup_file), pytz.utc) + \
             datetime.timedelta(seconds=JBoxVol.LOCAL_TZ_OFFSET)
-        if JBoxVol.BACKUP_BUCKET is not None:
-            if CloudHost.push_file_to_s3(JBoxVol.BACKUP_BUCKET, bkup_file,
-                                         metadata={'backup_time': bkup_file_mtime.isoformat()}) is not None:
+        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_BUCKETSTORE)
+        if plugin is not None and JBoxVol.BACKUP_BUCKET is not None:
+            if plugin.push(JBoxVol.BACKUP_BUCKET, bkup_file,
+                           metadata={'backup_time': bkup_file_mtime.isoformat()}) is not None:
                 os.remove(bkup_file)
                 JBoxVol.log_info("Moved backup to S3 " + self.sessname)
 
@@ -373,11 +376,11 @@ class JBoxVol(LoggerMixin):
         sessname = unique_sessname(self.user_email)
         old_sessname = esc_sessname(self.user_email)
         src = os.path.join(JBoxVol.BACKUP_LOC, sessname + ".tar.gz")
-        k = JBoxVol.pull_from_s3(src)  # download from S3 if exists
+        k = JBoxVol.pull_from_bucketstore(src)  # download from S3 if exists
         if not os.path.exists(src):
             if old_sessname is not None:
                 src = os.path.join(JBoxVol.BACKUP_LOC, old_sessname + ".tar.gz")
-                k = JBoxVol.pull_from_s3(src)  # download from S3 if exists
+                k = JBoxVol.pull_from_bucketstore(src)  # download from S3 if exists
 
         if not os.path.exists(src):
             return
@@ -419,6 +422,6 @@ class JBoxVol(LoggerMixin):
                 raise
         finally:
             src_tar.close()
-        # delete local copy of backup if we have it on s3
+        # delete local copy of backup if we have it on bucketstore
         if k is not None:
             os.remove(src)

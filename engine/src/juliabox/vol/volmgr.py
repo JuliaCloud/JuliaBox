@@ -7,6 +7,7 @@ from juliabox.jbox_util import LoggerMixin, unique_sessname
 from juliabox.db import JBoxUserV2, JBoxDynConfig
 from jbox_volume import JBoxVol
 from juliabox.cloud.aws import CloudHost
+from juliabox.cloud import JBoxCloudPlugin
 
 
 class VolMgr(LoggerMixin):
@@ -22,7 +23,7 @@ class VolMgr(LoggerMixin):
         home_img_dir, curr_home_img = os.path.split(JBoxVol.USER_HOME_IMG)
         pkg_img_dir, curr_pkg_img = os.path.split(JBoxVol.PKG_IMG)
 
-        #VolMgr.log_debug("checking for updates to user home image %s/%s", img_dir, curr_img)
+        # VolMgr.log_debug("checking for updates to user home image %s/%s", img_dir, curr_img)
         bucket, new_pkg_img, new_home_img = JBoxDynConfig.get_user_home_image(CloudHost.INSTALL_ID)
 
         if bucket is None:
@@ -41,6 +42,11 @@ class VolMgr(LoggerMixin):
 
     @staticmethod
     def update_user_home_image(fetch=True):
+        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_BUCKETSTORE)
+        if plugin is None:
+            VolMgr.log_info("No plugin provided for bucketstore. Can not update packages and user home images")
+            return
+
         home_img_dir, curr_home_img = os.path.split(JBoxVol.USER_HOME_IMG)
         pkg_img_dir, curr_pkg_img = os.path.split(JBoxVol.PKG_IMG)
 
@@ -53,7 +59,7 @@ class VolMgr(LoggerMixin):
             if not os.path.exists(img_path):
                 if fetch:
                     VolMgr.log_debug("fetching new image to %s", img_path)
-                    k = CloudHost.pull_file_from_s3(bucket, img_path)
+                    k = plugin.pull(bucket, img_path)
                     if k is not None:
                         VolMgr.log_debug("fetched new image")
 
@@ -169,9 +175,11 @@ class VolMgr(LoggerMixin):
         VolMgr.STATS['num_users'] += 1
         sessname = unique_sessname(user_email)
 
-        k = CloudHost.pull_file_from_s3(JBoxVol.BACKUP_BUCKET, sessname + ".tar.gz", metadata_only=True)
-        if k is not None:
-            VolMgr.STATS['loopback']['sizes'].append(k.size)
+        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_BUCKETSTORE)
+        if plugin is not None:
+            k = plugin.pull(JBoxVol.BACKUP_BUCKET, sessname + ".tar.gz", metadata_only=True)
+            if k is not None:
+                VolMgr.STATS['loopback']['sizes'].append(k.size)
 
     @staticmethod
     def calc_stats():
