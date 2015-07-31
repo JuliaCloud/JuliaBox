@@ -6,7 +6,6 @@ import traceback
 import boto.ec2
 import boto.ec2.cloudwatch
 import boto.ec2.autoscale
-import boto.ses
 import boto.utils
 import psutil
 
@@ -27,8 +26,6 @@ class CloudHost(LoggerMixin):
     AUTOSCALE_GROUP = None
     SCALE_UP_POLICY = None
     SCALE_UP_AT_LOAD = 80
-
-    SES_CONN = None
 
     ENABLED = {}
     INSTANCE_ID = None
@@ -165,7 +162,6 @@ class CloudHost(LoggerMixin):
     def configure():
         CloudHost.ENABLED['cloudwatch'] = JBoxCfg.get('cloud_host.cloudwatch', True)
         CloudHost.ENABLED['autoscale'] = JBoxCfg.get('cloud_host.autoscale', True)
-        CloudHost.ENABLED['ses'] = JBoxCfg.get('cloud_host.ses', True)
 
         CloudHost.SCALE_UP_AT_LOAD = JBoxCfg.get('cloud_host.scale_up_at_load', 80)
         CloudHost.SCALE_UP_POLICY = JBoxCfg.get('cloud_host.scale_up_policy', None)
@@ -179,12 +175,6 @@ class CloudHost(LoggerMixin):
         if (CloudHost.EC2_CONN is None) and CloudHost.ENABLED['cloudwatch']:
             CloudHost.EC2_CONN = boto.ec2.connect_to_region(CloudHost.REGION)
         return CloudHost.EC2_CONN
-
-    @staticmethod
-    def connect_ses():
-        if (CloudHost.SES_CONN is None) and CloudHost.ENABLED['ses']:
-            CloudHost.SES_CONN = boto.ses.connect_to_region(CloudHost.REGION)
-        return CloudHost.SES_CONN
 
     @staticmethod
     def make_instance_dns_name(instance_id=None):
@@ -602,19 +592,3 @@ class CloudHost(LoggerMixin):
     @retry(15, 0.5, backoff=1.5)
     def _wait_for_status_extended(resource, state):
         return CloudHost._state_check(resource, state)
-
-    @staticmethod
-    def get_email_rates():
-        resp = CloudHost.connect_ses().get_send_quota()
-        quota = resp['GetSendQuotaResponse']['GetSendQuotaResult']
-        max_24_hrs = int(float(quota['Max24HourSend']))
-        used_24_hrs = int(float(quota['SentLast24Hours']))
-        max_rate_per_sec = int(float(quota['MaxSendRate']))
-        return max_24_hrs-used_24_hrs, max_rate_per_sec
-
-    @staticmethod
-    def send_email(rcpt, sender, subject, body):
-        CloudHost.connect_ses().send_email(source=sender,
-                                           subject=subject,
-                                           body=body,
-                                           to_addresses=[rcpt])

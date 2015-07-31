@@ -5,6 +5,7 @@ import docker
 from db import JBoxDynConfig, JBoxSessionProps, JBoxUserV2
 from jbox_util import read_config, LoggerMixin, unique_sessname
 from juliabox import db
+from juliabox.cloud import JBoxCloudPlugin
 from juliabox.cloud.aws import CloudHost
 
 dckr = docker.Client()
@@ -75,14 +76,15 @@ class TestDBTables(LoggerMixin):
 class TestSES(LoggerMixin):
     @staticmethod
     def test():
-        CloudHost.send_email('tanmaykm@gmail.com', 'admin@juliabox.org', "test SES",
-                             """hello world
-                             Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
-                             ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation
-                             ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
-                             reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-                             Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit
-                             anim id est laborum.""")
+        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_SENDMAIL)
+        plugin.send_email('tanmaykm@gmail.com', 'admin@juliabox.org', "test SES",
+                          """hello world
+                          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
+                          ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation
+                          ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
+                          reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+                          Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit
+                          anim id est laborum.""")
 
 if __name__ == "__main__":
     TestDBTables.test()

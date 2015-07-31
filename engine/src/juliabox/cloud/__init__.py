@@ -9,6 +9,7 @@ class JBoxCloudPlugin(LoggerMixin):
     It is a plugin mount point, looking for features:
     - cloud.bucketstore (e.g. s3, swift)
     - cloud.dns (e.g. route53)
+    - cloud.sendmail (e.g. ses)
     """
 
     PLUGIN_BUCKETSTORE = "cloud.bucketstore"
@@ -16,5 +17,8 @@ class JBoxCloudPlugin(LoggerMixin):
 
     PLUGIN_DNS = "cloud.dns"
     PLUGIN_DNS_ROUTE53 = "cloud.dns.route53"
+
+    PLUGIN_SENDMAIL = "cloud.sendmail"
+    PLUGIN_SENDMAIL_SES = "cloud.sendmail.ses"
 
     __metaclass__ = JBoxPluginType

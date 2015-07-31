@@ -54,7 +54,6 @@
     	# Enable/disable features
     	"cloudwatch": True,
     	"autoscale": True,
-        "ses": True,
 
     	"autoscale_group": "juliabox",
 
@@ -119,6 +118,7 @@ Welcome to JuliaBox. We hope you will like it and also share with your friends.
         "juliabox.plugins.db_dynamodb",
         "juliabox.plugins.bucket_s3",
         "juliabox.plugins.dns_route53",
+        "juliabox.plugins.sendmail_ses",
         ""
     ],
 
