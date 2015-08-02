@@ -7,8 +7,7 @@ import errno
 import json
 import pytz
 
-from juliabox.cloud import JBoxCloudPlugin
-from juliabox.cloud.aws import CloudHost
+from juliabox.cloud import JBoxCloudPlugin, Compute
 from juliabox.jbox_util import unique_sessname, ensure_delete, esc_sessname, get_user_name, parse_iso_time
 from juliabox.jbox_util import LoggerMixin, JBoxCfg, make_sure_path_exists
 from juliabox.jbox_util import JBoxPluginType
@@ -298,7 +297,7 @@ class JBoxVol(LoggerMixin):
         kernel_path = os.path.join(self.disk_path, ".ipython", "kernels", "julia-0.3", "kernel.json")
         kernel_cfg = {
             "argv": ["/usr/bin/julia"],
-            "display_name": "Julia 0.3.10",
+            "display_name": "Julia 0.3.11",
             "language": "julia"
         }
 
@@ -327,7 +326,7 @@ class JBoxVol(LoggerMixin):
                 continue
             nbconfig = os.path.join(profile_path, 'ipython_notebook_config.py')
             wsock_cfg = "c.NotebookApp.websocket_url = '" + JBoxVol.NOTEBOOK_WEBSOCK_PROTO + \
-                        CloudHost.notebook_websocket_hostname() + "'\n"
+                        Compute.get_alias_hostname() + "'\n"
             JBoxVol.replace_in_file(nbconfig, "c.NotebookApp.websocket_url", wsock_cfg)
 
     @staticmethod

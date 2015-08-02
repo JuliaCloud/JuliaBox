@@ -1,12 +1,10 @@
 import datetime
 import pytz
-import json
 import multiprocessing
-import random
 
 import psutil
 
-from cloud.aws import CloudHost
+from cloud import Compute
 from db import JBoxDBPlugin
 from jbox_tasks import JBoxAsyncJob
 from jbox_util import LoggerMixin, JBoxCfg, parse_iso_time
@@ -162,7 +160,7 @@ class JBoxContainer(LoggerMixin):
     def publish_container_stats():
         """ Publish custom cloudwatch statistics. Used for status monitoring and auto scaling. """
         nactive = JBoxContainer.num_active()
-        CloudHost.publish_stats("NumActiveContainers", "Count", nactive)
+        Compute.publish_stats("NumActiveContainers", "Count", nactive)
 
         curr_cpu_used_pct = psutil.cpu_percent()
         last_cpu_used_pct = curr_cpu_used_pct if JBoxContainer.LAST_CPU_PCT is None else JBoxContainer.LAST_CPU_PCT
@@ -170,7 +168,7 @@ class JBoxContainer(LoggerMixin):
         cpu_used_pct = int((curr_cpu_used_pct + last_cpu_used_pct)/2)
 
         mem_used_pct = psutil.virtual_memory().percent
-        CloudHost.publish_stats("MemUsed", "Percent", mem_used_pct)
+        Compute.publish_stats("MemUsed", "Percent", mem_used_pct)
 
         disk_used_pct = 0
         for x in psutil.disk_partitions():
@@ -182,15 +180,15 @@ class JBoxContainer(LoggerMixin):
         if JBoxContainer.INITIAL_DISK_USED_PCT is None:
             JBoxContainer.INITIAL_DISK_USED_PCT = disk_used_pct
         disk_used_pct = max(0, (disk_used_pct - JBoxContainer.INITIAL_DISK_USED_PCT))
-        CloudHost.publish_stats("DiskUsed", "Percent", disk_used_pct)
+        Compute.publish_stats("DiskUsed", "Percent", disk_used_pct)
 
         cont_load_pct = min(100, max(0, nactive * 100 / JBoxContainer.MAX_CONTAINERS))
-        CloudHost.publish_stats("ContainersUsed", "Percent", cont_load_pct)
+        Compute.publish_stats("ContainersUsed", "Percent", cont_load_pct)
 
-        CloudHost.publish_stats("DiskIdsUsed", "Percent", VolMgr.used_pct())
+        Compute.publish_stats("DiskIdsUsed", "Percent", VolMgr.used_pct())
 
         overall_load_pct = max(cont_load_pct, disk_used_pct, mem_used_pct, cpu_used_pct, VolMgr.used_pct())
-        CloudHost.publish_stats("Load", "Percent", overall_load_pct)
+        Compute.publish_stats("Load", "Percent", overall_load_pct)
 
     @staticmethod
     def session_containers(allcontainers=True):
@@ -289,9 +287,7 @@ class JBoxContainer(LoggerMixin):
 
     @staticmethod
     def get_active_sessions():
-        instances = CloudHost.get_autoscaled_instances() if CloudHost.ENABLED['autoscale'] else []
-        if len(instances) == 0:
-            instances = ['localhost']
+        instances = Compute.get_all_instances()
 
         active_sessions = set()
         for inst in instances:

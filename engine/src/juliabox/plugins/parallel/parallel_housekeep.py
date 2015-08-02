@@ -1,10 +1,10 @@
 __author__ = 'tan'
 from juliabox.jbox_tasks import JBoxHousekeepingPlugin
 from juliabox.jbox_container import JBoxContainer
-from juliabox.cloud.aws import CloudHost
 from juliabox.srvr_jboxd import jboxd_method
 
 from user_cluster import UserCluster
+
 
 class ParallelHousekeep(JBoxHousekeepingPlugin):
     provides = [JBoxHousekeepingPlugin.PLUGIN_CLUSTER_HOUSEKEEPING]
@@ -25,6 +25,6 @@ class ParallelHousekeep(JBoxHousekeepingPlugin):
         for cluster_id in active_clusters:
             sess_id = "/" + UserCluster.sessname_for_cluster(cluster_id)
             if sess_id not in active_sessions:
-                CloudHost.log_info("Session (%s) corresponding to cluster (%s) not found. Terminating cluster.",
-                                   sess_id, cluster_id)
+                ParallelHousekeep.log_info("Session (%s) corresponding to cluster (%s) not found. Terminating cluster.",
+                                           sess_id, cluster_id)
                 ParallelHousekeep.terminate_or_delete_cluster(cluster_id)

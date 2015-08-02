@@ -6,7 +6,7 @@ import signal
 import sys
 
 from cloud import JBoxCloudPlugin
-from cloud.aws import CloudHost
+from cloud import Compute
 import db
 from db import JBoxUserV2, JBoxDynConfig
 from jbox_tasks import JBoxAsyncJob, JBoxHousekeepingPlugin, JBoxdPlugin
@@ -44,7 +44,7 @@ class JBoxd(LoggerMixin):
     def __init__(self):
         LoggerMixin.configure()
         db.configure()
-        CloudHost.configure()
+        Compute.configure()
         JBoxContainer.configure()
         VolMgr.configure()
 
@@ -172,7 +172,7 @@ class JBoxd(LoggerMixin):
     def collect_stats():
         VolMgr.publish_stats()
         db.publish_stats()
-        JBoxDynConfig.set_stat_collected_date(CloudHost.INSTALL_ID)
+        JBoxDynConfig.set_stat_collected_date(Compute.get_install_id())
 
     @staticmethod
     def schedule_housekeeping(cmd, is_leader):

@@ -6,7 +6,7 @@ from juliabox.jbox_tasks import JBoxdPlugin, JBoxAsyncJob
 from juliabox.jbox_container import JBoxContainer
 from juliabox.db import JBoxUserV2
 from juliabox.vol import JBoxVol
-from juliabox.cloud.aws import CloudHost
+from juliabox.plugins.compute_ec2 import CompEC2
 
 from ebs import JBoxEBSVol
 from disk_state_tbl import JBoxDiskState
@@ -36,7 +36,7 @@ class JBoxEBSVolAsyncTask(JBoxdPlugin):
         vol = JBoxEBSVol.get_disk_from_container(sessname)
         disk_state = None
         try:
-            disk_state = JBoxDiskState(cluster_id=CloudHost.INSTALL_ID, region_id=CloudHost.REGION, user_id=user_id)
+            disk_state = JBoxDiskState(cluster_id=CompEC2.INSTALL_ID, region_id=CompEC2.REGION, user_id=user_id)
         except:
             pass
 
@@ -46,7 +46,7 @@ class JBoxEBSVolAsyncTask(JBoxdPlugin):
             if vol is None:
                 vol = JBoxEBSVol.get_disk_for_user(user_id)
                 JBoxEBSVol.mount_host_device(vol.disk_path, cont.dockid, JBoxVol.DATA_MOUNT_POINT)
-                disk_state = JBoxDiskState(cluster_id=CloudHost.INSTALL_ID, region_id=CloudHost.REGION, user_id=user_id)
+                disk_state = JBoxDiskState(cluster_id=CompEC2.INSTALL_ID, region_id=CompEC2.REGION, user_id=user_id)
                 if disk_state.get_state() != JBoxDiskState.STATE_ATTACHED:
                     disk_state.set_state(JBoxDiskState.STATE_ATTACHED)
                     disk_state.save()
@@ -142,7 +142,7 @@ class JBoxEBSVolHandler(JBoxHandlerPlugin):
         vol = JBoxEBSVol.get_disk_from_container(sessname)
         state_code = JBoxDiskState.STATE_DETACHED
         try:
-            disk_state = JBoxDiskState(cluster_id=CloudHost.INSTALL_ID, region_id=CloudHost.REGION, user_id=user_id)
+            disk_state = JBoxDiskState(cluster_id=CompEC2.INSTALL_ID, region_id=CompEC2.REGION, user_id=user_id)
             state_code = disk_state.get_state()
         except:
             pass

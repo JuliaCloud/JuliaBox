@@ -27,9 +27,9 @@ import json
 import csv
 import os
 
-from juliabox.cloud.aws import CloudHost
+from juliabox.cloud import Compute
 from juliabox.jbox_util import LoggerMixin, JBoxCfg
-from juliabox.db import JBoxCourseHomework
+from juliabox.plugins.course_homework import JBoxCourseHomework
 from juliabox import db
 from juliabox.plugins.course_homework import HomeworkHandler
 
@@ -89,6 +89,7 @@ def print_usage():
     print("\t%s report <course.cfg> <as_csv>" % (sys.argv[0],))
     print("\t%s answers <course.cfg>" % (sys.argv[0],))
 
+
 def process_commands(argv):
     with open(argv[2]) as f:
         uplcourse = eval(f.read())
@@ -101,7 +102,7 @@ def process_commands(argv):
 
     LoggerMixin.configure()
     db.configure()
-    CloudHost.configure()
+    Compute.configure()
 
     cmd = argv[1]
     if cmd == "upload":

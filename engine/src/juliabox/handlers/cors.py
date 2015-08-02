@@ -1,4 +1,4 @@
-from juliabox.cloud.aws import CloudHost
+from juliabox.cloud import Compute
 from handler_base import JBoxHandler
 
 
@@ -13,6 +13,6 @@ class CorsHandler(JBoxHandler):
             self.finish()
         else:
             args = self.pack()
-            url = "//" + CloudHost.notebook_websocket_hostname() + "/jboxcors/?m=" + args
+            url = "//" + Compute.get_alias_hostname() + "/jboxcors/?m=" + args
             self.log_debug("redirecting to " + url)
             self.redirect(url)

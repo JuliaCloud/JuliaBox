@@ -8,13 +8,14 @@ from boto.ec2.autoscale import LaunchConfiguration, AutoScalingGroup
 from boto.ec2.autoscale.tag import Tag
 import boto.utils
 
-from juliabox.cloud.aws import CloudHost
+from juliabox.plugins.compute_ec2 import CompEC2
+from juliabox.jbox_util import LoggerMixin
 
 
-class Cluster(CloudHost):
+class Cluster(LoggerMixin):
     @staticmethod
     def get_spot_price(inst_type, minutes=60):
-        conn = CloudHost.connect_ec2()
+        conn = Cluster._ec2()
         end = datetime.datetime.utcnow()
         start = end - datetime.timedelta(minutes=minutes)
 
@@ -61,7 +62,7 @@ class Cluster(CloudHost):
 
     @staticmethod
     def terminate_by_placement_group(gname):
-        conn = CloudHost.connect_ec2()
+        conn = Cluster._ec2()
         instances = conn.get_only_instances(filters={"placement-group-name": gname, "instance-state-name": "running"})
         conn.terminate_instances(instance_ids=[i.id for i in instances])
 
@@ -72,7 +73,7 @@ class Cluster(CloudHost):
 
     @staticmethod
     def get_placement_groups(gname=None):
-        conn = CloudHost.connect_ec2()
+        conn = Cluster._ec2()
 
         try:
             existing = conn.get_all_placement_groups(gname)
@@ -87,7 +88,7 @@ class Cluster(CloudHost):
     @staticmethod
     def create_placement_group(gname):
         if Cluster.get_placement_group(gname) is None:
-            conn = CloudHost.connect_ec2()
+            conn = Cluster._ec2()
             return conn.create_placement_group(gname, strategy='cluster')
         return True
 
@@ -102,7 +103,7 @@ class Cluster(CloudHost):
 
     @staticmethod
     def get_launch_config(lconfig_name):
-        auto_scale_conn = CloudHost.connect_autoscale()
+        auto_scale_conn = Cluster._autoscale()
         configs = auto_scale_conn.get_all_launch_configurations(names=[lconfig_name])
         if len(configs) > 0:
             return configs[0]
@@ -126,7 +127,7 @@ class Cluster(CloudHost):
                 Cluster.log_error("Launch config %s already exists.", lconfig_name)
                 raise Exception("Launch configuration already exists")
 
-        auto_scale_conn = CloudHost.connect_autoscale()
+        auto_scale_conn = Cluster._autoscale()
 
         if user_data is None:
             if user_data_file is not None:
@@ -164,7 +165,7 @@ class Cluster(CloudHost):
 
     @staticmethod
     def create_autoscale_group(gname, lconfig_name, placement_group, size, zones=None):
-        existing_group = CloudHost.get_autoscale_group(gname)
+        existing_group = CompEC2._get_autoscale_group(gname)
         if existing_group is not None:
             Cluster.log_error("Autoscale group %s already exists!", gname)
             return None
@@ -172,7 +173,7 @@ class Cluster(CloudHost):
         tags = [Tag(key='Name', value=gname, propagate_at_launch=True, resource_id=gname)]
 
         if zones is None:
-            zones = [x.name for x in CloudHost.connect_ec2().get_all_zones()]
+            zones = [x.name for x in Cluster._ec2().get_all_zones()]
 
         Cluster.log_info("zones: %r", zones)
         ag = AutoScalingGroup(group_name=gname, availability_zones=zones,
@@ -180,12 +181,12 @@ class Cluster(CloudHost):
                               placement_group=placement_group,
                               tags=tags,
                               desired_capacity=0, min_size=0, max_size=size)
-        conn = CloudHost.connect_autoscale()
+        conn = Cluster._autoscale()
         return conn.create_auto_scaling_group(ag)
 
     @staticmethod
     def delete_autoscale_group(gname, force=False):
-        existing_group = CloudHost.get_autoscale_group(gname)
+        existing_group = CompEC2._get_autoscale_group(gname)
         if existing_group is not None:
             existing_group.delete(force_delete=force)
             Cluster.log_error("Autoscale group %s deleted (forced=%r)", gname, force)
@@ -226,3 +227,56 @@ class Cluster(CloudHost):
     #         return False, -1
     #     count = len(CloudHost.get_public_addresses_by_placement_group(gname))
     #     return (num_inst == count), count
+
+
+    # @staticmethod
+    # def get_public_hostnames_by_tag(tag, value):
+    #     conn = CompEC2._connect_ec2()
+    #     instances = conn.get_only_instances(filters={"tag:"+tag: value, "instance-state-name": "running"})
+    #     return [i.public_dns_name for i in instances]
+    #
+    # @staticmethod
+    # def get_private_hostnames_by_tag(tag, value):
+    #     conn = CompEC2._connect_ec2()
+    #     instances = conn.get_only_instances(filters={"tag:"+tag: value, "instance-state-name": "running"})
+    #     return [i.private_dns_name for i in instances]
+
+    @staticmethod
+    def get_public_hostnames_by_placement_group(gname):
+        conn = Cluster._ec2()
+        instances = conn.get_only_instances(filters={"placement-group-name": gname, "instance-state-name": "running"})
+        return [i.public_dns_name for i in instances]
+
+    @staticmethod
+    def get_public_ips_by_placement_group(gname):
+        conn = Cluster._ec2()
+        instances = conn.get_only_instances(filters={"placement-group-name": gname, "instance-state-name": "running"})
+        return [i.ip_address for i in instances]
+
+    @staticmethod
+    def get_private_hostnames_by_placement_group(gname):
+        conn = Cluster._ec2()
+        instances = conn.get_only_instances(filters={"placement-group-name": gname, "instance-state-name": "running"})
+        return [i.private_dns_name for i in instances]
+
+    @staticmethod
+    def get_private_ips_by_placement_group(gname):
+        conn = Cluster._ec2()
+        instances = conn.get_only_instances(filters={"placement-group-name": gname, "instance-state-name": "running"})
+        return [i.private_ip_address for i in instances]
+
+    @staticmethod
+    def _ec2():
+        return CompEC2._connect_ec2()
+
+    @staticmethod
+    def _autoscale():
+        return CompEC2._connect_autoscale()
+
+    @staticmethod
+    def get_autoscale_group(gname):
+        return CompEC2._get_autoscale_group(gname)
+
+    @staticmethod
+    def get_autoscaled_instances(gname=None):
+        return CompEC2.get_all_instances(gname)

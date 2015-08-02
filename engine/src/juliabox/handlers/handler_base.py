@@ -13,7 +13,7 @@ from juliabox.jbox_util import LoggerMixin, unique_sessname, unquote, JBoxCfg, J
 from juliabox.jbox_container import JBoxContainer
 from juliabox.jbox_tasks import JBoxAsyncJob
 from juliabox.jbox_crypto import signstr
-from juliabox.cloud.aws import CloudHost
+from juliabox.cloud import Compute
 from juliabox.db import is_proposed_cluster_leader, JBoxUserV2, JBoxDynConfig
 from juliabox.jbox_crypto import encrypt, decrypt
 
@@ -321,14 +321,14 @@ class JBoxHandler(JBoxCookies):
             cls.log_debug("container running: %r", cont.is_running())
 
         if max_hop:
-            self_load = CloudHost.get_instance_stats(CloudHost.instance_id(), 'Load')
+            self_load = Compute.get_instance_stats(Compute.get_instance_id(), 'Load')
             if self_load < 100:
                 JBoxContainer.invalidate_container(sessname)
                 JBoxAsyncJob.async_launch_by_name(sessname, user_id, True)
                 return True
 
         is_leader = is_proposed_cluster_leader()
-        if ((cont is None) or (not cont.is_running())) and (not CloudHost.should_accept_session(is_leader)):
+        if ((cont is None) or (not cont.is_running())) and (not Compute.should_accept_session(is_leader)):
             if cont is not None:
                 JBoxContainer.invalidate_container(cont.get_name())
                 JBoxAsyncJob.async_backup_and_cleanup(cont.dockid)
@@ -345,7 +345,7 @@ class JBoxHandler(JBoxCookies):
 
     @staticmethod
     def is_user_activated(jbuser):
-        reg_allowed = JBoxDynConfig.get_allow_registration(CloudHost.INSTALL_ID)
+        reg_allowed = JBoxDynConfig.get_allow_registration(Compute.get_install_id())
         if jbuser.is_new:
             if not reg_allowed:
                 activation_state = JBoxUserV2.ACTIVATION_REQUESTED
@@ -371,10 +371,7 @@ class JBoxHandler(JBoxCookies):
     @staticmethod
     def find_logged_in_instance(user_id):
         container_id = "/" + unique_sessname(user_id)
-        if CloudHost.ENABLED['autoscale'] and CloudHost.AUTOSCALE_GROUP is not None:
-            instances = CloudHost.get_autoscaled_instances()
-        else:
-            instances = ['localhost']
+        instances = Compute.get_all_instances()
 
         for inst in instances:
             sessions = JBoxAsyncJob.sync_session_status(inst)['data']
@@ -386,11 +383,11 @@ class JBoxHandler(JBoxCookies):
     def redirect_to_logged_in_instance(self, user_id):
         loggedin_instance = self.find_logged_in_instance(user_id)
         if loggedin_instance is not None \
-                and loggedin_instance != CloudHost.instance_id() \
+                and loggedin_instance != Compute.get_instance_id() \
                 and loggedin_instance != 'localhost':
             # redirect to the instance that has the user's session
             self.log_info("Already logged in to %s. Redirecting", loggedin_instance)
-            redirect_ip = CloudHost.instance_local_ip(loggedin_instance)
+            redirect_ip = Compute.get_instance_local_ip(loggedin_instance)
             self.set_redirect_instance_id(redirect_ip)
             self.redirect('/')
             return True
@@ -412,12 +409,12 @@ class JBoxHandler(JBoxCookies):
 
         # check if the current instance is appropriate for launching this
         if self.try_launch_container(user_id, max_hop=False):
-            self.set_container_initialized(CloudHost.instance_local_ip(), user_id)
+            self.set_container_initialized(Compute.get_instance_local_ip(), user_id)
         else:
             # redirect to an appropriate instance
-            redirect_instance = CloudHost.get_redirect_instance_id()
+            redirect_instance = Compute.get_redirect_instance_id()
             if redirect_instance is not None:
-                redirect_ip = CloudHost.instance_local_ip(redirect_instance)
+                redirect_ip = Compute.get_instance_local_ip(redirect_instance)
                 self.set_redirect_instance_id(redirect_ip)
         self.redirect('/')
 

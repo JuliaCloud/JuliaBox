@@ -51,17 +51,12 @@
     	"region": "us-east-1",
         "domain": "juliabox.org",
 
-    	# Enable/disable features
-    	"cloudwatch": True,
-    	"autoscale": True,
-
     	"autoscale_group": "juliabox",
+        "scale_down": True,
 
         # Average cluster load at which to initiate scale up
     	"scale_up_at_load": 70,
     	"scale_up_policy": "addinstance",
-        # Self teminate if required to scale down
-        "scale_down" : False,
 
     	# Configure names for tables and buckets
 	    "backup_bucket": "juliabox-userbackup",
@@ -108,6 +103,7 @@ Welcome to JuliaBox. We hope you will like it and also share with your friends.
     },
 
     "plugins": [
+        "juliabox.plugins.compute_ec2",
         "juliabox.plugins.vol_loopback",
         "juliabox.plugins.vol_ebs",
         "juliabox.plugins.vol_defpkg",

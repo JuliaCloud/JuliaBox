@@ -274,11 +274,12 @@ class JBoxUserV2(JBoxDB):
         stats = JBoxUserV2.STATS
         stats['num_users'] += 1
 
-        if 'gtok' in user:
+        gtok_val = user.get('gtok', None)
+        if gtok_val is not None:
             stats['sync']['gdrive'] += 1
 
         role = stats['role']
-        role_val = int(user['role']) if 'role' in user else JBoxUserV2.ROLE_USER
+        role_val = int(user['role']) if user.get('role', None) is not None else JBoxUserV2.ROLE_USER
         if role_val == JBoxUserV2.ROLE_USER:
             role['user'] += 1
         else:
@@ -288,7 +289,8 @@ class JBoxUserV2(JBoxDB):
                 role['access_stats'] += 1
 
         act_status = stats['activation_status']
-        act_status_val = int(user['activation_status']) if 'activation_status' in user else JBoxUserV2.ACTIVATION_NONE
+        user_act_status = user.get('activation_status', None)
+        act_status_val = int(user_act_status) if user_act_status is not None else JBoxUserV2.ACTIVATION_NONE
         if act_status_val == JBoxUserV2.ACTIVATION_NONE:
             act_status['none'] += 1
         elif act_status_val == JBoxUserV2.ACTIVATION_GRANTED:
@@ -297,8 +299,8 @@ class JBoxUserV2(JBoxDB):
             act_status['requested'] += 1
 
         res_profile = stats['resource_profile']
-        res_profile_val = int(user['resource_profile']) if 'resource_profile' in user \
-            else JBoxUserV2.RES_PROF_BASIC
+        user_res_profile = user['resource_profile']
+        res_profile_val = int(user_res_profile) if user_res_profile is not None else JBoxUserV2.RES_PROF_BASIC
         if res_profile_val == JBoxUserV2.RES_PROF_BASIC:
             res_profile['basic'] += 1
         else:
@@ -348,7 +350,7 @@ class JBoxUserV2(JBoxDB):
             },
             'resource_profile': {
                 'basic': 0,
-                'disk_ebs_1G': 0,
+                'disk_ebs_10G': 0,
                 'julia_packages_precompiled': 0,
                 'julia_cluster': 0
             },
