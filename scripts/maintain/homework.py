@@ -96,7 +96,7 @@ def process_commands(argv):
 
     conf_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../host/tornado/conf'))
     conf_file = os.path.join(conf_dir, 'tornado.conf')
-    user_conf_file = os.path.join(conf_dir, 'jbox.user')
+    user_conf_file = os.path.join('/jboxengine/conf', 'jbox.user')
 
     JBoxCfg.read(conf_file, user_conf_file)
 

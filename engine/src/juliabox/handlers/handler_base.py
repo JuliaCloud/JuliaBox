@@ -79,6 +79,7 @@ class JBoxCookies(RequestHandler, LoggerMixin):
         :param user_id: The user id for which container is allocated.
         :return: None
         """
+        self.set_redirect_instance_id(instance_id)
         t = datetime.datetime.now(pytz.utc).isoformat()
         cid = unique_sessname(user_id)
         sign = signstr(cid + instance_id + t, JBoxCfg.get('sesskey'))

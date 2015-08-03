@@ -62,14 +62,14 @@ class JBoxContainer(LoggerMixin):
 
     def get_cpu_allocated(self):
         props = self.get_props()
-        cfg = props['Config']
+        cfg = props['HostConfig']
         cpu_shares = cfg.get('CpuShares', 1024)
         num_cpus = multiprocessing.cpu_count()
         return max(1, int(num_cpus * cpu_shares / 1024))
 
     def get_memory_allocated(self):
         props = self.get_props()
-        cfg = props['Config']
+        cfg = props['HostConfig']
         mem = cfg.get('Memory', 0)
         if mem > 0:
             return mem
@@ -107,8 +107,24 @@ class JBoxContainer(LoggerMixin):
         JBoxContainer.MAX_CONTAINERS = JBoxCfg.get('numlocalmax')
 
     @staticmethod
-    def _create_new(name):
-        hostcfg = docker.utils.create_host_config(mem_limit=JBoxContainer.MEM_LIMIT)
+    def _create_new(name, email):
+        home_disk = VolMgr.get_disk_for_user(email)
+        pkgs_disk = VolMgr.get_pkg_mount_for_user(email)
+
+        vols = {
+            home_disk.disk_path: {
+                'bind': JBoxContainer.VOLUMES[0],
+                'ro': False
+            },
+            pkgs_disk.disk_path: {
+                'bind': JBoxContainer.VOLUMES[1],
+                'ro': True
+            }
+        }
+
+        hostcfg = docker.utils.create_host_config(binds=vols,
+                                                  port_bindings=JBoxContainer.CONTAINER_PORT_BINDINGS,
+                                                  mem_limit=JBoxContainer.MEM_LIMIT)
         jsonobj = JBoxContainer.DCKR.create_container(JBoxContainer.DCKR_IMAGE,
                                                       detach=True,
                                                       host_config=hostcfg,
@@ -120,7 +136,8 @@ class JBoxContainer(LoggerMixin):
                                                       name=name)
         dockid = jsonobj["Id"]
         cont = JBoxContainer(dockid)
-        JBoxContainer.log_info("Created %s", cont.debug_str())
+        JBoxContainer.log_info("Created %s with hostcfg %r, cpu_limit: %r, volumes: %r", cont.debug_str(), hostcfg,
+                               JBoxContainer.CPU_LIMIT, vols)
         return cont
 
     @staticmethod
@@ -142,11 +159,11 @@ class JBoxContainer(LoggerMixin):
             cont = None
 
         if cont is None:
-            cont = JBoxContainer._create_new(name)
+            cont = JBoxContainer._create_new(name, email)
 
         try:
             if not (cont.is_running() or cont.is_restarting()):
-                cont.start(email)
+                cont.start()
             #else:
             #    cont.restart()
         except:
@@ -371,29 +388,14 @@ class JBoxContainer(LoggerMixin):
         else:
             JBoxContainer.log_info("Already stopped or restarting %s", self.debug_str())
 
-    def start(self, email):
+    def start(self):
         self.refresh()
         JBoxContainer.log_info("Starting %s", self.debug_str())
         if self.is_running() or self.is_restarting():
             JBoxContainer.log_warn("Already started %s. Browser connectivity issues?", self.debug_str())
             return
 
-        home_disk = VolMgr.get_disk_for_user(email)
-        pkgs_disk = VolMgr.get_pkg_mount_for_user(email)
-
-        vols = {
-            home_disk.disk_path: {
-                'bind': JBoxContainer.VOLUMES[0],
-                'ro': False
-            },
-            pkgs_disk.disk_path: {
-                'bind': JBoxContainer.VOLUMES[1],
-                'ro': True
-            }
-        }
-
-        JBoxContainer.log_debug("Binding volumes %r for %s", vols, self.debug_str())
-        JBoxContainer.DCKR.start(self.dockid, port_bindings=JBoxContainer.CONTAINER_PORT_BINDINGS, binds=vols)
+        JBoxContainer.DCKR.start(self.dockid)
         self.refresh()
         JBoxContainer.log_info("Started %s", self.debug_str())
         cname = self.get_name()
