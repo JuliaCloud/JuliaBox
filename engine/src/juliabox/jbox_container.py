@@ -1,12 +1,10 @@
 import datetime
 import pytz
-import json
 import multiprocessing
-import random
 
 import psutil
 
-from cloud.aws import CloudHost
+from cloud import Compute
 from db import JBoxDBPlugin
 from jbox_tasks import JBoxAsyncJob
 from jbox_util import LoggerMixin, JBoxCfg, parse_iso_time
@@ -64,14 +62,14 @@ class JBoxContainer(LoggerMixin):
 
     def get_cpu_allocated(self):
         props = self.get_props()
-        cfg = props['Config']
+        cfg = props['HostConfig']
         cpu_shares = cfg.get('CpuShares', 1024)
         num_cpus = multiprocessing.cpu_count()
         return max(1, int(num_cpus * cpu_shares / 1024))
 
     def get_memory_allocated(self):
         props = self.get_props()
-        cfg = props['Config']
+        cfg = props['HostConfig']
         mem = cfg.get('Memory', 0)
         if mem > 0:
             return mem
@@ -109,8 +107,24 @@ class JBoxContainer(LoggerMixin):
         JBoxContainer.MAX_CONTAINERS = JBoxCfg.get('numlocalmax')
 
     @staticmethod
-    def _create_new(name):
-        hostcfg = docker.utils.create_host_config(mem_limit=JBoxContainer.MEM_LIMIT)
+    def _create_new(name, email):
+        home_disk = VolMgr.get_disk_for_user(email)
+        pkgs_disk = VolMgr.get_pkg_mount_for_user(email)
+
+        vols = {
+            home_disk.disk_path: {
+                'bind': JBoxContainer.VOLUMES[0],
+                'ro': False
+            },
+            pkgs_disk.disk_path: {
+                'bind': JBoxContainer.VOLUMES[1],
+                'ro': True
+            }
+        }
+
+        hostcfg = docker.utils.create_host_config(binds=vols,
+                                                  port_bindings=JBoxContainer.CONTAINER_PORT_BINDINGS,
+                                                  mem_limit=JBoxContainer.MEM_LIMIT)
         jsonobj = JBoxContainer.DCKR.create_container(JBoxContainer.DCKR_IMAGE,
                                                       detach=True,
                                                       host_config=hostcfg,
@@ -122,7 +136,8 @@ class JBoxContainer(LoggerMixin):
                                                       name=name)
         dockid = jsonobj["Id"]
         cont = JBoxContainer(dockid)
-        JBoxContainer.log_info("Created %s", cont.debug_str())
+        JBoxContainer.log_info("Created %s with hostcfg %r, cpu_limit: %r, volumes: %r", cont.debug_str(), hostcfg,
+                               JBoxContainer.CPU_LIMIT, vols)
         return cont
 
     @staticmethod
@@ -144,11 +159,11 @@ class JBoxContainer(LoggerMixin):
             cont = None
 
         if cont is None:
-            cont = JBoxContainer._create_new(name)
+            cont = JBoxContainer._create_new(name, email)
 
         try:
             if not (cont.is_running() or cont.is_restarting()):
-                cont.start(email)
+                cont.start()
             #else:
             #    cont.restart()
         except:
@@ -162,7 +177,7 @@ class JBoxContainer(LoggerMixin):
     def publish_container_stats():
         """ Publish custom cloudwatch statistics. Used for status monitoring and auto scaling. """
         nactive = JBoxContainer.num_active()
-        CloudHost.publish_stats("NumActiveContainers", "Count", nactive)
+        Compute.publish_stats("NumActiveContainers", "Count", nactive)
 
         curr_cpu_used_pct = psutil.cpu_percent()
         last_cpu_used_pct = curr_cpu_used_pct if JBoxContainer.LAST_CPU_PCT is None else JBoxContainer.LAST_CPU_PCT
@@ -170,7 +185,7 @@ class JBoxContainer(LoggerMixin):
         cpu_used_pct = int((curr_cpu_used_pct + last_cpu_used_pct)/2)
 
         mem_used_pct = psutil.virtual_memory().percent
-        CloudHost.publish_stats("MemUsed", "Percent", mem_used_pct)
+        Compute.publish_stats("MemUsed", "Percent", mem_used_pct)
 
         disk_used_pct = 0
         for x in psutil.disk_partitions():
@@ -182,15 +197,15 @@ class JBoxContainer(LoggerMixin):
         if JBoxContainer.INITIAL_DISK_USED_PCT is None:
             JBoxContainer.INITIAL_DISK_USED_PCT = disk_used_pct
         disk_used_pct = max(0, (disk_used_pct - JBoxContainer.INITIAL_DISK_USED_PCT))
-        CloudHost.publish_stats("DiskUsed", "Percent", disk_used_pct)
+        Compute.publish_stats("DiskUsed", "Percent", disk_used_pct)
 
         cont_load_pct = min(100, max(0, nactive * 100 / JBoxContainer.MAX_CONTAINERS))
-        CloudHost.publish_stats("ContainersUsed", "Percent", cont_load_pct)
+        Compute.publish_stats("ContainersUsed", "Percent", cont_load_pct)
 
-        CloudHost.publish_stats("DiskIdsUsed", "Percent", VolMgr.used_pct())
+        Compute.publish_stats("DiskIdsUsed", "Percent", VolMgr.used_pct())
 
         overall_load_pct = max(cont_load_pct, disk_used_pct, mem_used_pct, cpu_used_pct, VolMgr.used_pct())
-        CloudHost.publish_stats("Load", "Percent", overall_load_pct)
+        Compute.publish_stats("Load", "Percent", overall_load_pct)
 
     @staticmethod
     def session_containers(allcontainers=True):
@@ -289,9 +304,7 @@ class JBoxContainer(LoggerMixin):
 
     @staticmethod
     def get_active_sessions():
-        instances = CloudHost.get_autoscaled_instances() if CloudHost.ENABLED['autoscale'] else []
-        if len(instances) == 0:
-            instances = ['localhost']
+        instances = Compute.get_all_instances()
 
         active_sessions = set()
         for inst in instances:
@@ -375,29 +388,14 @@ class JBoxContainer(LoggerMixin):
         else:
             JBoxContainer.log_info("Already stopped or restarting %s", self.debug_str())
 
-    def start(self, email):
+    def start(self):
         self.refresh()
         JBoxContainer.log_info("Starting %s", self.debug_str())
         if self.is_running() or self.is_restarting():
             JBoxContainer.log_warn("Already started %s. Browser connectivity issues?", self.debug_str())
             return
 
-        home_disk = VolMgr.get_disk_for_user(email)
-        pkgs_disk = VolMgr.get_pkg_mount_for_user(email)
-
-        vols = {
-            home_disk.disk_path: {
-                'bind': JBoxContainer.VOLUMES[0],
-                'ro': False
-            },
-            pkgs_disk.disk_path: {
-                'bind': JBoxContainer.VOLUMES[1],
-                'ro': True
-            }
-        }
-
-        JBoxContainer.log_debug("Binding volumes %r for %s", vols, self.debug_str())
-        JBoxContainer.DCKR.start(self.dockid, port_bindings=JBoxContainer.CONTAINER_PORT_BINDINGS, binds=vols)
+        JBoxContainer.DCKR.start(self.dockid)
         self.refresh()
         JBoxContainer.log_info("Started %s", self.debug_str())
         cname = self.get_name()

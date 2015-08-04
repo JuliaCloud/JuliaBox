@@ -3,8 +3,7 @@ import datetime
 import pytz
 
 from juliabox.db import JBoxDynConfig
-from juliabox.cloud.aws import CloudHost
-from juliabox.cloud.awscluster import Cluster
+from juliabox.plugins.compute_ec2 import Cluster, CompEC2
 from juliabox.jbox_util import LoggerMixin, unique_sessname
 
 
@@ -83,7 +82,7 @@ class UserCluster(LoggerMixin):
             refetch = tdiff > UserCluster.RECONF_SECS
 
         if refetch:
-            cfg = JBoxDynConfig.get_user_cluster_config(CloudHost.INSTALL_ID)
+            cfg = JBoxDynConfig.get_user_cluster_config(CompEC2.INSTALL_ID)
             UserCluster.IMAGE_ID = cfg['image_id']
             UserCluster.INSTANCE_TYPE = cfg['instance_type']
             UserCluster.INSTANCE_CORES = cfg['instance_cores']
@@ -180,10 +179,10 @@ class UserCluster(LoggerMixin):
 
     def refresh_instances(self):
         self.instances = Cluster.get_autoscaled_instances(self.gname)
-        self.public_ips = CloudHost.get_public_ips_by_placement_group(self.gname)
-        self.public_hosts = CloudHost.get_public_hostnames_by_placement_group(self.gname)
-        self.private_ips = CloudHost.get_private_ips_by_placement_group(self.gname)
-        self.private_hosts = CloudHost.get_private_hostnames_by_placement_group(self.gname)
+        self.public_ips = Cluster.get_public_ips_by_placement_group(self.gname)
+        self.public_hosts = Cluster.get_public_hostnames_by_placement_group(self.gname)
+        self.private_ips = Cluster.get_private_ips_by_placement_group(self.gname)
+        self.private_hosts = Cluster.get_private_hostnames_by_placement_group(self.gname)
 
     def create(self, ninsts, avzone, user_data, spot_price=0):
         if self.exists():
@@ -213,7 +212,7 @@ class UserCluster(LoggerMixin):
 
     @staticmethod
     def list_all():
-        ascale_conn = CloudHost.connect_autoscale()
+        ascale_conn = Cluster._autoscale()
 
         pgrps = [x for x in Cluster.get_placement_groups() if x.name.startswith(UserCluster.NAME_PFX)]
         UserCluster.log_info("%d placement groups", len(pgrps))
@@ -252,7 +251,7 @@ class UserCluster(LoggerMixin):
         Cluster.delete_placement_group(self.gname)
 
     def set_capacity(self, ninst):
-        conn = Cluster.connect_autoscale()
+        conn = Cluster._autoscale()
         conn.set_desired_capacity(self.gname, ninst, False)
 
     def start(self):

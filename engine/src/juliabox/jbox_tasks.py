@@ -3,7 +3,7 @@ import json
 
 from jbox_util import LoggerMixin, JBoxCfg, JBoxPluginType
 from jbox_crypto import signstr
-from cloud.aws import CloudHost
+from cloud import Compute
 
 
 class JBoxAsyncJob(LoggerMixin):
@@ -36,7 +36,7 @@ class JBoxAsyncJob(LoggerMixin):
 
         rrmode = zmq.REQ if (mode == JBoxAsyncJob.MODE_PUB) else zmq.REP
 
-        local_ip = CloudHost.instance_local_ip()
+        local_ip = Compute.get_instance_local_ip()
         JBoxAsyncJob.log_debug("local hostname [%s]", local_ip)
 
         ppbindaddr = 'tcp://%s:%d' % (local_ip, ports[0],)
@@ -88,9 +88,9 @@ class JBoxAsyncJob(LoggerMixin):
 
     def sendrecv(self, cmd, data, dest=None, port=None):
         if (dest is None) or (dest == 'localhost'):
-            dest = CloudHost.instance_local_ip()
+            dest = Compute.get_instance_local_ip()
         else:
-            dest = CloudHost.instance_local_ip(dest)
+            dest = Compute.get_instance_local_ip(dest)
         if port is None:
             port = self._rrport
         rraddr = 'tcp://%s:%d' % (dest, port)

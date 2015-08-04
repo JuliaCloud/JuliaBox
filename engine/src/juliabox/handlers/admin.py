@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import isodate
 
-from juliabox.cloud.aws import CloudHost
+from juliabox.cloud import Compute
 from juliabox.jbox_util import JBoxCfg
 from handler_base import JBoxHandler
 from juliabox.jbox_container import JBoxContainer
@@ -113,20 +113,17 @@ class AdminHandler(JBoxHandler):
                 if stats == 'load':
                     result = {}
                     # get cluster loads
-                    average_load = CloudHost.get_cluster_average_stats('Load')
+                    average_load = Compute.get_cluster_average_stats('Load')
                     if None != average_load:
                         result['Average Load'] = average_load
 
-                    machine_loads = CloudHost.get_cluster_stats('Load')
+                    machine_loads = Compute.get_cluster_stats('Load')
                     if None != machine_loads:
                         for n, v in machine_loads.iteritems():
                             result['Instance ' + n] = v
                 elif stats == 'sessions':
-                    result = {}
-                    if CloudHost.ENABLED['autoscale']:
-                        instances = CloudHost.get_autoscaled_instances()
-                    else:
-                        instances = ['localhost']
+                    result = dict()
+                    instances = Compute.get_all_instances()
 
                     for idx in range(0, len(instances)):
                         inst = instances[idx]
@@ -171,7 +168,7 @@ class AdminHandler(JBoxHandler):
                 if stats == 'stat_sessions':
                     stats = self.get_session_stats()
                 else:
-                    stats = JBoxDynConfig.get_stat(CloudHost.INSTALL_ID, stats)
+                    stats = JBoxDynConfig.get_stat(Compute.get_install_id(), stats)
                 response = {'code': 0, 'data': stats} if stats is not None else {'code': 1, 'data': {}}
             except:
                 AdminHandler.log_error("exception while getting stats")

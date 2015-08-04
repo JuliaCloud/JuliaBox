@@ -31,29 +31,27 @@ LOOP_MNT_DIR=${FS_DIR}/loop/mnt
 echo "    Creating folders to hold filesystems..."
 mkdir -p ${FS_DIR} ${LOOP_IMG_DIR} ${LOOP_MNT_DIR} || error_exit "Could not create folders to hold filesystems"
 
-echo "    Stopping docker to make sure no loop devices are in use..."
-service docker stop
-
 echo "Creating template disk image..."
 dd if=/dev/zero of=${LOOP_MNT_DIR}/jimg bs=1M count=${FS_SIZE_MB} || error_exit "Error creating disk image file"
-losetup /dev/loop0 ${LOOP_MNT_DIR}/jimg || error_exit "Error mapping template disk image"
-mkfs -t ext3 -m 1 -N 144000 -v /dev/loop0 || error_exit "Error making ext3 filesystem at /dev/loop0"
-chown -R ${ID}:${ID} /dev/loop0 || error_exit "Error changing file ownership on /dev/loop0"
-losetup -d /dev/loop0
+FREEDEV=`losetup -f`
+losetup ${FREEDEV} ${LOOP_MNT_DIR}/jimg || error_exit "Error mapping template disk image"
+mkfs -t ext3 -m 1 -N 144000 -v ${FREEDEV} || error_exit "Error making ext3 filesystem at ${FREEDEV}"
+chown -R ${ID}:${ID} ${FREEDEV} || error_exit "Error changing file ownership on ${FREEDEV}"
+losetup -d ${FREEDEV}
 
 echo "    Creating loopback devices..."
 NDISKS=$((NDISKS-1))
 for i in $(seq 0 ${NDISKS})
 do
     echo -n "${i}."
-    LOOP=/dev/loop$i
+    LOOP=`losetup -f`
     MNT=${LOOP_MNT_DIR}/${i}
     IMG=${LOOP_IMG_DIR}/${i}
 
     if [ ! -e $LOOP ]
     then
         mknod -m0660 $LOOP b 7 $i || error_exit "Could not create loop device $LOOP."
-        chown root.disk /dev/loop$i || error_exit "Could not create loop device $LOOP. Error setting owner."
+        chown root.disk $LOOP || error_exit "Could not create loop device $LOOP. Error setting owner."
     fi
 
     if [ ! -e ${IMG} ]

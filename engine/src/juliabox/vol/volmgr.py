@@ -6,7 +6,7 @@ import pytz
 from juliabox.jbox_util import LoggerMixin, unique_sessname
 from juliabox.db import JBoxUserV2, JBoxDynConfig
 from jbox_volume import JBoxVol
-from juliabox.cloud.aws import CloudHost
+from juliabox.cloud import JBoxCloudPlugin, Compute
 
 
 class VolMgr(LoggerMixin):
@@ -22,8 +22,8 @@ class VolMgr(LoggerMixin):
         home_img_dir, curr_home_img = os.path.split(JBoxVol.USER_HOME_IMG)
         pkg_img_dir, curr_pkg_img = os.path.split(JBoxVol.PKG_IMG)
 
-        #VolMgr.log_debug("checking for updates to user home image %s/%s", img_dir, curr_img)
-        bucket, new_pkg_img, new_home_img = JBoxDynConfig.get_user_home_image(CloudHost.INSTALL_ID)
+        # VolMgr.log_debug("checking for updates to user home image %s/%s", img_dir, curr_img)
+        bucket, new_pkg_img, new_home_img = JBoxDynConfig.get_user_home_image(Compute.get_install_id())
 
         if bucket is None:
             VolMgr.log_info("Home: none configured. current: %s/%s", home_img_dir, curr_home_img)
@@ -41,10 +41,15 @@ class VolMgr(LoggerMixin):
 
     @staticmethod
     def update_user_home_image(fetch=True):
+        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_BUCKETSTORE)
+        if plugin is None:
+            VolMgr.log_info("No plugin provided for bucketstore. Can not update packages and user home images")
+            return
+
         home_img_dir, curr_home_img = os.path.split(JBoxVol.USER_HOME_IMG)
         pkg_img_dir, curr_pkg_img = os.path.split(JBoxVol.PKG_IMG)
 
-        bucket, new_pkg_img, new_home_img = JBoxDynConfig.get_user_home_image(CloudHost.INSTALL_ID)
+        bucket, new_pkg_img, new_home_img = JBoxDynConfig.get_user_home_image(Compute.get_install_id())
 
         new_home_img_path = os.path.join(home_img_dir, new_home_img)
         new_pkg_img_path = os.path.join(pkg_img_dir, new_pkg_img)
@@ -53,7 +58,7 @@ class VolMgr(LoggerMixin):
             if not os.path.exists(img_path):
                 if fetch:
                     VolMgr.log_debug("fetching new image to %s", img_path)
-                    k = CloudHost.pull_file_from_s3(bucket, img_path)
+                    k = plugin.pull(bucket, img_path)
                     if k is not None:
                         VolMgr.log_debug("fetched new image")
 
@@ -169,9 +174,11 @@ class VolMgr(LoggerMixin):
         VolMgr.STATS['num_users'] += 1
         sessname = unique_sessname(user_email)
 
-        k = CloudHost.pull_file_from_s3(JBoxVol.BACKUP_BUCKET, sessname + ".tar.gz", metadata_only=True)
-        if k is not None:
-            VolMgr.STATS['loopback']['sizes'].append(k.size)
+        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_BUCKETSTORE)
+        if plugin is not None:
+            k = plugin.pull(JBoxVol.BACKUP_BUCKET, sessname + ".tar.gz", metadata_only=True)
+            if k is not None:
+                VolMgr.STATS['loopback']['sizes'].append(k.size)
 
     @staticmethod
     def calc_stats():
@@ -199,9 +206,9 @@ class VolMgr(LoggerMixin):
         sizes = VolMgr.STATS['loopback']['sizes']
         VolMgr.STATS['loopback']['num_files'] = len(sizes)
         VolMgr.STATS['loopback']['total_size'] = sum(sizes)
-        VolMgr.STATS['loopback']['min_size'] = min(sizes)
-        VolMgr.STATS['loopback']['max_size'] = max(sizes)
-        VolMgr.STATS['loopback']['avg_size'] = sum(sizes) / len(sizes)
+        VolMgr.STATS['loopback']['min_size'] = min(sizes) if len(sizes) > 0 else 0
+        VolMgr.STATS['loopback']['max_size'] = max(sizes) if len(sizes) > 0 else 0
+        VolMgr.STATS['loopback']['avg_size'] = sum(sizes) / len(sizes) if len(sizes) > 0 else 0
 
         bin_size = int((VolMgr.STATS['loopback']['max_size'] - VolMgr.STATS['loopback']['min_size']) / 10)
         min_size = VolMgr.STATS['loopback']['min_size']
@@ -225,4 +232,4 @@ class VolMgr(LoggerMixin):
     def publish_stats():
         VolMgr.calc_stats()
         VolMgr.log_debug("stats: %r", VolMgr.STATS)
-        JBoxDynConfig.set_stat(CloudHost.INSTALL_ID, VolMgr.STAT_NAME, VolMgr.STATS)
+        JBoxDynConfig.set_stat(Compute.get_install_id(), VolMgr.STAT_NAME, VolMgr.STATS)

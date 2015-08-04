@@ -1,34 +1,23 @@
 import datetime
-
+import os
 import docker
 
-from db import JBoxDynConfig, JBoxSessionProps, JBoxUserV2
-from jbox_util import read_config, LoggerMixin, unique_sessname
+from jbox_util import JBoxCfg, LoggerMixin, unique_sessname
 from juliabox import db
-from juliabox.cloud.aws import CloudHost
+from juliabox.db import JBoxDynConfig, JBoxSessionProps, JBoxUserV2
+from juliabox.cloud import JBoxCloudPlugin
+from juliabox.cloud import Compute
 
-dckr = docker.Client()
-cfg = read_config()
-cloud_cfg = cfg['cloud_host']
+conf_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../conf'))
+conf_file = os.path.join(conf_dir, 'tornado.conf')
+user_conf_file = os.path.join(conf_dir, 'jbox.user')
 
-LoggerMixin.setup_logger(level=cfg['root_log_level'])
-LoggerMixin.DEFAULT_LEVEL = cfg['jbox_log_level']
+JBoxCfg.read(conf_file, user_conf_file)
+JBoxCfg.dckr = docker.Client()
 
-db.configure_db(cfg)
-
-CloudHost.configure(has_s3=cloud_cfg['s3'],
-                    has_cloudwatch=cloud_cfg['cloudwatch'],
-                    has_autoscale=cloud_cfg['autoscale'],
-                    has_route53=cloud_cfg['route53'],
-                    has_ebs=cloud_cfg['ebs'],
-                    has_ses=cloud_cfg['ses'],
-                    scale_up_at_load=cloud_cfg['scale_up_at_load'],
-                    scale_up_policy=cloud_cfg['scale_up_policy'],
-                    autoscale_group=cloud_cfg['autoscale_group'],
-                    route53_domain=cloud_cfg['route53_domain'],
-                    region=cloud_cfg['region'],
-                    install_id=cloud_cfg['install_id'])
-
+LoggerMixin.configure()
+db.configure()
+Compute.configure()
 
 TESTCLSTR = 'testcluster'
 
@@ -77,14 +66,15 @@ class TestDBTables(LoggerMixin):
 class TestSES(LoggerMixin):
     @staticmethod
     def test():
-        CloudHost.send_email('tanmaykm@gmail.com', 'admin@juliabox.org', "test SES",
-                             """hello world
-                             Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
-                             ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation
-                             ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
-                             reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-                             Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit
-                             anim id est laborum.""")
+        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_SENDMAIL)
+        plugin.send_email('tanmaykm@gmail.com', 'admin@juliabox.org', "test SES",
+                          """hello world
+                          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
+                          ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation
+                          ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
+                          reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+                          Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit
+                          anim id est laborum.""")
 
 if __name__ == "__main__":
     TestDBTables.test()

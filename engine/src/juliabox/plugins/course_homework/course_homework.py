@@ -3,7 +3,7 @@ import datetime
 import pytz
 import json
 
-from juliabox.cloud.aws import CloudHost
+from juliabox.cloud import Compute
 from juliabox.jbox_util import JBoxCfg
 from juliabox.handlers import JBoxHandlerPlugin
 from juliabox.jbox_container import JBoxContainer
@@ -126,7 +126,7 @@ class HomeworkHandler(JBoxHandlerPlugin):
                 err = "Course %s not found!" % (course_id,)
 
         if err is None:
-            course = JBoxDynConfig.get_course(CloudHost.INSTALL_ID, course_id)
+            course = JBoxDynConfig.get_course(Compute.get_install_id(), course_id)
             if problemset_id not in course['problemsets']:
                 err = "Problem set %s not found!" % (problemset_id,)
             elif question_ids is None:
@@ -160,7 +160,7 @@ class HomeworkHandler(JBoxHandlerPlugin):
             send_answers = False
 
         err = None
-        course = JBoxDynConfig.get_course(CloudHost.INSTALL_ID, course_id)
+        course = JBoxDynConfig.get_course(Compute.get_install_id(), course_id)
         self.log_debug("got course %r", course)
         if problemset_id not in course['problemsets']:
             err = "Problem set %s not found!" % (problemset_id,)
@@ -185,7 +185,7 @@ class HomeworkHandler(JBoxHandlerPlugin):
         if (user_id is not None) and (user_id not in course['admins']):
             course['admins'].append(user_id)
 
-        existing_course = JBoxDynConfig.get_course(CloudHost.INSTALL_ID, course_id)
+        existing_course = JBoxDynConfig.get_course(Compute.get_install_id(), course_id)
         existing_admins = existing_course['admins'] if existing_course is not None else []
         existing_psets = existing_course['problemsets'] if existing_course is not None else []
 
@@ -204,7 +204,7 @@ class HomeworkHandler(JBoxHandlerPlugin):
             question_list[pset_id] = question_ids
 
         dt = datetime.datetime.now(pytz.utc)
-        JBoxDynConfig.set_course(CloudHost.INSTALL_ID, course_id, {
+        JBoxDynConfig.set_course(Compute.get_install_id(), course_id, {
             'admins': course['admins'],
             'problemsets': existing_psets,
             'questions': question_list,
@@ -219,7 +219,7 @@ class HomeworkHandler(JBoxHandlerPlugin):
                 answer = question['ans']
                 score = question['score'] if 'score' in question else 0
                 attempts = question['attempts'] if 'attempts' in question else 0
-                #nscore = question['nscore'] if 'nscore' in question else 0
+                # nscore = question['nscore'] if 'nscore' in question else 0
                 try:
                     ans = JBoxCourseHomework(course_id, problemset_id, question_id, JBoxCourseHomework.ANSWER_KEY,
                                              answer=answer, state=JBoxCourseHomework.STATE_CORRECT, create=True)

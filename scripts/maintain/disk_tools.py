@@ -7,11 +7,10 @@ import tarfile
 import datetime
 import pytz
 
-import docker
-
-from juliabox.cloud.aws import CloudHost
+from juliabox.plugins.bucket_s3 import JBoxS3
 from juliabox.jbox_util import LoggerMixin, unique_sessname, JBoxCfg
 from juliabox.vol import JBoxVol, VolMgr
+from juliabox import db
 
 
 class S3Disk(LoggerMixin):
@@ -19,18 +18,18 @@ class S3Disk(LoggerMixin):
     def rename_and_delete(user_email):
         sessname = unique_sessname(user_email)
         renamed_sessname = sessname + '_old'
-        CloudHost.move_file_in_s3(sessname + ".tar.gz", renamed_sessname + ".tar.gz", JBoxVol.BACKUP_BUCKET)
+        JBoxS3.move(sessname + ".tar.gz", renamed_sessname + ".tar.gz", JBoxVol.BACKUP_BUCKET)
 
     @staticmethod
     def delete(user_email):
         sessname = unique_sessname(user_email)
-        CloudHost.del_file_from_s3(JBoxVol.BACKUP_BUCKET, sessname + ".tar.gz")
+        JBoxS3.delete(JBoxVol.BACKUP_BUCKET, sessname + ".tar.gz")
 
     @staticmethod
     def pull_backup(user_email):
         sessname = unique_sessname(user_email)
         S3Disk.log_info("pulling %s.tar.gz from %s", sessname, JBoxVol.BACKUP_BUCKET)
-        CloudHost.pull_file_from_s3(JBoxVol.BACKUP_BUCKET, sessname + ".tar.gz", metadata_only=False)
+        JBoxS3.pull(JBoxVol.BACKUP_BUCKET, sessname + ".tar.gz", metadata_only=False)
 
     @staticmethod
     def push_backup(user_email, disk_path):
@@ -59,25 +58,15 @@ class S3Disk(LoggerMixin):
         bkup_file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(bkup_file), pytz.utc) + \
             datetime.timedelta(seconds=JBoxVol.LOCAL_TZ_OFFSET)
         if JBoxVol.BACKUP_BUCKET is not None:
-            if CloudHost.push_file_to_s3(JBoxVol.BACKUP_BUCKET, bkup_file,
-                                         metadata={'backup_time': bkup_file_mtime.isoformat()}) is not None:
+            if JBoxS3.push(JBoxVol.BACKUP_BUCKET, bkup_file,
+                           metadata={'backup_time': bkup_file_mtime.isoformat()}) is not None:
                 os.remove(bkup_file)
                 S3Disk.log_info("Moved backup to S3 " + sessname)
 
     @staticmethod
     def init():
-        conf_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../host/tornado/conf'))
-        conf_file = os.path.join(conf_dir, 'tornado.conf')
-        user_conf_file = os.path.join(conf_dir, 'jbox.user')
-
-        JBoxCfg.read(conf_file, user_conf_file)
-        JBoxCfg.dckr = docker.Client()
-
-        # force override
-        JBoxCfg.nv['cloud_host']['s3'] = True
-
         LoggerMixin.configure()
-        CloudHost.configure()
+        db.configure()
         VolMgr.configure()
 
 
@@ -96,10 +85,10 @@ def process_args(argv):
         S3Disk.pull_backup(user)
     elif cmd == 'push':
         S3Disk.push_backup(user, argv[3])
-    # elif cmd == 'rename':
-    #     S3Disk.rename_and_delete(user)
-    # elif cmd == 'delete':
-    #     S3Disk.delete(user)
+    elif cmd == 'rename':
+        S3Disk.rename_and_delete(user)
+    elif cmd == 'delete':
+        S3Disk.delete(user)
 
     print("Done")
 

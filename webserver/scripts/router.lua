@@ -83,7 +83,7 @@ function M.rewrite_uri()
 end
 
 function M.set_forward_addr(desired_port, force_scheme, force_port)
-    local desired_host = ngx.var.cookie_instance_id
+    local desired_host = ngx.var.cookie_jb_iid
     local incoming_port = ngx.var.server_port
     local incoming_scheme = ngx.var.scheme
 

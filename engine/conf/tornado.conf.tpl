@@ -49,22 +49,14 @@
     "cloud_host": {
     	"install_id": "JuliaBox",
     	"region": "us-east-1",
-
-    	# Enable/disable features
-    	"s3": True,
-    	"cloudwatch": True,
-    	"autoscale": True,
-    	"route53": True,
-        "ses": True,
+        "domain": "juliabox.org",
 
     	"autoscale_group": "juliabox",
-    	"route53_domain": "juliabox.org",
+        "scale_down": True,
 
         # Average cluster load at which to initiate scale up
     	"scale_up_at_load": 70,
     	"scale_up_policy": "addinstance",
-        # Self teminate if required to scale down
-        "scale_down" : False,
 
     	# Configure names for tables and buckets
 	    "backup_bucket": "juliabox-userbackup",
@@ -111,6 +103,7 @@ Welcome to JuliaBox. We hope you will like it and also share with your friends.
     },
 
     "plugins": [
+        "juliabox.plugins.compute_ec2",
         "juliabox.plugins.vol_loopback",
         "juliabox.plugins.vol_ebs",
         "juliabox.plugins.vol_defpkg",
@@ -119,6 +112,9 @@ Welcome to JuliaBox. We hope you will like it and also share with your friends.
         "juliabox.plugins.auth_google",
         "juliabox.plugins.usage_accounting",
         "juliabox.plugins.db_dynamodb",
+        "juliabox.plugins.bucket_s3",
+        "juliabox.plugins.dns_route53",
+        "juliabox.plugins.sendmail_ses",
         ""
     ],
 

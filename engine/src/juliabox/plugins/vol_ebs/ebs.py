@@ -3,8 +3,7 @@ import threading
 import time
 from string import ascii_lowercase
 
-from juliabox.cloud.awsebsvol import EBSVol
-from juliabox.cloud.aws import CloudHost
+from juliabox.plugins.compute_ec2 import EBSVol, CompEC2
 from juliabox.db import JBoxSessionProps
 from juliabox.jbox_util import unique_sessname, JBoxCfg
 from juliabox.vol import JBoxVol
@@ -130,7 +129,7 @@ class JBoxEBSVol(JBoxVol):
             raise Exception("No free disk available")
 
         try:
-            existing_disk = JBoxDiskState(cluster_id=CloudHost.INSTALL_ID, region_id=CloudHost.REGION,
+            existing_disk = JBoxDiskState(cluster_id=CompEC2.INSTALL_ID, region_id=CompEC2.REGION,
                                           user_id=user_email)
         except Exception, ex:
             JBoxEBSVol.log_debug("No existing disk for %s. Exception %r", user_email, ex)
@@ -149,7 +148,7 @@ class JBoxEBSVol(JBoxVol):
 
             dev_path, vol_id = EBSVol.create_new_volume(snap_id, disk_id, tag=user_email,
                                                         disk_sz_gb=JBoxEBSVol.DISK_LIMIT)
-            existing_disk = JBoxDiskState(cluster_id=CloudHost.INSTALL_ID, region_id=CloudHost.REGION,
+            existing_disk = JBoxDiskState(cluster_id=CompEC2.INSTALL_ID, region_id=CompEC2.REGION,
                                           user_id=user_email,
                                           volume_id=vol_id,
                                           attach_time=None,
@@ -183,7 +182,7 @@ class JBoxEBSVol(JBoxVol):
 
     def release(self, backup=False):
         sess_props = JBoxSessionProps(self.sessname)
-        existing_disk = JBoxDiskState(cluster_id=CloudHost.INSTALL_ID, region_id=CloudHost.REGION,
+        existing_disk = JBoxDiskState(cluster_id=CompEC2.INSTALL_ID, region_id=CompEC2.REGION,
                                       user_id=sess_props.get_user_id())
         existing_disk.set_state(JBoxDiskState.STATE_DETACHING)
         existing_disk.save()

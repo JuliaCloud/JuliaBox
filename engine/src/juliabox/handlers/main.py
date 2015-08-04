@@ -1,15 +1,12 @@
 import json
-import base64
 import httplib2
 
 from oauth2client.client import OAuth2Credentials
 
 from handler_base import JBoxHandler, JBoxHandlerPlugin
 from juliabox.jbox_util import unique_sessname, JBoxCfg
-from juliabox.jbox_crypto import signstr
-from juliabox.db.user_v2 import JBoxUserV2
 from juliabox.jbox_container import JBoxContainer
-from juliabox.cloud.aws import CloudHost
+from juliabox.cloud import Compute
 
 
 class MainHandler(JBoxHandler):
@@ -106,7 +103,7 @@ class MainHandler(JBoxHandler):
         launched = self.try_launch_container(user_id, max_hop=max_hop)
 
         if launched:
-            self.set_container_initialized(CloudHost.instance_local_ip(), user_id)
+            self.set_container_initialized(Compute.get_instance_local_ip(), user_id)
             self.rendertpl("loading.tpl",
                            user_id=user_id,
                            cfg=JBoxCfg.nv,
@@ -120,9 +117,9 @@ class MainHandler(JBoxHandler):
             self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
                 error="Maximum number of JuliaBox instances active. Please try after sometime.", success=''))
         else:
-            redirect_instance = CloudHost.get_redirect_instance_id()
+            redirect_instance = Compute.get_redirect_instance_id()
             if redirect_instance is not None:
-                redirect_ip = CloudHost.instance_local_ip(redirect_instance)
+                redirect_ip = Compute.get_instance_local_ip(redirect_instance)
                 self.set_redirect_instance_id(redirect_ip)
             self.redirect('/?h=' + str(nhops + 1))
 

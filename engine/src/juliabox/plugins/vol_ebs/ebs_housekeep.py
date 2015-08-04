@@ -5,11 +5,10 @@ import datetime
 
 from juliabox.jbox_tasks import JBoxHousekeepingPlugin
 from juliabox.db import JBoxSessionProps
-from juliabox.cloud.awsebsvol import EBSVol
+from juliabox.plugins.compute_ec2 import EBSVol
 from juliabox.jbox_util import unique_sessname
 from juliabox.srvr_jboxd import jboxd_method
 from juliabox.jbox_container import JBoxContainer
-
 from disk_state_tbl import JBoxDiskState
 from ebs import JBoxEBSVol
 

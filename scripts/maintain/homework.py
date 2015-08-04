@@ -27,9 +27,9 @@ import json
 import csv
 import os
 
-from juliabox.cloud.aws import CloudHost
+from juliabox.cloud import Compute
 from juliabox.jbox_util import LoggerMixin, JBoxCfg
-from juliabox.db import JBoxCourseHomework
+from juliabox.plugins.course_homework import JBoxCourseHomework
 from juliabox import db
 from juliabox.plugins.course_homework import HomeworkHandler
 
@@ -89,19 +89,20 @@ def print_usage():
     print("\t%s report <course.cfg> <as_csv>" % (sys.argv[0],))
     print("\t%s answers <course.cfg>" % (sys.argv[0],))
 
+
 def process_commands(argv):
     with open(argv[2]) as f:
         uplcourse = eval(f.read())
 
     conf_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../host/tornado/conf'))
     conf_file = os.path.join(conf_dir, 'tornado.conf')
-    user_conf_file = os.path.join(conf_dir, 'jbox.user')
+    user_conf_file = os.path.join('/jboxengine/conf', 'jbox.user')
 
     JBoxCfg.read(conf_file, user_conf_file)
 
     LoggerMixin.configure()
     db.configure()
-    CloudHost.configure()
+    Compute.configure()
 
     cmd = argv[1]
     if cmd == "upload":

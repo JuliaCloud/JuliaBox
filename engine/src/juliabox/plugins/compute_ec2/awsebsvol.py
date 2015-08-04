@@ -1,17 +1,14 @@
 __author__ = 'tan'
-# import datetime
+
 import time
 import os
-# import sh
-# import stat
-# import pytz
 
-from juliabox.cloud.aws import CloudHost
 from juliabox.jbox_util import retry, create_host_mnt_command
-# from juliabox.jbox_util import parse_iso_time
+from impl_ec2 import CompEC2
+from juliabox.jbox_util import LoggerMixin
 
 
-class EBSVol(CloudHost):
+class EBSVol(LoggerMixin):
     SH_MOUNT = None
     SH_UMOUNT = None
     SH_LIST_DIR = None
@@ -34,29 +31,9 @@ class EBSVol(CloudHost):
         if EBSVol.SH_UMOUNT is None:
             EBSVol.SH_UMOUNT = create_host_mnt_command("umount")
 
-    # @staticmethod
-    # def _mount_device(dev_id, mount_dir):
-    #     EBSVol.configure_host_commands()
-    #     t1 = time.time()
-    #     device = os.path.join('/dev', dev_id)
-    #     mount_point = os.path.join(mount_dir, dev_id)
-    #     actual_mount_point = EBSVol._get_mount_point(dev_id)
-    #     if actual_mount_point == mount_point:
-    #         EBSVol.log_debug("Device %s already mounted at %s", device, mount_point)
-    #         return
-    #     elif actual_mount_point is None:
-    #         EBSVol.log_debug("Mounting device %s at %s", device, mount_point)
-    #         res = EBSVol.SH_MOUNT(mount_point)  # the mount point must be mentioned in fstab file
-    #         if res.exit_code != 0:
-    #             raise Exception("Failed to mount device %s at %s. Error code: %d", device, mount_point, res.exit_code)
-    #     else:
-    #         raise Exception("Device already mounted at " + actual_mount_point)
-    #     tdiff = int(time.time() - t1)
-    #     EBSVol.publish_stats("EBSMountTime", "Count", tdiff)
-
     @staticmethod
     def get_volume(vol_id):
-        vols = CloudHost.connect_ec2().get_all_volumes([vol_id])
+        vols = EBSVol._ec2().get_all_volumes([vol_id])
         if len(vols) == 0:
             return None
         return vols[0]
@@ -68,33 +45,6 @@ class EBSVol(CloudHost):
             return None, None
         att = vol.attach_data
         return att.instance_id, att.device
-
-    # @staticmethod
-    # def unmount_device(dev_id, mount_dir):
-    #     EBSVol.configure_host_commands()
-    #     mount_point = os.path.join(mount_dir, dev_id)
-    #     actual_mount_point = EBSVol._get_mount_point(dev_id)
-    #     if actual_mount_point is None:
-    #         return  # not mounted
-    #     t1 = time.time()
-    #     if mount_point != actual_mount_point:
-    #         EBSVol.log_warn("Mount point expected: %s, actual: %r. Taking actual.", mount_point, actual_mount_point)
-    #         mount_point = actual_mount_point
-    #     EBSVol.log_debug("Unmounting dev_id: %r from %r", dev_id, mount_point)
-    #     res = EBSVol.SH_UMOUNT(mount_point)  # the mount point must be mentioned in fstab file
-    #     if res.exit_code != 0:
-    #         raise Exception("Device could not be unmounted from " + mount_point)
-    #     tdiff = int(time.time() - t1)
-    #     EBSVol.publish_stats("EBSUnmountTime", "Count", tdiff)
-
-    # @staticmethod
-    # def _get_mount_point(dev_id):
-    #     EBSVol.configure_host_commands()
-    #     device = os.path.join('/dev', dev_id)
-    #     for line in EBSVol.SH_MOUNT():
-    #         if line.startswith(device):
-    #             return line.split()[2]
-    #     return None
 
     @staticmethod
     def _device_exists(dev):
@@ -123,16 +73,16 @@ class EBSVol(CloudHost):
 
     @staticmethod
     def _ensure_volume_available(vol_id, force_detach=False):
-        conn = CloudHost.connect_ec2()
+        conn = EBSVol._ec2()
         vol = EBSVol.get_volume(vol_id)
         if vol is None:
             raise Exception("Volume not found: " + vol_id)
 
-        if CloudHost._state_check(vol, 'available'):
+        if CompEC2._state_check(vol, 'available'):
             return True
 
         # volume may be attached
-        instance_id = CloudHost.instance_id()
+        instance_id = CompEC2.get_instance_id()
         att_instance_id, att_device = EBSVol._get_volume_attach_info(vol_id)
 
         if (att_instance_id is None) or (att_instance_id == instance_id):
@@ -141,17 +91,17 @@ class EBSVol(CloudHost):
         if force_detach:
             EBSVol.log_warn("Forcing detach of volume %s", vol_id)
             conn.detach_volume(vol_id)
-            CloudHost._wait_for_status(vol, 'available')
+            CompEC2._wait_for_status(vol, 'available')
 
-        if not CloudHost._state_check(vol, 'available'):
+        if not CompEC2._state_check(vol, 'available'):
             raise Exception("Volume not available: " + vol_id +
                             ", attached to: " + att_instance_id +
                             ", state: " + vol.status)
 
     @staticmethod
     def _attach_free_volume(vol_id, dev_id):
-        conn = CloudHost.connect_ec2()
-        instance_id = CloudHost.instance_id()
+        conn = EBSVol._ec2()
+        instance_id = CompEC2.get_instance_id()
         device = os.path.join('/dev', dev_id)
         vol = EBSVol.get_volume(vol_id)
 
@@ -159,7 +109,7 @@ class EBSVol(CloudHost):
         t1 = time.time()
         conn.attach_volume(vol_id, instance_id, device)
 
-        if not CloudHost._wait_for_status(vol, 'in-use'):
+        if not CompEC2._wait_for_status(vol, 'in-use'):
             EBSVol.log_error("Could not attach volume %s", vol_id)
             raise Exception("Volume could not be attached. Volume id: " + vol_id)
 
@@ -167,17 +117,17 @@ class EBSVol(CloudHost):
             EBSVol.log_error("Could not attach volume %s to device %s", vol_id, device)
             raise Exception("Volume could not be attached. Volume id: " + vol_id + ", device: " + device)
         tdiff = int(time.time() - t1)
-        CloudHost.publish_stats("EBSAttachTime", "Count", tdiff)
+        CompEC2.publish_stats("EBSAttachTime", "Count", tdiff)
 
         return device
 
     @staticmethod
     def get_mapped_volumes(instance_id=None):
         if instance_id is None:
-            instance_id = CloudHost.instance_id()
+            instance_id = CompEC2.get_instance_id()
 
-        return CloudHost.connect_ec2().get_instance_attribute(instance_id=instance_id,
-                                                              attribute='blockDeviceMapping')['blockDeviceMapping']
+        return EBSVol._ec2().get_instance_attribute(instance_id=instance_id,
+                                                    attribute='blockDeviceMapping')['blockDeviceMapping']
 
     @staticmethod
     def get_volume_id_from_device(dev_id):
@@ -190,7 +140,7 @@ class EBSVol(CloudHost):
 
     @staticmethod
     def is_snapshot_complete(snap_id):
-        snaps = CloudHost.connect_ec2().get_all_snapshots([snap_id])
+        snaps = EBSVol._ec2().get_all_snapshots([snap_id])
         if len(snaps) == 0:
             raise Exception("Snapshot not found with id " + str(snap_id))
         snap = snaps[0]
@@ -211,13 +161,13 @@ class EBSVol(CloudHost):
     def create_new_volume(snap_id, dev_id, tag=None, disk_sz_gb=1):
         EBSVol.configure_host_commands()
         EBSVol.log_info("Creating volume. Tag: %s, Snapshot: %s. Attached: %s", tag, snap_id, dev_id)
-        conn = CloudHost.connect_ec2()
-        vol = conn.create_volume(disk_sz_gb, CloudHost.zone(),
+        conn = EBSVol._ec2()
+        vol = conn.create_volume(disk_sz_gb, CompEC2._zone(),
                                  snapshot=snap_id,
                                  volume_type='gp2')
                                  # volume_type='io1',
                                  # iops=30*disk_sz_gb)
-        CloudHost._wait_for_status(vol, 'available')
+        CompEC2._wait_for_status(vol, 'available')
         vol_id = vol.id
         EBSVol.log_info("Created volume with id %s", vol_id)
 
@@ -228,40 +178,21 @@ class EBSVol(CloudHost):
         device_path = EBSVol._attach_free_volume(vol_id, dev_id)
         return device_path, vol_id
 
-    # @staticmethod
-    # def detach_mounted_volume(dev_id, mount_dir, delete=False):
-    #     CloudHelper.log_info("Detaching volume mounted at device " + dev_id)
-    #     vol_id = CloudHelper.get_volume_id_from_device(dev_id)
-    #     CloudHelper.log_debug("Device " + dev_id + " maps volume " + vol_id)
-    #
-    #     # find the instance and device to which the volume is mapped
-    #     instance, device = CloudHelper._get_volume_attach_info(vol_id)
-    #     if instance is None:  # the volume is not mounted
-    #         return
-    #
-    #     # if mounted to current instance, also unmount the device
-    #     if instance == CloudHelper.instance_id():
-    #         dev_id = device.split('/')[-1]
-    #         CloudHelper.unmount_device(dev_id, mount_dir)
-    #         time.sleep(1)
-    #
-    #     return CloudHelper.detach_volume(vol_id, delete=delete)
-
     @staticmethod
     def detach_volume(vol_id, delete=False):
         EBSVol.configure_host_commands()
         # find the instance and device to which the volume is mapped
         instance, device = EBSVol._get_volume_attach_info(vol_id)
-        conn = CloudHost.connect_ec2()
+        conn = EBSVol._ec2()
         if instance is not None:  # the volume is attached
             EBSVol.log_debug("Detaching %s from instance %s device %r", vol_id, instance, device)
             vol = EBSVol.get_volume(vol_id)
             t1 = time.time()
             conn.detach_volume(vol_id, instance, device)
-            if not CloudHost._wait_for_status_extended(vol, 'available'):
+            if not CompEC2._wait_for_status_extended(vol, 'available'):
                 raise Exception("Volume could not be detached " + vol_id)
             tdiff = int(time.time() - t1)
-            CloudHost.publish_stats("EBSDetachTime", "Count", tdiff)
+            CompEC2.publish_stats("EBSDetachTime", "Count", tdiff)
         if delete:
             EBSVol.log_debug("Deleting %s", vol_id)
             conn.delete_volume(vol_id)
@@ -301,13 +232,17 @@ class EBSVol(CloudHost):
         vol = EBSVol.get_volume(vol_id)
         EBSVol.log_info("Creating snapshot for volume: %s", vol_id)
         snap = vol.create_snapshot(description)
-        if wait_till_complete and (not CloudHost._wait_for_status_extended(snap, 'completed')):
+        if wait_till_complete and (not CompEC2._wait_for_status_extended(snap, 'completed')):
             raise Exception("Could not create snapshot for volume " + vol_id)
         EBSVol.log_info("Created snapshot %s for volume %s", snap.id, vol_id)
         if tag is not None:
-            CloudHost.connect_ec2().create_tags([snap.id], {'Name': tag})
+            EBSVol._ec2().create_tags([snap.id], {'Name': tag})
         return snap.id
 
     @staticmethod
     def delete_snapshot(snapshot_id):
-        CloudHost.connect_ec2().delete_snapshot(snapshot_id)
+        EBSVol._ec2().delete_snapshot(snapshot_id)
+
+    @staticmethod
+    def _ec2():
+        return CompEC2._connect_ec2()

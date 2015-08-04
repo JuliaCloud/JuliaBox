@@ -11,7 +11,7 @@ from juliabox.db import JBoxDynConfig
 from juliabox import db
 from juliabox.jbox_util import JBoxCfg, LoggerMixin
 from juliabox.jbox_container import JBoxContainer
-from juliabox.cloud.aws import CloudHost
+from juliabox.cloud import JBoxCloudPlugin
 from juliabox.vol import VolMgr, JBoxVol
 
 
@@ -39,16 +39,20 @@ def copy_for_boot():
 if __name__ == "__main__":
     conf_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../engine/conf'))
     conf_file = os.path.join(conf_dir, 'tornado.conf')
-    user_conf_file = os.path.join(conf_dir, 'jbox.user')
+    user_conf_file = os.path.join('/jboxengine/conf', 'jbox.user')
 
     JBoxCfg.read(conf_file, user_conf_file)
     JBoxCfg.dckr = docker.Client()
 
     LoggerMixin.configure()
     db.configure()
-    CloudHost.configure()
     JBoxContainer.configure()
     VolMgr.configure()
+
+    plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_BUCKETSTORE)
+    if plugin is None:
+        VolMgr.log_error("No plugin found for bucketstore")
+        exit(1)
 
     ts = JBoxVol._get_user_home_timestamp()
     tsstr = ts.strftime("%Y%m%d_%H%M")
@@ -59,9 +63,9 @@ if __name__ == "__main__":
 
     bucket = 'juliabox-user-home-templates'
 
-    VolMgr.log_debug("pushing new image files to s3 at: %s", bucket)
-    CloudHost.push_file_to_s3(bucket, imgf)
-    CloudHost.push_file_to_s3(bucket, pkgf)
+    VolMgr.log_debug("pushing new image files to bucketstore at: %s", bucket)
+    plugin.push(bucket, imgf)
+    plugin.push(bucket, pkgf)
 
     # JuliaBoxTest JuliaBox
     clusters = sys.argv[1] if (len(sys.argv) > 1) else ['JuliaBoxTest']

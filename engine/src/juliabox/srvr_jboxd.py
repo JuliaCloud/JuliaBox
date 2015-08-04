@@ -5,7 +5,8 @@ import signal
 # import os
 import sys
 
-from cloud.aws import CloudHost
+from cloud import JBoxCloudPlugin
+from cloud import Compute
 import db
 from db import JBoxUserV2, JBoxDynConfig
 from jbox_tasks import JBoxAsyncJob, JBoxHousekeepingPlugin, JBoxdPlugin
@@ -43,7 +44,7 @@ class JBoxd(LoggerMixin):
     def __init__(self):
         LoggerMixin.configure()
         db.configure()
-        CloudHost.configure()
+        Compute.configure()
         JBoxContainer.configure()
         VolMgr.configure()
 
@@ -122,7 +123,12 @@ class JBoxd(LoggerMixin):
     @staticmethod
     @jboxd_method
     def auto_activate():
-        num_mails_24h, rate = CloudHost.get_email_rates()
+        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_SENDMAIL)
+        if plugin is None:
+            JBoxd.log_error("No plugin found for sending mails. Can not auto activate users.")
+            return
+
+        num_mails_24h, rate = plugin.get_email_rates()
         rate_per_second = min(JBoxd.MAX_ACTIVATIONS_PER_SEC, rate)
         num_mails = min(JBoxd.MAX_AUTO_ACTIVATIONS_PER_RUN, num_mails_24h)
 
@@ -136,7 +142,7 @@ class JBoxd(LoggerMixin):
             JBoxd.log_info("Activating %s", user_id)
 
             # send email by SES
-            CloudHost.send_email(user_id, JBoxd.ACTIVATION_SENDER, JBoxd.ACTIVATION_SUBJECT, JBoxd.ACTIVATION_BODY)
+            plugin.send_email(user_id, JBoxd.ACTIVATION_SENDER, JBoxd.ACTIVATION_SUBJECT, JBoxd.ACTIVATION_BODY)
 
             # set user as activated
             user = JBoxUserV2(user_id)
@@ -166,7 +172,7 @@ class JBoxd(LoggerMixin):
     def collect_stats():
         VolMgr.publish_stats()
         db.publish_stats()
-        JBoxDynConfig.set_stat_collected_date(CloudHost.INSTALL_ID)
+        JBoxDynConfig.set_stat_collected_date(Compute.get_install_id())
 
     @staticmethod
     def schedule_housekeeping(cmd, is_leader):
