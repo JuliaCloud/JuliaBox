@@ -4,6 +4,7 @@
 /**
 {% end %}
     var show_state_timer;
+    var attaching_delay = 0;
     var all_sections = ['attaching', 'detaching', 'detached', 'attached_ok', 'attached_notok'];
 
     function show_vol_state() {
@@ -25,9 +26,17 @@
         }
         else if(state == 0) {
             show_section = 'detached';
+
+            // take care of delay in creating dynamodb record
+            attaching_delay -= 1;
+            if(attaching_delay > 0) {
+                show_section = 'attaching';
+                start_timer = true;
+            }
         }
         else if(state == 2) {
             show_section = 'attaching';
+            attaching_delay = 5;
         }
         else if(state == 3) {
             show_section = 'detaching';
