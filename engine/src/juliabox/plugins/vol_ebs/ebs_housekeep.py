@@ -3,7 +3,7 @@ import pytz
 import os
 import datetime
 
-from juliabox.jbox_tasks import JBoxHousekeepingPlugin
+from juliabox.jbox_tasks import JBPluginTask
 from juliabox.db import JBoxSessionProps
 from juliabox.plugins.compute_ec2 import EBSVol
 from juliabox.jbox_util import unique_sessname
@@ -13,15 +13,15 @@ from disk_state_tbl import JBoxDiskState
 from ebs import JBoxEBSVol
 
 
-class JBoxEBSHousekeep(JBoxHousekeepingPlugin):
-    provides = [JBoxHousekeepingPlugin.PLUGIN_CLUSTER_HOUSEKEEPING, JBoxHousekeepingPlugin.PLUGIN_NODE_HOUSEKEEPING]
+class JBoxEBSHousekeep(JBPluginTask):
+    provides = [JBPluginTask.JBP_CLUSTER, JBPluginTask.JBP_NODE]
 
     @staticmethod
     @jboxd_method
-    def do_housekeeping(_name, mode):
-        if mode == JBoxHousekeepingPlugin.PLUGIN_CLUSTER_HOUSEKEEPING:
+    def do_periodic_task(mode):
+        if mode == JBPluginTask.JBP_CLUSTER:
             JBoxEBSHousekeep.do_cluster_housekeeping()
-        elif mode == JBoxHousekeepingPlugin.PLUGIN_NODE_HOUSEKEEPING:
+        elif mode == JBPluginTask.JBP_NODE:
             JBoxEBSHousekeep.do_node_housekeeping()
 
     @staticmethod

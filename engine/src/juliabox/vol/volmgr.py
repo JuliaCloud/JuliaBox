@@ -6,7 +6,7 @@ import pytz
 from juliabox.jbox_util import LoggerMixin, unique_sessname
 from juliabox.db import JBoxUserV2, JBoxDynConfig
 from jbox_volume import JBoxVol
-from juliabox.cloud import JBoxCloudPlugin, Compute
+from juliabox.cloud import JBPluginCloud, Compute
 
 
 class VolMgr(LoggerMixin):
@@ -35,13 +35,13 @@ class VolMgr(LoggerMixin):
             return False
         else:
             VolMgr.log_info("Home: update: %s/%s. current: %s/%s", bucket, new_home_img, home_img_dir, curr_home_img)
-            VolMgr.log_info("Packages: update: %s/%s. current: %s/%s", bucket, new_pkg_img, home_img_dir, curr_home_img)
+            VolMgr.log_info("Packages: update: %s/%s. current: %s/%s", bucket, new_pkg_img, home_img_dir, curr_pkg_img)
 
         return True
 
     @staticmethod
     def update_user_home_image(fetch=True):
-        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_BUCKETSTORE)
+        plugin = JBPluginCloud.jbox_get_plugin(JBPluginCloud.JBP_BUCKETSTORE)
         if plugin is None:
             VolMgr.log_info("No plugin provided for bucketstore. Can not update packages and user home images")
             return
@@ -76,9 +76,9 @@ class VolMgr(LoggerMixin):
 
     @staticmethod
     def refresh_user_home_image():
-        for plugin in JBoxVol.jbox_get_plugins(JBoxVol.PLUGIN_USERHOME):
+        for plugin in JBoxVol.jbox_get_plugins(JBoxVol.JBP_USERHOME):
             plugin.refresh_user_home_image()
-        for plugin in JBoxVol.jbox_get_plugins(JBoxVol.PLUGIN_PKGBUNDLE):
+        for plugin in JBoxVol.jbox_get_plugins(JBoxVol.JBP_PKGBUNDLE):
             plugin.refresh_user_home_image()
 
     @staticmethod
@@ -97,7 +97,7 @@ class VolMgr(LoggerMixin):
     @staticmethod
     def get_pkg_mount_from_container(cid):
         try:
-            for plugin in JBoxVol.jbox_get_plugins(JBoxVol.PLUGIN_PKGBUNDLE):
+            for plugin in JBoxVol.jbox_get_plugins(JBoxVol.JBP_PKGBUNDLE):
                 disk = plugin.get_disk_from_container(cid)
                 if disk is not None:
                     return disk
@@ -116,19 +116,19 @@ class VolMgr(LoggerMixin):
     @staticmethod
     def used_pct():
         pct_home = 0.0
-        for plugin in JBoxVol.jbox_get_plugins(JBoxVol.PLUGIN_USERHOME):
+        for plugin in JBoxVol.jbox_get_plugins(JBoxVol.JBP_USERHOME):
             pct_home += plugin.disk_ids_used_pct()
         pct_data = 0.0
-        for plugin in JBoxVol.jbox_get_plugins(JBoxVol.PLUGIN_DATA):
+        for plugin in JBoxVol.jbox_get_plugins(JBoxVol.JBP_DATA):
             pct_data += plugin.disk_ids_used_pct()
 
         return min(100, max(pct_data, pct_home))
 
     @staticmethod
     def get_pkg_mount_for_user(email):
-        plugin = JBoxVol.jbox_get_plugin(JBoxVol.PLUGIN_PKGBUNDLE)
+        plugin = JBoxVol.jbox_get_plugin(JBoxVol.JBP_PKGBUNDLE)
         if plugin is None:
-            raise Exception("No plugin found for %s" % (JBoxVol.PLUGIN_PKGBUNDLE,))
+            raise Exception("No plugin found for %s" % (JBoxVol.JBP_PKGBUNDLE,))
         disk = plugin.get_disk_for_user(email)
         return disk
 
@@ -144,9 +144,9 @@ class VolMgr(LoggerMixin):
             custom_jimg = '/opt/julia_packages/jimg/stable/sys.ji'
             ipython_profile = 'jboxjulia'
 
-        plugin = JBoxVol.jbox_get_plugin(JBoxVol.PLUGIN_USERHOME)
+        plugin = JBoxVol.jbox_get_plugin(JBoxVol.JBP_USERHOME)
         if plugin is None:
-            raise Exception("No plugin found for %s" % (JBoxVol.PLUGIN_USERHOME,))
+            raise Exception("No plugin found for %s" % (JBoxVol.JBP_USERHOME,))
 
         disk = plugin.get_disk_for_user(email)
 
@@ -174,7 +174,7 @@ class VolMgr(LoggerMixin):
         VolMgr.STATS['num_users'] += 1
         sessname = unique_sessname(user_email)
 
-        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_BUCKETSTORE)
+        plugin = JBPluginCloud.jbox_get_plugin(JBPluginCloud.JBP_BUCKETSTORE)
         if plugin is not None:
             k = plugin.pull(JBoxVol.BACKUP_BUCKET, sessname + ".tar.gz", metadata_only=True)
             if k is not None:

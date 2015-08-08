@@ -13,7 +13,7 @@ class JBoxDB(LoggerMixin):
 
     @staticmethod
     def configure():
-        JBoxDB.DB_IMPL = JBoxDBPlugin.jbox_get_plugin(JBoxDBPlugin.PLUGIN_DB)
+        JBoxDB.DB_IMPL = JBPluginDB.jbox_get_plugin(JBPluginDB.JBP_DB)
         JBoxDB.DB_IMPL.configure()
 
     @classmethod
@@ -86,34 +86,40 @@ class JBoxDB(LoggerMixin):
         return epoch + datetime.timedelta(seconds=secs)
 
 
-class JBoxDBPlugin(JBoxDB):
-    """ The base class for database table providers.
-    DynamoDB is the only type of database supported as of now.
+class JBPluginDB(JBoxDB):
+    """ Provide database access and database table definitions.
 
-    It is a plugin mount point, looking for features:
-    - db.table.dynamodb (tables hosted on dynamodb)
-    - db.usage.accounting (table that records usage accounting)
-
-    DynamoDB table providers are expected to have:
-    - NAME: attribute holding table name
-    - SCHEMA and INDEXES: attributes holding table structure
-    - TABLE: attribute to hold the table reference
-
-    Usage accounting providers (may be moved later to a separate plugin) are expected to have:
-    - record_session_time method:record start and end times of a session
-    - get_stats method: provide usage statistics for a given range of dates
-
-    Plugins can take help of base methods provided in JBoxDB.
+    - `JBPluginDB.JBP_DB`, `JBPluginDB.JBP_DB_DYNAMODB` and `JBPluginDB.JBP_DB_RDBMS`:
+        Provide database access. Must implement the following methods.
+        - `configure()`: Read and store database configuration.
+        - `table_open(table_name)`: Open and return a handle to the named table. Subsequent operations on table shall pass the handle.
+        - `record_create(table, data)`: Insert a new record with data (dictionary of column names and values).
+        - `record_fetch(table, **kwargs)`: Fetch a single record. Keys passed in kwargs.
+        - `record_scan(table, **kwargs)`: Scan all records in the table`. Required attributes passed in kwargs.
+        - `record_query(table, **kwargs)`: Fetch one or more records. Selection criteria passed in kwargs.
+        - `record_count(table, **kwargs)`: Count matching records. Selection criteria passed in kwargs.
+        - `record_save(table, data)`: Update a single record with data (dictionary of column names and values)
+        - `record_delete(table, data)`: Delete a single record with keys specified in data (dictionary of column names and values)
+    - `JBPluginDB.JBP_TABLE`, `JBPluginDB.JBP_TABLE_DYNAMODB` and `JBPluginDB.JBP_TABLE_RDBMS`:
+        Provide a table implementation. Must extend `JBPluginDB` and provide the following attributes:
+        - `TABLE`: to hold the opened table handle
+        - `SCHEMA`, `INDEXES`: To define a dynamodb table (only if `JBP_TABLE_DYNAMODB` supported)
+        - `KEYS`, `ATTRIBUTES`: To define a rdbms table (only if `JBP_TABLE_RDBMS` supported)
+    - `JBPluginDB.JBP_USAGE_ACCOUNTING`:
+        Record JuliaBox usage data, per user/session and calculate stats.
+        Must provide the following methods:
+        - `record_session_time(session, image, start_time, end_time)`: Record usage
+        - `get_stats(dates)`: Return statistics of JuliaBox usage across dates (list of dates)
     """
 
-    PLUGIN_DB = "db"
-    PLUGIN_DB_DYNAMODB = "db.dynamodb"
-    PLUGIN_DB_RDBMS = "db.rdbms"
+    JBP_DB = "db"
+    JBP_DB_DYNAMODB = "db.dynamodb"
+    JBP_DB_RDBMS = "db.rdbms"
 
-    PLUGIN_TABLE = "db.table"
-    PLUGIN_DYNAMODB_TABLE = "db.table.dynamodb"
-    PLUGIN_RDBMS_TABLE = "db.table.rdbms"
+    JBP_TABLE = "db.table"
+    JBP_TABLE_DYNAMODB = "db.table.dynamodb"
+    JBP_TABLE_RDBMS = "db.table.rdbms"
 
-    PLUGIN_USAGE_ACCOUNTING = "db.usage.accounting"
+    JBP_USAGE_ACCOUNTING = "db.usage.accounting"
 
     __metaclass__ = JBoxPluginType

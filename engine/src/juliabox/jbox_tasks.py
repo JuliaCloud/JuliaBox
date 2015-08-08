@@ -190,36 +190,29 @@ class JBoxAsyncJob(LoggerMixin):
     @staticmethod
     def async_plugin_task(target_class, data):
         JBoxAsyncJob.log_info("invoking plugin task. target_class:%s", target_class)
-        JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_PLUGIN_TASK, (JBoxdPlugin.PLUGIN_CMD, target_class, data))
+        JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_PLUGIN_TASK, (JBPluginTask.JBP_CMD_ASYNC, target_class, data))
 
 
-class JBoxdPlugin(LoggerMixin):
-    """ Base class for plugins providing asynchronous tasks.
+class JBPluginTask(LoggerMixin):
+    """ Provide tasks that help with container management.
+    They run in privileged mode and can interact with the host system if required.
+    Also provide tasks that are invoked periodically.
+    Used to perform batch jobs, typically to collect statistics or cleanup failed/leftover entities.
 
-    It is a plugin mount point, looking for features:
-    - async_task
-
-    Methods expected:
-    - do_task: invoked with plugin class name, feature in context, and data as argument
+    - `JBPluginTask.JBP_CMD_ASYNC`:
+        This functionality provides container manager commands that can be invoked from other parts of JuliaBox.
+        - `do_task(plugin_type, data)`: Method must be provided.
+            - `plugin_type`: Functionality that was invoked. Always `JBP_CMD_ASYNC` for now.
+            - `data`: Data that the command was called with
+    - `JBPluginTask.JBP_NODE` and `JBPluginTask.JBP_CLUSTER`:
+        Node specific functionality is invoked on all JuliaBox instances.
+        Cluster functionality is invoked only on the cluster leader.
+        - `do_periodic_task(plugin_type)`: Method must be provided.
+            - `plugin_type`: Functionality that was invoked. Differentiator if multiple functionalities are implemented.
     """
 
     __metaclass__ = JBoxPluginType
 
-    PLUGIN_CMD = 'async_cmd'
-
-
-class JBoxHousekeepingPlugin(LoggerMixin):
-    """ Base class for plugins providing housekeeping tasks. Invoked during JuliaBox maintainence cycle.
-
-    It is a plugin mount point, looking for features:
-    - node.housekeeping (handles node specific periodic maintenance task)
-    - cluster.housekeeping (handles periodic maintenance task common to all nodes. invoked only on the cluster leader)
-
-    Methods expected:
-    - do_housekeeping: invoked with plugin class name, and feature in context as argument
-    """
-
-    __metaclass__ = JBoxPluginType
-
-    PLUGIN_NODE_HOUSEKEEPING = 'housekeeping.node'
-    PLUGIN_CLUSTER_HOUSEKEEPING = 'housekeeping.cluster'
+    JBP_CMD_ASYNC = 'invocabletask.async'
+    JBP_NODE = 'periodictask.node'
+    JBP_CLUSTER = 'periodictask.cluster'

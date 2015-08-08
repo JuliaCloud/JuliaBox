@@ -5,7 +5,7 @@ import docker
 from jbox_util import JBoxCfg, LoggerMixin, unique_sessname
 from juliabox import db
 from juliabox.db import JBoxDynConfig, JBoxSessionProps, JBoxUserV2
-from juliabox.cloud import JBoxCloudPlugin
+from juliabox.cloud import JBPluginCloud
 from juliabox.cloud import Compute
 
 conf_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../conf'))
@@ -66,7 +66,7 @@ class TestDBTables(LoggerMixin):
 class TestSES(LoggerMixin):
     @staticmethod
     def test():
-        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_SENDMAIL)
+        plugin = JBPluginCloud.jbox_get_plugin(JBPluginCloud.JBP_SENDMAIL)
         plugin.send_email('tanmaykm@gmail.com', 'admin@juliabox.org', "test SES",
                           """hello world
                           Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt

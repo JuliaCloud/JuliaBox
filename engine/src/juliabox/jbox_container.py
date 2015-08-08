@@ -5,7 +5,7 @@ import multiprocessing
 import psutil
 
 from cloud import Compute
-from db import JBoxDBPlugin
+from db import JBPluginDB
 from jbox_tasks import JBoxAsyncJob
 from jbox_util import LoggerMixin, JBoxCfg, parse_iso_time
 from vol import VolMgr, JBoxVol
@@ -76,7 +76,7 @@ class JBoxContainer(LoggerMixin):
         return psutil.virtual_memory().total
 
     def get_disk_allocated(self):
-        disk = VolMgr.get_disk_from_container(self.dockid, JBoxVol.PLUGIN_USERHOME)
+        disk = VolMgr.get_disk_from_container(self.dockid, JBoxVol.JBP_USERHOME)
         if disk is not None:
             return disk.get_disk_allocated_size()
         return 0
@@ -426,7 +426,7 @@ class JBoxContainer(LoggerMixin):
         if self.is_running() or self.is_restarting():
             self.kill()
 
-        for disktype in (JBoxVol.PLUGIN_USERHOME, JBoxVol.PLUGIN_PKGBUNDLE, JBoxVol.PLUGIN_DATA):
+        for disktype in (JBoxVol.JBP_USERHOME, JBoxVol.JBP_PKGBUNDLE, JBoxVol.JBP_DATA):
             disk = VolMgr.get_disk_from_container(self.dockid, disktype)
             if disk is not None:
                 disk.release(backup=backup)
@@ -437,6 +437,6 @@ class JBoxContainer(LoggerMixin):
         JBoxContainer.log_info("Deleted %s", self.debug_str())
 
     def record_usage(self):
-        plugin = JBoxDBPlugin.jbox_get_plugin(JBoxDBPlugin.PLUGIN_USAGE_ACCOUNTING)
+        plugin = JBPluginDB.jbox_get_plugin(JBPluginDB.JBP_USAGE_ACCOUNTING)
         if plugin is not None:
             plugin.record_session_time(self.get_name(), self.get_image_names(), self.time_created(), self.time_finished())

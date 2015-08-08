@@ -1,3 +1,3 @@
 __author__ = 'tan'
 
-from compute import JBoxCloudPlugin, Compute
+from compute import JBPluginCloud, Compute

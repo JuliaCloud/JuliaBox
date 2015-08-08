@@ -397,7 +397,7 @@ class JBoxHandler(JBoxCookies):
 
     def post_auth_launch_container(self, user_id):
         jbuser = JBoxUserV2(user_id, create=True)
-        if not JBoxHandlerPlugin.is_user_activated(jbuser):
+        if not JBPluginHandler.is_user_activated(jbuser):
             self.redirect('/?pending_activation=' + user_id)
             return
 
@@ -428,73 +428,69 @@ class JBoxHandler(JBoxCookies):
         return
 
 
-class JBoxUIModulePlugin(LoggerMixin):
-    """ Enables providing additional sections in a JuliaBox screen.
+class JBPluginUI(LoggerMixin):
+    """ Provide UI widgets/sections in a JuliaBox session.
 
-    Features:
-    - config (provides a section in the JuliaBox configuration screen)
-
-    Methods expected:
-    - get_template: return template_file to include
+    - `JBPluginUI.JBP_UI_SESSION_HEAD`, `JBPluginUI.JBP_UI_AUTH_BTN` and `JBPluginUI.JBP_UI_CONFIG_SECTION`:
+        Type `JBP_UI_SESSION_HEAD` is included in the head section of the session screen.
+        Type `JBP_UI_AUTH_BTN` is a login widget/button displayed on the JuliaBox login screen.
+        Type `JBP_UI_CONFIG_SECTION` included as a section in the JuliaBox configuration screen.
+        All UI providers must implement the following method.
+        - `get_template(plugin_type)`: Return path to a template with the corresponding section/widget.
     """
 
     __metaclass__ = JBoxPluginType
 
-    PLUGIN_CONFIG = 'ui.config.section'
-    PLUGIN_AUTH = 'ui.auth.btn'
-    PLUGIN_SESSION = 'ui.session.head'
+    JBP_UI_CONFIG_SECTION = 'ui.config.section'
+    JBP_UI_AUTH_BTN = 'ui.auth.btn'
+    JBP_UI_SESSION_HEAD = 'ui.session.head'
 
     @staticmethod
     def create_include_files():
-        JBoxUIModulePlugin._gen_include(JBoxUIModulePlugin.PLUGIN_CONFIG, "admin")
-        JBoxUIModulePlugin._gen_include(JBoxUIModulePlugin.PLUGIN_AUTH, "auth")
-        JBoxUIModulePlugin._gen_include(JBoxUIModulePlugin.PLUGIN_SESSION, "session")
+        JBPluginUI._gen_include(JBPluginUI.JBP_UI_CONFIG_SECTION, "admin")
+        JBPluginUI._gen_include(JBPluginUI.JBP_UI_AUTH_BTN, "auth")
+        JBPluginUI._gen_include(JBPluginUI.JBP_UI_SESSION_HEAD, "session")
 
     @staticmethod
     def _gen_include(plugin_type, plugin_type_name):
         # TODO: make template location configurable. For now, www must be located under engine folder.
         incl_file_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "www", plugin_type_name + "_modules.tpl")
         with open(incl_file_path, 'w') as incl_file:
-            for plugin in JBoxUIModulePlugin.jbox_get_plugins(plugin_type):
-                JBoxUIModulePlugin.log_info("Found %s plugin %r provides %r", plugin_type_name, plugin, plugin.provides)
+            for plugin in JBPluginUI.jbox_get_plugins(plugin_type):
+                JBPluginUI.log_info("Found %s plugin %r provides %r", plugin_type_name, plugin, plugin.provides)
                 template_file = plugin.get_template(plugin_type)
                 if template_file is None:
-                    JBoxUIModulePlugin.log_info("No %s template provided by %r", plugin_type_name, plugin)
+                    JBPluginUI.log_info("No %s template provided by %r", plugin_type_name, plugin)
                 else:
                     incl_file.write('{%% module Template("%s") %%}\n' % (template_file,))
 
 
-class JBoxHandlerPlugin(JBoxHandler):
-    """ The base class for request handler plugins.
+class JBPluginHandler(JBoxHandler):
+    """ Provides additional request handler for session manager.
 
-    It is a plugin mount point, looking for features:
-    - handler (handles requests to a URL spec)
-    - auth (provides authentication/authorization to JuliaBox)
-    - js (provides javascript file to be included at top level)
-
-    Methods expected in the plugin:
-    - register: Register self with a URL pattern
-    - get_template: return template_file to include in the login screen, if any
-    - get_js: Provide javascript path to be included at top level if any
-    - should also provide methods required from a tornado request handler
+    - `JBPluginHandler.JBP_HANDLER`, `JBPluginHandler.JBP_HANDLER_AUTH, JBPluginHandler.JBP_HANDLER_AUTH_ZERO, JBPluginHandler.JBP_HANDLER_AUTH_GOOGLE`:
+        Provides a request handler that can be registered with tornado.
+        - `register(app)`: register self with tornado application to handle the desired URI
+    - `JBPluginHandler.JBP_JS_TOP`:
+        Provides path to a javascript file to be included in the top level window.
     """
 
     __metaclass__ = JBoxPluginType
 
-    PLUGIN_HANDLER = 'handler'
-    PLUGIN_HANDLER_AUTH = 'handler.auth'
-    PLUGIN_HANDLER_AUTH_ZERO = 'handler.auth.zero'
-    PLUGIN_HANDLER_AUTH_GOOGLE = 'handler.auth.google'
-    PLUGIN_JS = 'handler.js.top'
+    JBP_HANDLER = 'handler'
+    JBP_HANDLER_AUTH = 'handler.auth'
+    JBP_HANDLER_AUTH_ZERO = 'handler.auth.zero'
+    JBP_HANDLER_AUTH_GOOGLE = 'handler.auth.google'
+    JBP_JS_TOP = 'handler.js.top'
 
     PLUGIN_JAVASCRIPTS = []
 
     @staticmethod
     def add_plugin_handlers(app):
-        for plugin in JBoxHandlerPlugin.jbox_get_plugins(JBoxHandlerPlugin.PLUGIN_HANDLER):
-            JBoxHandlerPlugin.log_info("Found plugin %r provides %r", plugin, plugin.provides)
+        for plugin in JBPluginHandler.jbox_get_plugins(JBPluginHandler.JBP_HANDLER):
+            JBPluginHandler.log_info("Found plugin %r provides %r", plugin, plugin.provides)
             plugin.register(app)
 
-        for plugin in JBoxHandlerPlugin.jbox_get_plugins(JBoxHandlerPlugin.PLUGIN_JS):
-            JBoxHandlerPlugin.log_info("Found plugin %r provides %r", plugin, plugin.provides)
-            JBoxHandlerPlugin.PLUGIN_JAVASCRIPTS.append(plugin.get_js())
+        for plugin in JBPluginHandler.jbox_get_plugins(JBPluginHandler.JBP_JS_TOP):
+            JBPluginHandler.log_info("Found plugin %r provides %r", plugin, plugin.provides)
+            JBPluginHandler.PLUGIN_JAVASCRIPTS.append(plugin.get_js())

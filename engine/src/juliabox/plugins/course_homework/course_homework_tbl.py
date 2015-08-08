@@ -6,11 +6,11 @@ from decimal import Decimal
 from boto.dynamodb2.fields import HashKey, RangeKey
 from boto.dynamodb2.types import STRING
 
-from juliabox.db import JBoxDBPlugin, JBoxDBItemNotFound
+from juliabox.db import JBPluginDB, JBoxDBItemNotFound
 
 
-class JBoxCourseHomework(JBoxDBPlugin):
-    provides = [JBoxDBPlugin.PLUGIN_DYNAMODB_TABLE, JBoxDBPlugin.PLUGIN_RDBMS_TABLE]
+class JBoxCourseHomework(JBPluginDB):
+    provides = [JBPluginDB.JBP_TABLE_DYNAMODB, JBPluginDB.JBP_TABLE_RDBMS]
 
     NAME = 'jbox_coursehomework'
 

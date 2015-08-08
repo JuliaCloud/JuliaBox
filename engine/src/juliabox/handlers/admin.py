@@ -7,7 +7,7 @@ from juliabox.jbox_util import JBoxCfg
 from handler_base import JBoxHandler
 from juliabox.jbox_container import JBoxContainer
 from juliabox.jbox_tasks import JBoxAsyncJob
-from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxDBPlugin
+from juliabox.db import JBoxUserV2, JBoxDynConfig, JBPluginDB
 
 
 class AdminHandler(JBoxHandler):
@@ -142,7 +142,7 @@ class AdminHandler(JBoxHandler):
 
     @staticmethod
     def get_session_stats():
-        plugin = JBoxDBPlugin.jbox_get_plugin(JBoxDBPlugin.PLUGIN_USAGE_ACCOUNTING)
+        plugin = JBPluginDB.jbox_get_plugin(JBPluginDB.JBP_USAGE_ACCOUNTING)
         if plugin is None:
             return None
 

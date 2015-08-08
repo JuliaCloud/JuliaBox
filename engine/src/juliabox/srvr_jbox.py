@@ -5,16 +5,16 @@ import tornado.ioloop
 import tornado.web
 import tornado.auth
 
-from cloud import Compute
+from cloud import Compute, JBPluginCloud
 import db
-from db import JBoxDynConfig, JBoxUserV2, is_cluster_leader, is_proposed_cluster_leader, JBoxDBPlugin
+from db import JBoxDynConfig, JBoxUserV2, is_cluster_leader, is_proposed_cluster_leader, JBPluginDB
 from jbox_tasks import JBoxAsyncJob
 from jbox_util import LoggerMixin, JBoxCfg
-from jbox_tasks import JBoxHousekeepingPlugin
+from jbox_tasks import JBPluginTask
 from vol import VolMgr, JBoxVol
 from jbox_container import JBoxContainer
 from handlers import AdminHandler, MainHandler, PingHandler, CorsHandler
-from handlers import JBoxHandlerPlugin, JBoxUIModulePlugin
+from handlers import JBPluginHandler, JBPluginUI
 
 
 class JBox(LoggerMixin):
@@ -36,13 +36,13 @@ class JBox(LoggerMixin):
             (r"/jboxping/", PingHandler),
             (r"/jboxcors/", CorsHandler)
         ])
-        JBoxHandlerPlugin.add_plugin_handlers(self.application)
-        JBoxUIModulePlugin.create_include_files()
+        JBPluginHandler.add_plugin_handlers(self.application)
+        JBPluginUI.create_include_files()
 
         # cookie_secret = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
         # use sesskey as cookie secret to be able to span multiple tornado servers
         self.application.settings["cookie_secret"] = JBoxCfg.get('sesskey')
-        self.application.settings["plugin_features"] = JBox._get_pluggedin_features()
+        self.application.settings["plugin_features"] = JBox.get_pluggedin_features()
         self.application.listen(JBoxCfg.get('port'), address=socket.gethostname())
         self.application.listen(JBoxCfg.get('port'), address='localhost')
 
@@ -55,9 +55,10 @@ class JBox(LoggerMixin):
         self.sigct = tornado.ioloop.PeriodicCallback(JBox.do_signals, 1000, self.ioloop)
 
     @staticmethod
-    def _get_pluggedin_features():
+    def get_pluggedin_features():
         feature_providers = dict()
-        for pluginclass in [JBoxHousekeepingPlugin, JBoxDBPlugin, JBoxHandlerPlugin, JBoxUIModulePlugin, JBoxVol]:
+        for pluginclass in [JBPluginTask, JBPluginDB, JBPluginHandler, JBPluginUI,
+                            JBoxVol, JBPluginCloud]:
             for plugin in pluginclass.plugins:
                 for feature in plugin.provides:
                     if feature in feature_providers:

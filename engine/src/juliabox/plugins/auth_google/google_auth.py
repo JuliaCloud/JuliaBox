@@ -14,19 +14,19 @@ from oauth2client import GOOGLE_REVOKE_URI, GOOGLE_TOKEN_URI
 from oauth2client.client import OAuth2Credentials, _extract_id_token
 
 from juliabox.jbox_util import JBoxCfg
-from juliabox.handlers import JBoxHandlerPlugin, JBoxUIModulePlugin
+from juliabox.handlers import JBPluginHandler, JBPluginUI
 from juliabox.db import JBoxUserV2
 
 
-class GoogleAuthUIHandler(JBoxUIModulePlugin):
-    provides = [JBoxUIModulePlugin.PLUGIN_AUTH, JBoxUIModulePlugin.PLUGIN_SESSION]
+class GoogleAuthUIHandler(JBPluginUI):
+    provides = [JBPluginUI.JBP_UI_AUTH_BTN, JBPluginUI.JBP_UI_SESSION_HEAD]
     TEMPLATE_PATH = os.path.dirname(__file__)
 
     @staticmethod
     def get_template(plugin_type):
-        if plugin_type == JBoxUIModulePlugin.PLUGIN_AUTH:
+        if plugin_type == JBPluginUI.JBP_UI_AUTH_BTN:
             return os.path.join(GoogleAuthUIHandler.TEMPLATE_PATH, "google_login_btn.tpl")
-        if plugin_type == JBoxUIModulePlugin.PLUGIN_SESSION:
+        if plugin_type == JBPluginUI.JBP_UI_SESSION_HEAD:
             return os.path.join(GoogleAuthUIHandler.TEMPLATE_PATH, "google_login_session.tpl")
 
     @staticmethod
@@ -55,10 +55,10 @@ class GoogleAuthUIHandler(JBoxUIModulePlugin):
         return creds
 
 
-class GoogleAuthHandler(JBoxHandlerPlugin, GoogleOAuth2Mixin):
-    provides = [JBoxHandlerPlugin.PLUGIN_HANDLER,
-                JBoxHandlerPlugin.PLUGIN_HANDLER_AUTH,
-                JBoxHandlerPlugin.PLUGIN_HANDLER_AUTH_GOOGLE]
+class GoogleAuthHandler(JBPluginHandler, GoogleOAuth2Mixin):
+    provides = [JBPluginHandler.JBP_HANDLER,
+                JBPluginHandler.JBP_HANDLER_AUTH,
+                JBPluginHandler.JBP_HANDLER_AUTH_GOOGLE]
 
     @staticmethod
     def register(app):

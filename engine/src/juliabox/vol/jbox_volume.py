@@ -7,7 +7,7 @@ import errno
 import json
 import pytz
 
-from juliabox.cloud import JBoxCloudPlugin, Compute
+from juliabox.cloud import JBPluginCloud, Compute
 from juliabox.jbox_util import unique_sessname, ensure_delete, esc_sessname, get_user_name, parse_iso_time
 from juliabox.jbox_util import LoggerMixin, JBoxCfg, make_sure_path_exists
 from juliabox.jbox_util import JBoxPluginType
@@ -16,36 +16,34 @@ from juliabox.jbox_crypto import ssh_keygen
 
 
 class JBoxVol(LoggerMixin):
-    """ The base class for user volume providers.
-    Volumes are always mounted as user home now. We shall have other mount points in future for data folders.
+    """ Provides storage volumes that are mounted on to containers. All volume providers must extend from `JBoxVol`.
 
-    It is a plugin mount point, looking for features:
-    - vol.userhome (provides replacement for user home folder)
-    - vol.data (provides larger data disks that can be additionally mounted)
-    - vol.pkgbundle (provides replacement for Julia packages and precompiled images)
-    - vol.userhome.ebs (user home folder on EBS  - requirement indicated through user's resource profile)
-    - vol.userhome.local (user home folder provided on local(loopback) volumes)
+    - `JBoxVol.JBP_USERHOME`, `JBoxVol.JBP_USERHOME_EBS`, `JBoxVol.JBP_USERHOME_LOCAL`:
+        Provide storage for user home folder. These are usually faster but limited to smaller sizes.
+        User home folders are overlaid with some configuration files required for working of JuliaBox.
+    - `JBoxVol.JBP_DATA`, `JBoxVol.JBP_DATA_EBS`:
+        Provide larger volumes for storing data.
+    - `JBoxVol.JBP_PKGBUNDLE`:
+        Provide read-only volumes that contain Julia packages and can be mounted on to containers.
 
-    Methods expected in the plugin:
-    - configure: Initialize self. Configuration file can be accessed through JBoxCfg.
-    - get_disk_from_container: Should return an object representing the disk mounted in the provided container if any.
-    - is_mount_path: Should return True if the provided path belongs to a disk managed by the plugin.
-    - get_disk_for_user: Create, initialize and return an object representing a disk for the gived user id.
-    - refresh_disk_use_status: Update status of all disks managed by the plugin by iterating through all containers.
-    - refresh_user_home_image: Update any pre-created disk images with a freshly downloaded JuliaBox user home image.
-    - disk_ids_used_pct: Percent of disk ids in use (indicates load on the system).
-
-    The base class also provides ability to back up and restore volumes as tar files
-    either on the filesystem or on AWS S3. This can also be factored out as a plugin point in future.
+    All volume providers must implement the following methods:
+    - `configure()`: Initialize self. Configuration file can be accessed through JBoxCfg.
+    - `get_disk_for_user(user_id)`: Create, initialize and return an object representing a disk for the gived user id.
+    - `get_disk_from_container(cid)`: Return an object representing the disk mounted in the provided container if any.
+    - `is_mount_path(fs_path)`: Check if the provided path belongs to a disk managed by the plugin.
+    - `refresh_disk_use_status(container_id_list=None)`: Update status of all disks managed by the plugin by iterating through all containers.
+    - `disk_ids_used_pct()`: Percent of configured disks in use (indicates load on the system).
+    - `refresh_user_home_image()`: Update any pre-created disk images with a freshly downloaded JuliaBox user home image. Not required for data volumes.
+    - `release(backup)`: Release the disk. Backup contents if indicated.
     """
 
     __metaclass__ = JBoxPluginType
-    PLUGIN_USERHOME = 'vol.userhome'
-    PLUGIN_DATA = 'vol.data'
-    PLUGIN_PKGBUNDLE = 'vol.pkgbundle'
-    PLUGIN_EBS_USERHOME = 'vol.userhome.ebs'
-    PLUGIN_LOCAL_USERHOME = 'vol.userhome.local'
-    PLUGIN_EBS_DATA = 'vol.data.ebs'
+    JBP_USERHOME = 'vol.userhome'
+    JBP_DATA = 'vol.data'
+    JBP_PKGBUNDLE = 'vol.pkgbundle'
+    JBP_USERHOME_EBS = 'vol.userhome.ebs'
+    JBP_USERHOME_LOCAL = 'vol.userhome.local'
+    JBP_DATA_EBS = 'vol.data.ebs'
 
     BACKUP_LOC = None
     DCKR = None
@@ -339,7 +337,7 @@ class JBoxVol(LoggerMixin):
 
     @staticmethod
     def pull_from_bucketstore(local_file, metadata_only=False):
-        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_BUCKETSTORE)
+        plugin = JBPluginCloud.jbox_get_plugin(JBPluginCloud.JBP_BUCKETSTORE)
         if plugin is None or JBoxVol.BACKUP_BUCKET is None:
             return None
         return plugin.pull(JBoxVol.BACKUP_BUCKET, local_file, metadata_only=metadata_only)
@@ -364,7 +362,7 @@ class JBoxVol(LoggerMixin):
         # Upload to S3 if so configured. Delete from local if successful.
         bkup_file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(bkup_file), pytz.utc) + \
             datetime.timedelta(seconds=JBoxVol.LOCAL_TZ_OFFSET)
-        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_BUCKETSTORE)
+        plugin = JBPluginCloud.jbox_get_plugin(JBPluginCloud.JBP_BUCKETSTORE)
         if plugin is not None and JBoxVol.BACKUP_BUCKET is not None:
             if plugin.push(JBoxVol.BACKUP_BUCKET, bkup_file,
                            metadata={'backup_time': bkup_file_mtime.isoformat()}) is not None:

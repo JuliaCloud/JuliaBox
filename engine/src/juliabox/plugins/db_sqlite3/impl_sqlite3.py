@@ -3,7 +3,7 @@ __author__ = 'tan'
 import threading
 import sqlite3
 
-from juliabox.db import JBoxDBPlugin, JBoxDBItemNotFound
+from juliabox.db import JBPluginDB, JBoxDBItemNotFound
 from juliabox.jbox_util import JBoxCfg, LoggerMixin
 
 
@@ -162,8 +162,8 @@ class JBoxSQLiteTable(LoggerMixin):
         JBoxSQLite3.conn().commit()
 
 
-class JBoxSQLite3(JBoxDBPlugin):
-    provides = [JBoxDBPlugin.PLUGIN_DB, JBoxDBPlugin.PLUGIN_DB_RDBMS]
+class JBoxSQLite3(JBPluginDB):
+    provides = [JBPluginDB.JBP_DB, JBPluginDB.JBP_DB_RDBMS]
 
     threadlocal = threading.local()
     CONNECT_STR = ":memory:" # default to an in-memory database
