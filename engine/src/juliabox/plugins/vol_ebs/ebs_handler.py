@@ -1,8 +1,8 @@
 __author__ = 'tan'
 import os
 
-from juliabox.handlers import JBoxHandlerPlugin, JBoxUIModulePlugin
-from juliabox.jbox_tasks import JBoxdPlugin, JBoxAsyncJob
+from juliabox.handlers import JBPluginHandler, JBPluginUI
+from juliabox.jbox_tasks import JBPluginTask, JBoxAsyncJob
 from juliabox.jbox_container import JBoxContainer
 from juliabox.db import JBoxUserV2
 from juliabox.vol import JBoxVol
@@ -12,12 +12,12 @@ from ebs import JBoxEBSVol
 from disk_state_tbl import JBoxDiskState
 
 
-class JBoxEBSVolAsyncTask(JBoxdPlugin):
-    provides = [JBoxdPlugin.PLUGIN_CMD]
+class JBoxEBSVolAsyncTask(JBPluginTask):
+    provides = [JBPluginTask.JBP_CMD_ASYNC]
 
     @staticmethod
-    def do_task(plugin_name, plugin_type, data):
-        if plugin_name != JBoxEBSVolAsyncTask.__name__ or plugin_type != JBoxdPlugin.PLUGIN_CMD:
+    def do_task(plugin_type, data):
+        if plugin_type != JBPluginTask.JBP_CMD_ASYNC:
             return
         mode = data['action']
         user_id = data['user_id']
@@ -66,13 +66,13 @@ class JBoxEBSVolAsyncTask(JBoxdPlugin):
         JBoxEBSVolAsyncTask.log_debug("Data volume request %s completed for %s", mode, cont.debug_str())
 
 
-class JBoxEBSVolUIModule(JBoxUIModulePlugin):
-    provides = [JBoxUIModulePlugin.PLUGIN_CONFIG]
+class JBoxEBSVolUIModule(JBPluginUI):
+    provides = [JBPluginUI.JBP_UI_CONFIG_SECTION]
     TEMPLATE_PATH = os.path.dirname(__file__)
 
     @staticmethod
     def get_template(plugin_type):
-        if plugin_type == JBoxUIModulePlugin.PLUGIN_CONFIG:
+        if plugin_type == JBPluginUI.JBP_UI_CONFIG_SECTION:
             return os.path.join(JBoxEBSVolUIModule.TEMPLATE_PATH, "vol_ebs_html.tpl")
         return None
 
@@ -92,8 +92,8 @@ class JBoxEBSVolUIModule(JBoxUIModulePlugin):
         return user.has_resource_profile(JBoxUserV2.RES_PROF_DISK_EBS_10G)
 
 
-class JBoxEBSVolHandler(JBoxHandlerPlugin):
-    provides = [JBoxHandlerPlugin.PLUGIN_HANDLER, JBoxHandlerPlugin.PLUGIN_JS]
+class JBoxEBSVolHandler(JBPluginHandler):
+    provides = [JBPluginHandler.JBP_HANDLER, JBPluginHandler.JBP_JS_TOP]
 
     @staticmethod
     def get_js():

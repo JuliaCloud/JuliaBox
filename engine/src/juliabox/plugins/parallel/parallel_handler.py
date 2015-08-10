@@ -1,20 +1,20 @@
 __author__ = 'tan'
 import os
 
-from juliabox.handlers import JBoxHandlerPlugin, JBoxUIModulePlugin
+from juliabox.handlers import JBPluginHandler, JBPluginUI
 from juliabox.jbox_container import JBoxContainer
 from juliabox.db import JBoxUserV2
 from juliabox.vol import VolMgr, JBoxVol
 from user_cluster import UserCluster
 
 
-class ParallelUIModule(JBoxUIModulePlugin):
-    provides = [JBoxUIModulePlugin.PLUGIN_CONFIG]
+class ParallelUIModule(JBPluginUI):
+    provides = [JBPluginUI.JBP_UI_CONFIG_SECTION]
     TEMPLATE_PATH = os.path.dirname(__file__)
 
     @staticmethod
     def get_template(plugin_type):
-        if plugin_type == JBoxUIModulePlugin.PLUGIN_CONFIG:
+        if plugin_type == JBPluginUI.JBP_UI_CONFIG_SECTION:
             return os.path.join(ParallelUIModule.TEMPLATE_PATH, "user_cluster_html.tpl")
         return None
 
@@ -34,8 +34,8 @@ class ParallelUIModule(JBoxUIModulePlugin):
         return user.has_resource_profile(JBoxUserV2.RES_PROF_CLUSTER)
 
 
-class ParallelHandler(JBoxHandlerPlugin):
-    provides = [JBoxHandlerPlugin.PLUGIN_HANDLER, JBoxHandlerPlugin.PLUGIN_JS]
+class ParallelHandler(JBPluginHandler):
+    provides = [JBPluginHandler.JBP_HANDLER, JBPluginHandler.JBP_JS_TOP]
 
     @staticmethod
     def get_js():
@@ -124,7 +124,7 @@ class ParallelHandler(JBoxHandlerPlugin):
             return
 
         # write out the machinefile on the docker's filesystem
-        vol = VolMgr.get_disk_from_container(cont.dockid, JBoxVol.PLUGIN_USERHOME)
+        vol = VolMgr.get_disk_from_container(cont.dockid, JBoxVol.JBP_USERHOME)
         machinefile = os.path.join(vol.disk_path, ".juliabox", filename)
 
         existing_hosts = set()
@@ -152,7 +152,7 @@ class ParallelHandler(JBoxHandlerPlugin):
 
     @staticmethod
     def create_user_script(cont):
-        vol = VolMgr.get_disk_from_container(cont.dockid, JBoxVol.PLUGIN_USERHOME)
+        vol = VolMgr.get_disk_from_container(cont.dockid, JBoxVol.JBP_USERHOME)
 
         pub_key_file = os.path.join(vol.disk_path, ".ssh", "id_rsa.pub")
         with open(pub_key_file, 'r') as f:

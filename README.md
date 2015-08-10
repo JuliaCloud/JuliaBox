@@ -23,3 +23,8 @@ The only constraint is imagination (and server cost).
 - Login via Google authentication. Submit a PR for more auth methods!
 - Auto cleanup of sessions based on inactivity.
 - Ability to limit CPU, memory, and disk space for user sessions.
+
+## Docs
+
+- [Architecture](docs/Architecture.md)
+- [Installation](docs/INSTALL.MD)

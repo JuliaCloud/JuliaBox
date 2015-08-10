@@ -2,7 +2,7 @@
 
 from boto.dynamodb2.table import Table
 
-from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBoxDBPlugin
+from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBPluginDB
 
 # import any plugins that contribute tables
 import juliabox.plugins.course_homework
@@ -19,7 +19,7 @@ def table_exists(name):
         return False
 
 tables = [JBoxUserV2, JBoxDynConfig, JBoxSessionProps]
-for plugin in JBoxDBPlugin.jbox_get_plugins(JBoxDBPlugin.PLUGIN_DYNAMODB_TABLE):
+for plugin in JBPluginDB.jbox_get_plugins(JBPluginDB.JBP_TABLE_DYNAMODB):
     tables.append(plugin)
 
 for cls in tables:

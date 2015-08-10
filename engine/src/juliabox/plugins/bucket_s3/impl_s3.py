@@ -4,11 +4,11 @@ import os
 import boto
 from boto.s3.key import Key
 
-from juliabox.cloud import JBoxCloudPlugin
+from juliabox.cloud import JBPluginCloud
 
 
-class JBoxS3(JBoxCloudPlugin):
-    provides = [JBoxCloudPlugin.PLUGIN_BUCKETSTORE, JBoxCloudPlugin.PLUGIN_BUCKETSTORE_S3]
+class JBoxS3(JBPluginCloud):
+    provides = [JBPluginCloud.JBP_BUCKETSTORE, JBPluginCloud.JBP_BUCKETSTORE_S3]
     CONN = None
     BUCKETS = dict()
 

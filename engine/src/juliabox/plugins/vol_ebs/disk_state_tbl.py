@@ -6,11 +6,11 @@ import pytz
 from boto.dynamodb2.fields import HashKey, GlobalKeysOnlyIndex
 from boto.dynamodb2.types import NUMBER, STRING
 
-from juliabox.db import JBoxDBPlugin, JBoxDBItemNotFound
+from juliabox.db import JBPluginDB, JBoxDBItemNotFound
 
 
-class JBoxDiskState(JBoxDBPlugin):
-    provides = [JBoxDBPlugin.PLUGIN_DYNAMODB_TABLE]
+class JBoxDiskState(JBPluginDB):
+    provides = [JBPluginDB.JBP_TABLE_DYNAMODB]
 
     NAME = 'jbox_diskstate'
 

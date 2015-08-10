@@ -3,11 +3,11 @@ __author__ = 'tan'
 from boto.dynamodb2.exceptions import ItemNotFound
 from boto.dynamodb2.table import Table
 
-from juliabox.db import JBoxDBPlugin, JBoxDBItemNotFound
+from juliabox.db import JBPluginDB, JBoxDBItemNotFound
 
 
-class JBoxDynamoDB(JBoxDBPlugin):
-    provides = [JBoxDBPlugin.PLUGIN_DB, JBoxDBPlugin.PLUGIN_DB_DYNAMODB]
+class JBoxDynamoDB(JBPluginDB):
+    provides = [JBPluginDB.JBP_DB, JBPluginDB.JBP_DB_DYNAMODB]
 
     @staticmethod
     def configure():

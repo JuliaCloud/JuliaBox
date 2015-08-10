@@ -9,12 +9,12 @@ import boto.ec2
 import boto.ec2.cloudwatch
 import boto.ec2.autoscale
 
-from juliabox.cloud import JBoxCloudPlugin
+from juliabox.cloud import JBPluginCloud
 from juliabox.jbox_util import JBoxCfg, parse_iso_time, retry
 
 
-class CompEC2(JBoxCloudPlugin):
-    provides = [JBoxCloudPlugin.PLUGIN_COMPUTE, JBoxCloudPlugin.PLUGIN_COMPUTE_EC2]
+class CompEC2(JBPluginCloud):
+    provides = [JBPluginCloud.JBP_COMPUTE, JBPluginCloud.JBP_COMPUTE_EC2]
 
     REGION = 'us-east-1'
     ZONE = None
@@ -62,14 +62,14 @@ class CompEC2(JBoxCloudPlugin):
         dns_name = CompEC2.get_instance_id() if instance_id is None else instance_id
         if CompEC2.AUTOSCALE_GROUP is not None:
             dns_name += ('-' + CompEC2.AUTOSCALE_GROUP)
-        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_DNS)
+        plugin = JBPluginCloud.jbox_get_plugin(JBPluginCloud.JBP_DNS)
         dns_name += ('.' + plugin.domain())
 
         return dns_name
 
     @staticmethod
     def get_alias_hostname():
-        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_DNS)
+        plugin = JBPluginCloud.jbox_get_plugin(JBPluginCloud.JBP_DNS)
         if plugin is None:
             return CompEC2.get_instance_public_hostname()
         return CompEC2._make_alias_hostname()

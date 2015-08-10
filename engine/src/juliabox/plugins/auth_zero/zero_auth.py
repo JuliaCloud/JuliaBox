@@ -7,29 +7,29 @@ import tornado.gen
 import tornado.httpclient
 
 from juliabox.jbox_util import unquote
-from juliabox.handlers import JBoxHandlerPlugin, JBoxUIModulePlugin
+from juliabox.handlers import JBPluginHandler, JBPluginUI
 
 
-class ZeroAuthUIHandler(JBoxUIModulePlugin):
-    provides = [JBoxUIModulePlugin.PLUGIN_AUTH]
+class ZeroAuthUIHandler(JBPluginUI):
+    provides = [JBPluginUI.JBP_UI_AUTH_BTN]
     TEMPLATE_PATH = os.path.dirname(__file__)
 
     @staticmethod
     def get_template(plugin_type):
-        if plugin_type == JBoxUIModulePlugin.PLUGIN_AUTH:
+        if plugin_type == JBPluginUI.JBP_UI_AUTH_BTN:
             return os.path.join(ZeroAuthUIHandler.TEMPLATE_PATH, "zero_login_btn.tpl")
 
 
-class ZeroAuthHandler(JBoxHandlerPlugin):
+class ZeroAuthHandler(JBPluginHandler):
     """
     Zero authentication login. For use in a personal or development setup.
     This is included, but not enabled in JuliaBox engine by default.
     Accepts an email id for identification only, so it is possible to have multiple users, each with
     their own storage and sessions.
     """
-    provides = [JBoxHandlerPlugin.PLUGIN_HANDLER,
-                JBoxHandlerPlugin.PLUGIN_HANDLER_AUTH,
-                JBoxHandlerPlugin.PLUGIN_HANDLER_AUTH_ZERO]
+    provides = [JBPluginHandler.JBP_HANDLER,
+                JBPluginHandler.JBP_HANDLER_AUTH,
+                JBPluginHandler.JBP_HANDLER_AUTH_ZERO]
 
     @staticmethod
     def register(app):

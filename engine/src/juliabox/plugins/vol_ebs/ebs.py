@@ -11,7 +11,7 @@ from disk_state_tbl import JBoxDiskState
 
 
 class JBoxEBSVol(JBoxVol):
-    provides = [JBoxVol.PLUGIN_EBS_DATA, JBoxVol.PLUGIN_DATA]
+    provides = [JBoxVol.JBP_DATA_EBS, JBoxVol.JBP_DATA]
 
     DEVICES = []
     MAX_DISKS = 0

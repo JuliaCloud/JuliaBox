@@ -2,12 +2,12 @@ __author__ = 'tan'
 
 import socket
 
-from juliabox.cloud import JBoxCloudPlugin
+from juliabox.cloud import JBPluginCloud
 from juliabox.jbox_util import JBoxCfg
 
 
-class CompSingleNode(JBoxCloudPlugin):
-    provides = [JBoxCloudPlugin.PLUGIN_COMPUTE, JBoxCloudPlugin.PLUGIN_COMPUTE_SINGLENODE]
+class CompSingleNode(JBPluginCloud):
+    provides = [JBPluginCloud.JBP_COMPUTE, JBPluginCloud.JBP_COMPUTE_SINGLENODE]
 
     INSTALL_ID = 'JuliaBox'
 

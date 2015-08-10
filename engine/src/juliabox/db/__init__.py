@@ -1,5 +1,5 @@
 __author__ = 'tan'
-from db_base import JBoxDB, JBoxDBPlugin, JBoxDBItemNotFound
+from db_base import JBoxDB, JBPluginDB, JBoxDBItemNotFound
 from user_v2 import JBoxUserV2
 from container import JBoxSessionProps
 from dynconfig import JBoxDynConfig
@@ -15,7 +15,7 @@ def configure():
         cls.NAME = tablenames.get(cls.NAME, cls.NAME)
         JBoxDB.log_info("%s provided by table %s", cls.__name__, cls.NAME)
 
-    for plugin in JBoxDBPlugin.jbox_get_plugins(JBoxDBPlugin.PLUGIN_TABLE):
+    for plugin in JBPluginDB.jbox_get_plugins(JBPluginDB.JBP_TABLE):
         JBoxDB.log_info("Found plugin %r provides %r", plugin, plugin.provides)
         plugin.NAME = tablenames.get(plugin.NAME, plugin.NAME)
         JBoxDB.log_info("%s provided by table %s", plugin.__name__, plugin.NAME)

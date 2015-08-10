@@ -8,7 +8,7 @@ from juliabox.jbox_container import JBoxContainer
 
 
 class JBoxLoopbackVol(JBoxVol):
-    provides = [JBoxVol.PLUGIN_USERHOME, JBoxVol.PLUGIN_LOCAL_USERHOME]
+    provides = [JBoxVol.JBP_USERHOME, JBoxVol.JBP_USERHOME_LOCAL]
 
     FS_LOC = None
     DISK_LIMIT = None

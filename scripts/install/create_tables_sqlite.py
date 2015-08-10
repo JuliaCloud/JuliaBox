@@ -3,7 +3,7 @@
 import sys
 import sqlite3
 
-from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBoxDBPlugin
+from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBPluginDB
 
 # import any plugins that contribute tables
 import juliabox.plugins.course_homework
@@ -32,7 +32,7 @@ conn = sqlite3.connect(sys.argv[1])
 c = conn.cursor()
 
 tables = [JBoxUserV2, JBoxDynConfig, JBoxSessionProps]
-for plugin in JBoxDBPlugin.jbox_get_plugins(JBoxDBPlugin.PLUGIN_RDBMS_TABLE):
+for plugin in JBPluginDB.jbox_get_plugins(JBPluginDB.JBP_TABLE_RDBMS):
     tables.append(plugin)
 
 for cls in tables:

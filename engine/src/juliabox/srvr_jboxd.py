@@ -5,11 +5,11 @@ import signal
 # import os
 import sys
 
-from cloud import JBoxCloudPlugin
+from cloud import JBPluginCloud
 from cloud import Compute
 import db
 from db import JBoxUserV2, JBoxDynConfig
-from jbox_tasks import JBoxAsyncJob, JBoxHousekeepingPlugin, JBoxdPlugin
+from jbox_tasks import JBoxAsyncJob, JBPluginTask
 from jbox_util import LoggerMixin, JBoxCfg, retry
 from jbox_container import JBoxContainer
 from vol import VolMgr
@@ -123,7 +123,7 @@ class JBoxd(LoggerMixin):
     @staticmethod
     @jboxd_method
     def auto_activate():
-        plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_SENDMAIL)
+        plugin = JBPluginCloud.jbox_get_plugin(JBPluginCloud.JBP_SENDMAIL)
         if plugin is None:
             JBoxd.log_error("No plugin found for sending mails. Can not auto activate users.")
             return
@@ -176,19 +176,19 @@ class JBoxd(LoggerMixin):
 
     @staticmethod
     def schedule_housekeeping(cmd, is_leader):
-        features = [JBoxHousekeepingPlugin.PLUGIN_NODE_HOUSEKEEPING]
+        features = [JBPluginTask.JBP_NODE]
         if is_leader is True:
-            features.append(JBoxHousekeepingPlugin.PLUGIN_CLUSTER_HOUSEKEEPING)
+            features.append(JBPluginTask.JBP_CLUSTER)
 
         for feature in features:
-            for plugin in JBoxHousekeepingPlugin.jbox_get_plugins(feature):
-                JBoxd.schedule_thread(cmd, plugin.do_housekeeping, (plugin.__name__, feature))
+            for plugin in JBPluginTask.jbox_get_plugins(feature):
+                JBoxd.schedule_thread(cmd, plugin.do_periodic_task, (feature,))
 
     @staticmethod
     @jboxd_method
     def plugin_action(plugin_type, plugin_class, data):
         matching_plugin = None
-        for plugin in JBoxdPlugin.jbox_get_plugins(plugin_type):
+        for plugin in JBPluginTask.jbox_get_plugins(plugin_type):
             if plugin_class is None:
                 matching_plugin = plugin
                 break
@@ -196,7 +196,7 @@ class JBoxd(LoggerMixin):
                 matching_plugin = plugin
                 break
         if matching_plugin is not None:
-            matching_plugin.do_task(matching_plugin.__name__, plugin_type, data)
+            matching_plugin.do_task(plugin_type, data)
 
     def process_offline(self):
         self.log_debug("processing offline...")

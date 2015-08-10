@@ -11,7 +11,7 @@ from juliabox.db import JBoxDynConfig
 from juliabox import db
 from juliabox.jbox_util import JBoxCfg, LoggerMixin
 from juliabox.jbox_container import JBoxContainer
-from juliabox.cloud import JBoxCloudPlugin
+from juliabox.cloud import JBPluginCloud
 from juliabox.vol import VolMgr, JBoxVol
 
 
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     JBoxContainer.configure()
     VolMgr.configure()
 
-    plugin = JBoxCloudPlugin.jbox_get_plugin(JBoxCloudPlugin.PLUGIN_BUCKETSTORE)
+    plugin = JBPluginCloud.jbox_get_plugin(JBPluginCloud.JBP_BUCKETSTORE)
     if plugin is None:
         VolMgr.log_error("No plugin found for bucketstore")
         exit(1)

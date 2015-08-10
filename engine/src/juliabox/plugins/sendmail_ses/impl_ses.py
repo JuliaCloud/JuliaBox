@@ -3,12 +3,12 @@ __author__ = 'tan'
 import boto
 import boto.ses
 
-from juliabox.cloud import JBoxCloudPlugin
+from juliabox.cloud import JBPluginCloud
 from juliabox.jbox_util import JBoxCfg
 
 
-class JBoxSES(JBoxCloudPlugin):
-    provides = [JBoxCloudPlugin.PLUGIN_SENDMAIL, JBoxCloudPlugin.PLUGIN_SENDMAIL_SES]
+class JBoxSES(JBPluginCloud):
+    provides = [JBPluginCloud.JBP_SENDMAIL, JBPluginCloud.JBP_SENDMAIL_SES]
 
     REGION = None
     CONN = None

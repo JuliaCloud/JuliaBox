@@ -8,7 +8,7 @@ from juliabox.jbox_container import JBoxContainer
 
 
 class JBoxDefaultPackagesVol(JBoxVol):
-    provides = [JBoxVol.PLUGIN_PKGBUNDLE]
+    provides = [JBoxVol.JBP_PKGBUNDLE]
 
     FS_LOC = None
     LOCK = None

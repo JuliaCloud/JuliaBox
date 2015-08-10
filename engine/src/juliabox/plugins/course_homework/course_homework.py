@@ -5,14 +5,14 @@ import json
 
 from juliabox.cloud import Compute
 from juliabox.jbox_util import JBoxCfg
-from juliabox.handlers import JBoxHandlerPlugin
+from juliabox.handlers import JBPluginHandler
 from juliabox.jbox_container import JBoxContainer
 from juliabox.db import JBoxUserV2, JBoxDynConfig
 from course_homework_tbl import JBoxCourseHomework
 
 
-class HomeworkHandler(JBoxHandlerPlugin):
-    provides = [JBoxHandlerPlugin.PLUGIN_HANDLER, JBoxHandlerPlugin.PLUGIN_JS]
+class HomeworkHandler(JBPluginHandler):
+    provides = [JBPluginHandler.JBP_HANDLER, JBPluginHandler.JBP_JS_TOP]
 
     @staticmethod
     def get_js():

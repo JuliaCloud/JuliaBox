@@ -3,12 +3,12 @@ __author__ = 'tan'
 import boto
 import boto.route53
 
-from juliabox.cloud import JBoxCloudPlugin
+from juliabox.cloud import JBPluginCloud
 from juliabox.jbox_util import JBoxCfg
 
 
-class JBoxRoute53(JBoxCloudPlugin):
-    provides = [JBoxCloudPlugin.PLUGIN_DNS, JBoxCloudPlugin.PLUGIN_DNS_ROUTE53]
+class JBoxRoute53(JBPluginCloud):
+    provides = [JBPluginCloud.JBP_DNS, JBPluginCloud.JBP_DNS_ROUTE53]
 
     DOMAIN = None
     REGION = None

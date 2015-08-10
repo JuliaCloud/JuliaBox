@@ -6,11 +6,11 @@ import random
 from boto.dynamodb2.fields import HashKey, RangeKey, AllIndex, IncludeIndex
 from boto.dynamodb2.types import NUMBER, STRING
 
-from juliabox.db import JBoxDBPlugin
+from juliabox.db import JBPluginDB
 
 
-class JBoxAccountingV2(JBoxDBPlugin):
-    provides = [JBoxDBPlugin.PLUGIN_DYNAMODB_TABLE]
+class JBoxAccountingV2(JBPluginDB):
+    provides = [JBPluginDB.JBP_TABLE_DYNAMODB, JBPluginDB.JBP_USAGE_ACCOUNTING]
 
     NAME = 'jbox_accounting_v2'
 
