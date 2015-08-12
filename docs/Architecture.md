@@ -18,6 +18,9 @@ JuliaBox runs on Docker and Linux. All JuliaBox components are Docker containers
         - Performs both asynchronous and request-response tasks
         - Interfaces with Docker and the host machine to provision other containers
         - The only component to run in priviledged mode
+- Julia Containers
+    - Runs Julia in a pre-defined environment
+    - Accessible through the Router
 
 An single instance of JuliaBox is self contained with all components present in it. A JuliaBox cluster is a collection of instances using some common resources and aware of / connected to each other.
 
@@ -38,6 +41,19 @@ If allowed by the hosting environment, instances can be scaled up or down based 
 One instance in a cluster is elected as the leader and performs central tasks.
 
 ![JuliaBox Cluster](JuliaBoxCluster.png "JuliaBox Cluster")
+
+
+### Julia Containers
+
+The Julia containers run Julia and related applications. Containers have configurable limits for CPU and RAM, and can 
+mount some allowed block devices. All outgoing network connections allowed from the container. But incoming connections 
+are only allowed through the router.
+
+There can be different kinds of containers, as long as there is a corresponding engine that can manage it. 
+For example, the container serving interactive sessions runs Jupyter/IJulia, shell (shellinabox), and file manager.
+Whereas, a container serving REST APIs runs only Julia.
+
+![Julia Containers](JuliaBoxContainers.png "Julia Containers")
 
 
 ## Plugins
