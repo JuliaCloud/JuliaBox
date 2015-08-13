@@ -27,6 +27,8 @@ import json
 import csv
 import os
 
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "engine", "src"))
+
 from juliabox.cloud import Compute
 from juliabox.jbox_util import LoggerMixin, JBoxCfg
 from juliabox.plugins.course_homework import JBoxCourseHomework

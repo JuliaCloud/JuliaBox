@@ -7,6 +7,8 @@ from os.path import expanduser
 
 import docker
 
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "engine", "src"))
+
 from juliabox.db import JBoxDynConfig
 from juliabox import db
 from juliabox.jbox_util import JBoxCfg, LoggerMixin

@@ -2,6 +2,10 @@
 
 from boto.dynamodb2.table import Table
 
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "engine", "src"))
+
 from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBPluginDB
 
 # import any plugins that contribute tables
