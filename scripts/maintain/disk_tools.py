@@ -7,6 +7,8 @@ import tarfile
 import datetime
 import pytz
 
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "engine", "src"))
+
 from juliabox.plugins.bucket_s3 import JBoxS3
 from juliabox.jbox_util import LoggerMixin, unique_sessname, JBoxCfg
 from juliabox.vol import JBoxVol, VolMgr
