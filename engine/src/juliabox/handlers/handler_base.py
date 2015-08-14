@@ -375,10 +375,14 @@ class JBoxHandler(JBoxCookies):
         instances = Compute.get_all_instances()
 
         for inst in instances:
-            sessions = JBoxAsyncJob.sync_session_status(inst)['data']
-            if len(sessions) > 0:
-                if container_id in sessions:
-                    return inst
+            try:
+                sessions = JBoxAsyncJob.sync_session_status(inst)['data']
+                if len(sessions) > 0:
+                    if container_id in sessions:
+                        return inst
+            except:
+                JBoxHandler.log_error("Error receiving sessions list from %r", inst)
+                pass
         return None
 
     def redirect_to_logged_in_instance(self, user_id):

@@ -7,7 +7,7 @@ import tornado.auth
 
 from cloud import Compute, JBPluginCloud
 import db
-from db import JBoxDynConfig, JBoxUserV2, is_cluster_leader, is_proposed_cluster_leader, JBPluginDB
+from db import JBoxDynConfig, JBoxUserV2, is_cluster_leader, JBPluginDB
 from jbox_tasks import JBoxAsyncJob
 from jbox_util import LoggerMixin, JBoxCfg
 from jbox_tasks import JBPluginTask
@@ -43,8 +43,8 @@ class JBox(LoggerMixin):
         # use sesskey as cookie secret to be able to span multiple tornado servers
         self.application.settings["cookie_secret"] = JBoxCfg.get('sesskey')
         self.application.settings["plugin_features"] = JBox.get_pluggedin_features()
-        self.application.listen(JBoxCfg.get('port'), address=socket.gethostname())
-        self.application.listen(JBoxCfg.get('port'), address='localhost')
+        self.application.listen(JBoxCfg.get('interactive.manager_port'), address=socket.gethostname())
+        self.application.listen(JBoxCfg.get('interactive.manager_port'), address='localhost')
 
         self.ioloop = tornado.ioloop.IOLoop.instance()
 
@@ -68,9 +68,6 @@ class JBox(LoggerMixin):
         return feature_providers
 
     def run(self):
-        Compute.deregister_instance_dns()
-        Compute.register_instance_dns()
-        JBoxContainer.publish_container_stats()
         JBox.do_update_user_home_image()
         JBoxAsyncJob.async_refresh_disks()
 
@@ -109,33 +106,20 @@ class JBox(LoggerMixin):
                 JBoxAsyncJob.async_schedule_activations()
 
     @staticmethod
-    def is_ready_to_terminate():
-        if not JBoxCfg.get('cloud_host.scale_down'):
-            return False
-
-        num_sessions = JBoxContainer.num_sessions()
-        return (num_sessions == 0) and Compute.can_terminate(is_proposed_cluster_leader())
-
-    @staticmethod
     def do_housekeeping():
         terminating = False
-        server_delete_timeout = JBoxCfg.get('expire')
-        JBoxContainer.maintain(max_timeout=server_delete_timeout, inactive_timeout=JBoxCfg.get('inactivity_timeout'),
-                               protected_names=JBoxCfg.get('protected_docknames'))
+        server_delete_timeout = JBoxCfg.get('interactive.expire')
+        inactive_timeout = JBoxCfg.get('interactive.inactivity_timeout')
+        JBoxContainer.maintain(max_timeout=server_delete_timeout, inactive_timeout=inactive_timeout)
         is_leader = is_cluster_leader()
         if is_leader:
             JBox.log_info("I am the cluster leader")
             JBox.monitor_registrations()
             if not JBoxDynConfig.is_stat_collected_within(Compute.get_install_id(), 1):
                 JBoxAsyncJob.async_collect_stats()
-        elif JBox.is_ready_to_terminate():
+        elif JBoxAsyncJob.sync_is_terminating():
             terminating = True
             JBox.log_warn("terminating to scale down")
-            try:
-                Compute.deregister_instance_dns()
-            except:
-                JBox.log_error("Error deregistering instance dns")
-            Compute.terminate_instance()
 
         if not terminating:
             JBox.do_update_user_home_image()

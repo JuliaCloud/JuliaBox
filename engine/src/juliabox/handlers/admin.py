@@ -8,6 +8,7 @@ from handler_base import JBoxHandler
 from juliabox.jbox_container import JBoxContainer
 from juliabox.jbox_tasks import JBoxAsyncJob
 from juliabox.db import JBoxUserV2, JBoxDynConfig, JBPluginDB
+from juliabox.api import APIContainer
 
 
 class AdminHandler(JBoxHandler):
@@ -128,6 +129,8 @@ class AdminHandler(JBoxHandler):
                     for idx in range(0, len(instances)):
                         inst = instances[idx]
                         result[inst] = JBoxAsyncJob.sync_session_status(inst)['data']
+                elif stats == 'apis':
+                    result = APIContainer.get_cluster_api_status()
                 else:
                     raise Exception("unknown command %s" % (stats,))
 

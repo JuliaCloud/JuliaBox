@@ -16,11 +16,14 @@ class JBoxAsyncJob(LoggerMixin):
     CMD_UPDATE_USER_HOME_IMAGE = 4
     CMD_REFRESH_DISKS = 5
     CMD_COLLECT_STATS = 6
+    CMD_RECORD_PERF_COUNTERS = 8
     CMD_PLUGIN_MAINTENANCE = 9
     CMD_PLUGIN_TASK = 10
 
     CMD_REQ_RESP = 50
     CMD_SESSION_STATUS = 51
+    CMD_API_STATUS = 52
+    CMD_IS_TERMINATING = 53
 
     ENCKEY = None
     PORTS = None
@@ -46,16 +49,16 @@ class JBoxAsyncJob(LoggerMixin):
         self._poller = zmq.Poller()
 
         if mode == JBoxAsyncJob.MODE_PUB:
-            self._push_pull_sock.bind(ppbindaddr)
-        else:
             self._push_pull_sock.connect(ppconnaddr)
+        else:
+            self._push_pull_sock.bind(ppbindaddr)
             self._poller.register(self._push_pull_sock, zmq.POLLIN)
             self._req_rep_sock = self._ctx.socket(rrmode)
             self._req_rep_sock.bind(rraddr)
 
     @staticmethod
     def configure():
-        JBoxAsyncJob.PORTS = JBoxCfg.get('async_job_ports')
+        JBoxAsyncJob.PORTS = JBoxCfg.get('container_manager_ports')
         JBoxAsyncJob.ENCKEY = JBoxCfg.get('sesskey')
 
     @staticmethod
@@ -163,6 +166,11 @@ class JBoxAsyncJob(LoggerMixin):
         JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_COLLECT_STATS, '')
 
     @staticmethod
+    def async_record_perf_counters():
+        JBoxAsyncJob.log_info("scheduling recording performance counters")
+        JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_RECORD_PERF_COUNTERS, '')
+
+    @staticmethod
     def async_schedule_activations():
         JBoxAsyncJob.log_info("scheduling activations")
         JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_AUTO_ACTIVATE, '')
@@ -181,6 +189,16 @@ class JBoxAsyncJob(LoggerMixin):
     def sync_session_status(instance_id):
         JBoxAsyncJob.log_debug("fetching session status from %r", instance_id)
         return JBoxAsyncJob.get().sendrecv(JBoxAsyncJob.CMD_SESSION_STATUS, {}, dest=instance_id)
+
+    @staticmethod
+    def sync_api_status(instance_id):
+        JBoxAsyncJob.log_debug("fetching api status from %r", instance_id)
+        return JBoxAsyncJob.get().sendrecv(JBoxAsyncJob.CMD_API_STATUS, {}, dest=instance_id)
+
+    @staticmethod
+    def sync_is_terminating():
+        JBoxAsyncJob.log_debug("checking if instance is terminating")
+        return JBoxAsyncJob.get().sendrecv(JBoxAsyncJob.CMD_IS_TERMINATING, {})
 
     @staticmethod
     def async_plugin_maintenance(is_leader):

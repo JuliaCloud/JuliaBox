@@ -3,6 +3,7 @@ from db_base import JBoxDB, JBPluginDB, JBoxDBItemNotFound
 from user_v2 import JBoxUserV2
 from container import JBoxSessionProps
 from dynconfig import JBoxDynConfig
+from api_spec import JBoxAPISpec
 from juliabox.cloud import Compute
 from juliabox.jbox_util import JBoxCfg
 
@@ -11,7 +12,7 @@ def configure():
     JBoxDB.configure()
     tablenames = JBoxCfg.get('db.tables', dict())
 
-    for cls in (JBoxUserV2, JBoxSessionProps, JBoxDynConfig):
+    for cls in (JBoxUserV2, JBoxSessionProps, JBoxDynConfig, JBoxAPISpec):
         cls.NAME = tablenames.get(cls.NAME, cls.NAME)
         JBoxDB.log_info("%s provided by table %s", cls.__name__, cls.NAME)
 

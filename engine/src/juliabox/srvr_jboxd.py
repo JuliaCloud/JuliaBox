@@ -4,14 +4,17 @@ import time
 import signal
 # import os
 import sys
+import psutil
 
 from cloud import JBPluginCloud
 from cloud import Compute
 import db
-from db import JBoxUserV2, JBoxDynConfig
+from db import JBoxUserV2, JBoxDynConfig, is_proposed_cluster_leader
 from jbox_tasks import JBoxAsyncJob, JBPluginTask
 from jbox_util import LoggerMixin, JBoxCfg, retry
 from jbox_container import JBoxContainer
+from api import APIContainer
+from jbox_container_base import JBoxContainerBase
 from vol import VolMgr
 
 
@@ -46,12 +49,13 @@ class JBoxd(LoggerMixin):
         db.configure()
         Compute.configure()
         JBoxContainer.configure()
+        APIContainer.configure()
         VolMgr.configure()
 
         JBoxAsyncJob.configure()
         JBoxAsyncJob.init(JBoxAsyncJob.MODE_SUB)
 
-        self.log_debug("Backup daemon listening on ports: %s", repr(JBoxCfg.get('async_job_ports')))
+        self.log_debug("Container manager listening on ports: %s", repr(JBoxCfg.get('container_manager_ports')))
         JBoxd.QUEUE = JBoxAsyncJob.get()
 
         JBoxd.MAX_ACTIVATIONS_PER_SEC = JBoxCfg.get('user_activation.max_activations_per_sec')
@@ -119,6 +123,7 @@ class JBoxd(LoggerMixin):
         JBoxd._wait_for_session_backup(name)
         VolMgr.refresh_disk_use_status()
         JBoxContainer.launch_by_name(name, email, reuse=reuse)
+        JBoxd.publish_perf_counters()
 
     @staticmethod
     @jboxd_method
@@ -175,7 +180,56 @@ class JBoxd(LoggerMixin):
         JBoxDynConfig.set_stat_collected_date(Compute.get_install_id())
 
     @staticmethod
+    @jboxd_method
+    def publish_container_stats():
+        VolMgr.publish_stats()
+        db.publish_stats()
+        JBoxDynConfig.set_stat_collected_date(Compute.get_install_id())
+
+    @staticmethod
+    def publish_perf_counters():
+        """ Publish performance counters. Used for status monitoring and auto scaling. """
+        nactive = JBoxContainerBase.num_active(JBoxContainerBase.SFX_INT)
+        Compute.publish_stats("NumActiveContainers", "Count", nactive)
+
+        nactive_api = JBoxContainerBase.num_active(JBoxContainerBase.SFX_API)
+        Compute.publish_stats("NumActiveAPIContainers", "Count", nactive_api)
+
+        curr_cpu_used_pct = psutil.cpu_percent()
+        last_cpu_used_pct = curr_cpu_used_pct if JBoxContainerBase.LAST_CPU_PCT is None else JBoxContainerBase.LAST_CPU_PCT
+        JBoxContainerBase.LAST_CPU_PCT = curr_cpu_used_pct
+        cpu_used_pct = int((curr_cpu_used_pct + last_cpu_used_pct)/2)
+        Compute.publish_stats("CPUUsed", "Percent", cpu_used_pct)
+
+        mem_used_pct = psutil.virtual_memory().percent
+        Compute.publish_stats("MemUsed", "Percent", mem_used_pct)
+
+        disk_used_pct = 0
+        for x in psutil.disk_partitions():
+            if not VolMgr.is_mount_path(x.mountpoint):
+                try:
+                    disk_used_pct = max(psutil.disk_usage(x.mountpoint).percent, disk_used_pct)
+                except:
+                    pass
+        if JBoxContainerBase.INITIAL_DISK_USED_PCT is None:
+            JBoxContainerBase.INITIAL_DISK_USED_PCT = disk_used_pct
+        disk_used_pct = max(0, (disk_used_pct - JBoxContainerBase.INITIAL_DISK_USED_PCT))
+        Compute.publish_stats("DiskUsed", "Percent", disk_used_pct)
+
+        cont_load_pct = min(100, max(0, nactive * 100 / JBoxContainer.MAX_CONTAINERS))
+        Compute.publish_stats("ContainersUsed", "Percent", cont_load_pct)
+
+        api_cont_load_pct = min(100, max(0, nactive_api * 100 / APIContainer.MAX_CONTAINERS))
+        Compute.publish_stats("APIContainersUsed", "Percent", api_cont_load_pct)
+
+        Compute.publish_stats("DiskIdsUsed", "Percent", VolMgr.used_pct())
+
+        overall_load_pct = max(cont_load_pct, api_cont_load_pct, disk_used_pct, mem_used_pct, cpu_used_pct, VolMgr.used_pct())
+        Compute.publish_stats("Load", "Percent", overall_load_pct)
+
+    @staticmethod
     def schedule_housekeeping(cmd, is_leader):
+        JBoxd.publish_perf_counters()
         features = [JBPluginTask.JBP_NODE]
         if is_leader is True:
             features.append(JBPluginTask.JBP_CLUSTER)
@@ -232,11 +286,44 @@ class JBoxd(LoggerMixin):
     @staticmethod
     def get_session_status():
         ret = {}
-        for c in JBoxContainer.session_containers(allcontainers=True):
+        for c in JBoxContainerBase.session_containers(allcontainers=True):
             name = c["Names"][0] if (("Names" in c) and (c["Names"] is not None)) else c["Id"][0:12]
             ret[name] = c["Status"]
 
         return ret
+
+    @staticmethod
+    def get_api_status():
+        api_status = dict()
+        for c in JBoxContainerBase.api_containers(allcontainers=True):
+            name = c["Names"][0] if (("Names" in c) and (c["Names"] is not None)) else c["Id"][0:12]
+            api_name = APIContainer.get_api_name_from_container_name(name)
+            if api_name is None:
+                continue
+            cnt = api_status.get(api_name, 0)
+            api_status[api_name] = cnt + 1
+        self_load = Compute.get_instance_stats(Compute.get_instance_id(), 'Load')
+        accept = Compute.should_accept_session(is_proposed_cluster_leader())
+
+        return {'load': self_load, 'accept': accept, 'api_status': api_status}
+
+    @staticmethod
+    def is_terminating():
+        if not JBoxCfg.get('cloud_host.scale_down'):
+            return False
+
+        num_active = JBoxContainerBase.num_active()
+        terminate = (num_active == 0) and Compute.can_terminate(is_proposed_cluster_leader())
+
+        if terminate:
+            JBoxd.log_warn("terminating to scale down")
+            try:
+                Compute.deregister_instance_dns()
+            except:
+                JBoxd.log_error("Error deregistering instance dns")
+            Compute.terminate_instance()
+
+        return terminate
 
     @staticmethod
     @jboxd_method
@@ -245,6 +332,10 @@ class JBoxd(LoggerMixin):
             try:
                 if cmd == JBoxAsyncJob.CMD_SESSION_STATUS:
                     resp = {'code': 0, 'data': JBoxd.get_session_status()}
+                elif cmd == JBoxAsyncJob.CMD_API_STATUS:
+                    resp = {'code': 0, 'data': JBoxd.get_api_status()}
+                elif cmd == JBoxAsyncJob.CMD_IS_TERMINATING:
+                    resp = {'code': 0, 'data': JBoxd.is_terminating()}
                 else:
                     resp = {'code:': -2, 'data': ('unknown command %s' % (repr(cmd,)))}
             except Exception as ex:
@@ -261,6 +352,10 @@ class JBoxd(LoggerMixin):
         # os._exit(0)
 
     def run(self):
+        Compute.deregister_instance_dns()
+        Compute.register_instance_dns()
+        JBoxd.publish_perf_counters()
+
         JBoxd.log_debug("Setting up signal handlers")
         signal.signal(signal.SIGINT, JBoxd.signal_handler)
         signal.signal(signal.SIGTERM, JBoxd.signal_handler)

@@ -83,6 +83,7 @@ class JBoxUserV2(JBoxDB):
 
     RES_PROF_JULIA_PKG_PRECOMP = 1 << 12
     RES_PROF_CLUSTER = 1 << 13
+    RES_PROF_API_PUBLISHER = 1 << 14
 
     STATS = None
     STAT_NAME = "stat_users"
@@ -310,6 +311,8 @@ class JBoxUserV2(JBoxDB):
                 res_profile['julia_packages_precompiled'] += 1
             elif (res_profile_val & JBoxUserV2.RES_PROF_CLUSTER) == JBoxUserV2.RES_PROF_CLUSTER:
                 res_profile['julia_cluster'] += 1
+            elif (res_profile_val & JBoxUserV2.RES_PROF_API_PUBLISHER) == JBoxUserV2.RES_PROF_API_PUBLISHER:
+                res_profile['api_publisher'] += 1
 
         create_month_val = int(user['create_month'])
         create_month = stats['created_time']['months']
@@ -352,7 +355,8 @@ class JBoxUserV2(JBoxDB):
                 'basic': 0,
                 'disk_ebs_10G': 0,
                 'julia_packages_precompiled': 0,
-                'julia_cluster': 0
+                'julia_cluster': 0,
+                'api_publisher': 0
             },
             'created_time': {
                 'months': {

@@ -169,10 +169,6 @@ class JBoxCfg(object):
         for ad in cfg["admin_users"]:
             cfg["admin_sessnames"].append(unique_sessname(ad))
 
-        cfg["protected_docknames"] = []
-        for ps in cfg["protected_sessions"]:
-            cfg["protected_docknames"].append("/" + unique_sessname(ps))
-
     @staticmethod
     def load_plugins():
         for name in JBoxCfg.get('plugins'):
