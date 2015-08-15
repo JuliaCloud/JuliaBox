@@ -124,7 +124,7 @@ def unquote(s):
     if s is None:
         return s
     s = s.strip()
-    if s[0] == '"':
+    if s.startswith('"'):
         return s[1:-1]
     else:
         return s
