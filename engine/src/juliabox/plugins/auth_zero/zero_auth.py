@@ -6,7 +6,7 @@ import tornado.web
 import tornado.gen
 import tornado.httpclient
 
-from juliabox.jbox_util import unquote
+from juliabox.jbox_util import unquote, JBoxCfg
 from juliabox.handlers import JBPluginHandler, JBPluginUI
 
 
@@ -39,4 +39,15 @@ class ZeroAuthHandler(JBPluginHandler):
     @tornado.gen.coroutine
     def get(self):
         user_id = unquote(self.get_argument("user_id"))
-        self.post_auth_launch_container(user_id)
+
+        if len(user_id) > 0:
+            self.post_auth_launch_container(user_id)
+        else:
+            self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
+                error="Please provide an email Id to login with.", success=''))
+
+    @staticmethod
+    def state(**kwargs):
+        s = dict(error="", success="", info="", pending_activation=False, user_id="")
+        s.update(**kwargs)
+        return s
