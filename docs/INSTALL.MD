@@ -3,7 +3,7 @@
 JuliaBox is developed and tested on Ubuntu 14.04. But it should be easy to adapt to any Linux environment supporting Docker.
 
 ## Installation overview
-Installing JuliaBox on a single machine consists of five principle steps, the specifics of which vary depending upon the desired configuration. The following is a general overview of the process, and the key scripts and files involved. It may be useful to consult the included [architecture document](Architecture.md) to gain a high-level overview of JuliaBox before reading these instructions.
+Installing JuliaBox on a single machine consists of five principal steps, the specifics of which vary depending upon the desired configuration. The following is a general overview of the process, and the key scripts and files involved. It may be useful to consult the included [architecture document](Architecture.md) to gain a high-level overview of JuliaBox before reading these instructions.
 
 1. System preparation.
 
@@ -93,10 +93,12 @@ The following procedure will configure a system without authentication, designed
 2. JuliaBox configuration.
     - Create a configuration file `/jboxengine/conf/jbox.user` as: <pre>
     {
-        "numlocalmax" : 2,
-        "numdisksmax" : 3,
-        "admin_users" : ['admin@local.org'],
-        "websocket_protocol" : "ws",
+        "numdisksmax": 3,
+        "admin_users": ['admin@local.org'],
+        "websocket_protocol": "ws",
+    	"interactive": {
+        	"numlocalmax": 2
+        },
         "plugins": [
             "juliabox.plugins.compute_singlenode",
             "juliabox.plugins.vol_loopback",
@@ -156,10 +158,12 @@ The following procedure will configure a system without authentication, designed
 
   - Create a configuration file `/jboxengine/conf/jbox.user` as: <pre>
     {
-        "numlocalmax" : 20, # max concurrent users to support
         "numdisksmax" : 30, # max disks (more than sessions to allow for transitions)
         "admin_users" : ['admin@gmail.com'],  # administrator email id
         "websocket_protocol" : "ws",
+    	"interactive": {
+        	"numlocalmax": 20  # max concurrent users to support
+        },
         "plugins": [
             "juliabox.plugins.compute_singlenode",
             "juliabox.plugins.vol_loopback",

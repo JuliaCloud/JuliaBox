@@ -10,7 +10,7 @@ import tornado.escape
 from tornado.web import RequestHandler
 
 from juliabox.jbox_util import LoggerMixin, unique_sessname, unquote, JBoxCfg, JBoxPluginType
-from juliabox.jbox_container import JBoxContainer
+from juliabox.interactive import SessContainer
 from juliabox.jbox_tasks import JBoxAsyncJob
 from juliabox.jbox_crypto import signstr
 from juliabox.cloud import Compute
@@ -194,7 +194,7 @@ class JBoxCookies(RequestHandler, LoggerMixin):
                 self.set_cookie(cname, cval)
 
     def _set_container_cookies(self, cookies):
-        max_session_time = JBoxCfg.get('expire')
+        max_session_time = JBoxCfg.get('interactive.expire')
         if max_session_time == 0:
             max_session_time = JBoxCookies.AUTH_VALID_SECS
         expires = datetime.datetime.utcnow() + datetime.timedelta(seconds=max_session_time)
@@ -307,7 +307,7 @@ class JBoxHandler(JBoxCookies):
         container_ports = (ports[JBoxCookies.COOKIE_PORT_SHELL],
                            ports[JBoxCookies.COOKIE_PORT_UPL],
                            ports[JBoxCookies.COOKIE_PORT_IPNB])
-        if not JBoxContainer.is_valid_container("/" + sessname, container_ports):
+        if not SessContainer.is_valid_container("/" + sessname, container_ports):
             self.log_info('not valid req. container deleted or ports not matching')
             return False
 
@@ -316,7 +316,7 @@ class JBoxHandler(JBoxCookies):
     @classmethod
     def try_launch_container(cls, user_id, max_hop=False):
         sessname = unique_sessname(user_id)
-        cont = JBoxContainer.get_by_name(sessname)
+        cont = SessContainer.get_by_name(sessname)
         cls.log_debug("have existing container for %s: %r", sessname, None != cont)
         if cont is not None:
             cls.log_debug("container running: %r", cont.is_running())
@@ -324,18 +324,18 @@ class JBoxHandler(JBoxCookies):
         if max_hop:
             self_load = Compute.get_instance_stats(Compute.get_instance_id(), 'Load')
             if self_load < 100:
-                JBoxContainer.invalidate_container(sessname)
+                SessContainer.invalidate_container(sessname)
                 JBoxAsyncJob.async_launch_by_name(sessname, user_id, True)
                 return True
 
         is_leader = is_proposed_cluster_leader()
         if ((cont is None) or (not cont.is_running())) and (not Compute.should_accept_session(is_leader)):
             if cont is not None:
-                JBoxContainer.invalidate_container(cont.get_name())
+                SessContainer.invalidate_container(cont.get_name())
                 JBoxAsyncJob.async_backup_and_cleanup(cont.dockid)
             return False
 
-        JBoxContainer.invalidate_container(sessname)
+        SessContainer.invalidate_container(sessname)
         JBoxAsyncJob.async_launch_by_name(sessname, user_id, True)
         return True
 

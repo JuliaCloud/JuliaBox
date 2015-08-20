@@ -12,9 +12,9 @@ import db
 from db import JBoxUserV2, JBoxDynConfig, is_proposed_cluster_leader
 from jbox_tasks import JBoxAsyncJob, JBPluginTask
 from jbox_util import LoggerMixin, JBoxCfg, retry
-from jbox_container import JBoxContainer
+from juliabox.interactive import SessContainer
 from api import APIContainer
-from jbox_container_base import JBoxContainerBase
+from jbox_container import BaseContainer
 from vol import VolMgr
 
 
@@ -48,7 +48,7 @@ class JBoxd(LoggerMixin):
         LoggerMixin.configure()
         db.configure()
         Compute.configure()
-        JBoxContainer.configure()
+        SessContainer.configure()
         APIContainer.configure()
         VolMgr.configure()
 
@@ -96,7 +96,7 @@ class JBoxd(LoggerMixin):
     @staticmethod
     @jboxd_method
     def backup_and_cleanup(dockid):
-        cont = JBoxContainer(dockid)
+        cont = SessContainer(dockid)
         cont.stop()
         cont.delete(backup=True)
 
@@ -111,7 +111,7 @@ class JBoxd(LoggerMixin):
     @staticmethod
     @retry(15, 0.5, backoff=1.5)
     def _wait_for_session_backup(sessname):
-        cont = JBoxContainer.get_by_name(sessname)
+        cont = SessContainer.get_by_name(sessname)
         if (cont is not None) and JBoxd._is_scheduled(JBoxAsyncJob.CMD_BACKUP_CLEANUP, (cont.dockid,)):
             JBoxd.log_debug("Waiting for backup of session %s", sessname)
             return False
@@ -122,7 +122,7 @@ class JBoxd(LoggerMixin):
     def launch_session(name, email, reuse=True):
         JBoxd._wait_for_session_backup(name)
         VolMgr.refresh_disk_use_status()
-        JBoxContainer.launch_by_name(name, email, reuse=reuse)
+        SessContainer.launch_by_name(name, email, reuse=reuse)
         JBoxd.publish_perf_counters()
 
     @staticmethod
@@ -189,15 +189,15 @@ class JBoxd(LoggerMixin):
     @staticmethod
     def publish_perf_counters():
         """ Publish performance counters. Used for status monitoring and auto scaling. """
-        nactive = JBoxContainerBase.num_active(JBoxContainerBase.SFX_INT)
+        nactive = BaseContainer.num_active(BaseContainer.SFX_INT)
         Compute.publish_stats("NumActiveContainers", "Count", nactive)
 
-        nactive_api = JBoxContainerBase.num_active(JBoxContainerBase.SFX_API)
+        nactive_api = BaseContainer.num_active(BaseContainer.SFX_API)
         Compute.publish_stats("NumActiveAPIContainers", "Count", nactive_api)
 
         curr_cpu_used_pct = psutil.cpu_percent()
-        last_cpu_used_pct = curr_cpu_used_pct if JBoxContainerBase.LAST_CPU_PCT is None else JBoxContainerBase.LAST_CPU_PCT
-        JBoxContainerBase.LAST_CPU_PCT = curr_cpu_used_pct
+        last_cpu_used_pct = curr_cpu_used_pct if BaseContainer.LAST_CPU_PCT is None else BaseContainer.LAST_CPU_PCT
+        BaseContainer.LAST_CPU_PCT = curr_cpu_used_pct
         cpu_used_pct = int((curr_cpu_used_pct + last_cpu_used_pct)/2)
         Compute.publish_stats("CPUUsed", "Percent", cpu_used_pct)
 
@@ -211,12 +211,12 @@ class JBoxd(LoggerMixin):
                     disk_used_pct = max(psutil.disk_usage(x.mountpoint).percent, disk_used_pct)
                 except:
                     pass
-        if JBoxContainerBase.INITIAL_DISK_USED_PCT is None:
-            JBoxContainerBase.INITIAL_DISK_USED_PCT = disk_used_pct
-        disk_used_pct = max(0, (disk_used_pct - JBoxContainerBase.INITIAL_DISK_USED_PCT))
+        if BaseContainer.INITIAL_DISK_USED_PCT is None:
+            BaseContainer.INITIAL_DISK_USED_PCT = disk_used_pct
+        disk_used_pct = max(0, (disk_used_pct - BaseContainer.INITIAL_DISK_USED_PCT))
         Compute.publish_stats("DiskUsed", "Percent", disk_used_pct)
 
-        cont_load_pct = min(100, max(0, nactive * 100 / JBoxContainer.MAX_CONTAINERS))
+        cont_load_pct = min(100, max(0, nactive * 100 / SessContainer.MAX_CONTAINERS))
         Compute.publish_stats("ContainersUsed", "Percent", cont_load_pct)
 
         api_cont_load_pct = min(100, max(0, nactive_api * 100 / APIContainer.MAX_CONTAINERS))
@@ -286,7 +286,7 @@ class JBoxd(LoggerMixin):
     @staticmethod
     def get_session_status():
         ret = {}
-        for c in JBoxContainerBase.session_containers(allcontainers=True):
+        for c in BaseContainer.session_containers(allcontainers=True):
             name = c["Names"][0] if (("Names" in c) and (c["Names"] is not None)) else c["Id"][0:12]
             ret[name] = c["Status"]
 
@@ -295,7 +295,7 @@ class JBoxd(LoggerMixin):
     @staticmethod
     def get_api_status():
         api_status = dict()
-        for c in JBoxContainerBase.api_containers(allcontainers=True):
+        for c in BaseContainer.api_containers(allcontainers=True):
             name = c["Names"][0] if (("Names" in c) and (c["Names"] is not None)) else c["Id"][0:12]
             api_name = APIContainer.get_api_name_from_container_name(name)
             if api_name is None:
@@ -312,7 +312,7 @@ class JBoxd(LoggerMixin):
         if not JBoxCfg.get('cloud_host.scale_down'):
             return False
 
-        num_active = JBoxContainerBase.num_active()
+        num_active = BaseContainer.num_active()
         terminate = (num_active == 0) and Compute.can_terminate(is_proposed_cluster_leader())
 
         if terminate:

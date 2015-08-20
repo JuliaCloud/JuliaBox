@@ -12,7 +12,7 @@ from jbox_tasks import JBoxAsyncJob
 from jbox_util import LoggerMixin, JBoxCfg
 from jbox_tasks import JBPluginTask
 from vol import VolMgr, JBoxVol
-from jbox_container import JBoxContainer
+from juliabox.interactive import SessContainer
 from handlers import AdminHandler, MainHandler, PingHandler, CorsHandler
 from handlers import JBPluginHandler, JBPluginUI
 
@@ -24,7 +24,7 @@ class JBox(LoggerMixin):
         LoggerMixin.configure()
         db.configure()
         Compute.configure()
-        JBoxContainer.configure()
+        SessContainer.configure()
         VolMgr.configure()
 
         JBoxAsyncJob.configure()
@@ -110,7 +110,7 @@ class JBox(LoggerMixin):
         terminating = False
         server_delete_timeout = JBoxCfg.get('interactive.expire')
         inactive_timeout = JBoxCfg.get('interactive.inactivity_timeout')
-        JBoxContainer.maintain(max_timeout=server_delete_timeout, inactive_timeout=inactive_timeout)
+        SessContainer.maintain(max_timeout=server_delete_timeout, inactive_timeout=inactive_timeout)
         is_leader = is_cluster_leader()
         if is_leader:
             JBox.log_info("I am the cluster leader")

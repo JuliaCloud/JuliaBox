@@ -6,7 +6,7 @@ import datetime
 import pytz
 import docker.utils
 
-from juliabox.jbox_container_base import JBoxContainerBase
+from juliabox.jbox_container import BaseContainer
 from juliabox.jbox_util import JBoxCfg
 from juliabox.jbox_tasks import JBoxAsyncJob
 from juliabox.cloud import Compute
@@ -15,7 +15,7 @@ from api_queue import APIQueue
 from api_connector import APIConnector
 
 
-class APIContainer(JBoxContainerBase):
+class APIContainer(BaseContainer):
     NEXT_CONTAINER_ID = 1
     DCKR_IMAGE = None
 
@@ -41,7 +41,7 @@ class APIContainer(JBoxContainerBase):
 
     @staticmethod
     def configure():
-        JBoxContainerBase.DCKR = JBoxCfg.dckr
+        BaseContainer.DCKR = JBoxCfg.dckr
         APIContainer.DCKR_IMAGE = JBoxCfg.get('api.docker_image')
         APIContainer.MEM_LIMIT = JBoxCfg.get('api.mem_limit')
         APIContainer.CPU_LIMIT = JBoxCfg.get('api.cpu_limit')
@@ -51,22 +51,22 @@ class APIContainer(JBoxContainerBase):
 
     @staticmethod
     def unique_container_name(api_name):
-        nid = str(APIContainer.NEXT_CONTAINER_ID) + JBoxContainerBase.CONTAINER_NAME_SEP + str(time.time())
+        nid = str(APIContainer.NEXT_CONTAINER_ID) + BaseContainer.CONTAINER_NAME_SEP + str(time.time())
         if APIContainer.NEXT_CONTAINER_ID >= sys.maxint:
             APIContainer.NEXT_CONTAINER_ID = 1
         else:
             APIContainer.NEXT_CONTAINER_ID += 1
 
         sign = hashlib.sha1(nid).hexdigest()
-        return JBoxContainerBase.CONTAINER_NAME_SEP.join([sign, api_name]) + JBoxContainerBase.SFX_API
+        return BaseContainer.CONTAINER_NAME_SEP.join([sign, api_name]) + BaseContainer.SFX_API
 
     @staticmethod
     def get_api_name_from_container_name(container_name):
-        parts = container_name.split(JBoxContainerBase.CONTAINER_NAME_SEP)
-        if (len(parts) >= 3) and (parts[-1] == JBoxContainerBase.SFX_API) and (len(parts[0]) == 32):
+        parts = container_name.split(BaseContainer.CONTAINER_NAME_SEP)
+        if (len(parts) >= 3) and (parts[-1] == BaseContainer.SFX_API) and (len(parts[0]) == 32):
             parts.pop(0)
             parts.pop()
-            return JBoxContainerBase.CONTAINER_NAME_SEP.join(parts)
+            return BaseContainer.CONTAINER_NAME_SEP.join(parts)
         return None
 
     @staticmethod
@@ -143,7 +143,7 @@ class APIContainer(JBoxContainerBase):
         exp = APIContainer.EXPIRE_SECS
         stop_responded_before = (tnow - datetime.timedelta(seconds=exp)) if (exp > 0) else tmin
 
-        for c in JBoxContainerBase.api_containers(allcontainers=True):
+        for c in BaseContainer.api_containers(allcontainers=True):
             cid = c['Id']
             cont = APIContainer(cid)
             cname = cont.get_name()
