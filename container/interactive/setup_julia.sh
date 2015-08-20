@@ -3,14 +3,14 @@
 julia -e 'Pkg.init()'
 
 # Install packages for Julia stable
-DEFAULT_PACKAGES="IJulia PyPlot SIUnits Gadfly DataStructures HDF5 MAT" # \
-#Iterators NumericExtensions SymPy Interact Roots \
-#DataFrames RDatasets Distributions SVM Clustering GLM \
-#Optim JuMP GLPKMathProgInterface Clp NLopt Ipopt \
-#Cairo GraphViz \
-#Images ImageView WAV ODE Sundials LinearLeastSquares \
-#BayesNets PGFPlots GraphLayout \
-#Stan Patchwork Quandl Lazy QuantEcon MixedModels Escher"
+DEFAULT_PACKAGES="IJulia PyPlot SIUnits Gadfly DataStructures HDF5 MAT \
+Iterators NumericExtensions SymPy Interact Roots \
+DataFrames RDatasets Distributions SVM Clustering GLM \
+Optim JuMP GLPKMathProgInterface Clp NLopt Ipopt \
+Cairo GraphViz \
+Images ImageView WAV ODE Sundials LinearLeastSquares \
+BayesNets PGFPlots GraphLayout \
+Stan Patchwork Quandl Lazy QuantEcon MixedModels Escher"
 
 for pkg in ${DEFAULT_PACKAGES}
 do
@@ -19,9 +19,9 @@ do
     julia -e "Pkg.add(\"$pkg\")"
 done
 
-INTERNAL_PACKAGES="https://github.com/tanmaykm/JuliaBoxUtils.jl.git" # \
-#https://github.com/shashi/Homework.jl.git \
-#https://github.com/tanmaykm/JuliaWebAPI.jl.git"
+INTERNAL_PACKAGES="https://github.com/tanmaykm/JuliaBoxUtils.jl.git \
+https://github.com/tanmaykm/JuliaWebAPI.jl.git \
+https://github.com/shashi/Homework.jl.git"
 
 for pkg in ${INTERNAL_PACKAGES}
 do
@@ -52,7 +52,9 @@ do
     /opt/julia_nightly/bin/julia -e "Pkg.add(\"$pkg\")"
 done
 
-JULIA_NIGHTLY_INTERNAL_PACKAGES="https://github.com/tanmaykm/JuliaBoxUtils.jl.git"
+JULIA_NIGHTLY_INTERNAL_PACKAGES="https://github.com/tanmaykm/JuliaBoxUtils.jl.git \
+https://github.com/tanmaykm/JuliaWebAPI.jl.git \
+https://github.com/shashi/Homework.jl.git"
 
 for pkg in ${JULIA_NIGHTLY_INTERNAL_PACKAGES}
 do

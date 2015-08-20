@@ -34,14 +34,14 @@ Installing JuliaBox on a single machine consists of five principal steps, the sp
 3. *JuliaBox* Docker image creation.
 
 	The `img_create.sh` script is used to build the Docker images which serve users with their own instance of a IJulia notebook, shell, console, and file management facilities. The script performs the following actions:
-	- builds the JuliaBox Docker image as specified in `JuliaBox/docker/Dockerfile`,
+	- builds the JuliaBox Docker image as specified in `JuliaBox/container/interactive/Dockerfile` and `JuliaBox/container/api/Dockerfile`,
 	- executes `mk_user_home.sh` to launch the new JuliaBox container (with a temporary home directory) inside of which it:
 		- runs `setup_julia.sh` to add packages as specified in the script,
 		- runs `mkjimg.jl` to create a julia system image, and configure IJulia as required,
 	- removes configuration files from the temporary home directory,
 	- archives the packages and temporary home directory to the work directory, for deployment when a new user logs in.
 
-	The `JuliaBox/docker/Dockerfile` specifies a base Julia image upon which the JuliaBox image is created. To acquire the base Julia image, you may either pull an existing image from DockerHub, or, build an image from a Dockerfile. Suitable Dockerfiles, configuration scripts, and instructions are hosted [here](https://github.com/tanmaykm/JuliaDockerImages).
+	The Dockerfiles specifies a base Julia image upon which the JuliaBox image is created. To acquire the base Julia image, you may either pull an existing image from DockerHub, or, build an image from a Dockerfile. Suitable Dockerfiles, configuration scripts, and instructions are hosted [here](https://github.com/tanmaykm/JuliaDockerImages).
 	
 	There are two ways in which default packages can be included in a deployment,
 	
@@ -50,7 +50,7 @@ Installing JuliaBox on a single machine consists of five principal steps, the sp
 
 	If choosing the latter option, ensure that any libraries required by your packages are included in the base Julia image.
 	
-	NOTE: The JuliaBox Dockerfile automatically downloads and installs a nightly version of Julia into the container. Packages can also be installed for this version by modifying the `setup_julia.sh` script.
+	NOTE: The JuliaBox Dockerfile also automatically downloads and installs a nightly version of Julia into the container (apart from the latest stable version). Packages can also be installed for this version by modifying the `setup_julia.sh` script.
 
 4. *JuliaBox services* Docker image creation.
 
@@ -58,8 +58,9 @@ Installing JuliaBox on a single machine consists of five principal steps, the sp
 	
 	- webserver, the 'router',
 	- enginebase, upon which are based:
-		- enginedaemon, the 'app/session manager', and,
-		- engineinteractive, the 'container manager'.
+		- enginedaemon, the 'container manager', and,
+		- engineinteractive, the 'interactive session manager'.
+		- engineapi, the 'REST API manager'.
 	
 5. JuliaBox database preperation.
 
@@ -127,9 +128,10 @@ The following procedure will configure a system without authentication, designed
 			- Follow instructions in repository to build and tag images.
 	
 	- Build JuliaBox image on top of selected base image:
-		- Modify `FROM` in `JuliaBox/docker/Dockerfile` to point to the correct base image.
-		- Modify `DEFAULT_PACKAGES` in `JuliaBox/docker/setup_julia.sh` to add any desired packages not included in your base image.
-		- Run `JuliaBox/scripts/install/img_create.sh build /jboxengine/data`
+		- Modify `FROM` in `JuliaBox/container/interactive/Dockerfile` and `JuliaBox/container/api/Dockerfile` to point to the correct base image.
+		- Modify `DEFAULT_PACKAGES` in `JuliaBox/container/interactive/setup_julia.sh` to add any desired packages not included in your base image.
+		- Run `JuliaBox/scripts/install/img_create.sh cont build`
+		- Run `JuliaBox/scripts/install/img_create.sh home /jboxengine/data`
 	
 4. *JuliaBox services* Docker image creation.
 	- Run `JuliaBox/scripts/install/img_create.sh jbox`

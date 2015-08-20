@@ -1,9 +1,9 @@
 # Docker file for JuliaBox
 # Version:34
 
-#FROM julialang/juliaboxpkgdist:v0.3.11
+FROM julialang/juliaboxpkgdist:v0.3.11
 # Switching the base to the bare julia image helps during JuliaBox development by reducing image size
-FROM julialang/julia:v0.3.11
+# FROM julialang/julia:v0.3.11
 
 MAINTAINER Tanmay Mohapatra
 
