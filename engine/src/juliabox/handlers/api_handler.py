@@ -1,6 +1,8 @@
 __author__ = 'tan'
 import tornado.web
+import tornado.httputil
 import json
+import struct
 
 from handler_base import JBoxHandler
 from juliabox.api import APIContainer, APIConnector
@@ -34,17 +36,33 @@ class APIHandler(JBoxHandler):
                                on_timeout=self.on_timeout,
                                on_overload=self.on_overload)
 
+    @staticmethod
+    def pack_into_binary(data):
+        packed = str()
+        for d in data:
+            packed += struct.pack('B', d)
+        return packed
+
     def on_recv(self, msg):
-        self.log_info("response for %s: [%r] [%s]", self.request.uri, msg, str(msg))
+        self.log_info("response received for %s", self.request.uri)
         if 'nid' in msg:
             APIContainer.record_ping(msg['nid'])
         code = msg.get('code', 500)
         if code == 200:
-            hdrs = msg.get('hdrs', {})
-            for (hdr_n, hdr_v) in hdrs.iteritems():
-                self.set_header(hdr_n, hdr_v)
-            self.write(json.dumps(msg['data']))
-            self.finish()
+            start_line = tornado.httputil.ResponseStartLine('', self._status_code, self._reason)
+            hdrs = tornado.httputil.HTTPHeaders(msg.get('hdrs', {}))
+            data = msg['data']
+
+            if type(data) == list:
+                hdrs.add("Content-Length", str(len(data)))
+                data = APIHandler.pack_into_binary(data)
+            elif type(data) == dict:
+                data = json.dumps(data)
+            else:
+                data = str(data)
+
+            self.request.connection.write_headers(start_line, hdrs, data)
+            self.request.connection.finish()
         else:
             self.send_error(status_code=code)
 

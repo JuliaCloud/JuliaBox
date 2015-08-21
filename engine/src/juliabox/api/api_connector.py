@@ -48,9 +48,10 @@ class APIConnector(LoggerMixin):
 
     def _release(self):
         self.queue.incr_outstanding(-1)
-        cache = APIConnector.CONNS[self.api_name]
-        if not self.has_errors and (len(cache) < APIConnector.MAX_CONNS):
-            cache.append(self)
+        if self.api_name in APIConnector.CONNS:
+            cache = APIConnector.CONNS[self.api_name]
+            if not self.has_errors and (len(cache) < APIConnector.MAX_CONNS):
+                cache.append(self)
 
     def conn_send_recv(self, send_data, on_recv, on_timeout, timeout=None):
         stream = zmqstream.ZMQStream(self.sock)
@@ -69,7 +70,7 @@ class APIConnector(LoggerMixin):
                 on_timeout()
 
         def _on_recv(msg):
-            APIConnector.log_debug("%s: message received %r", self.debug_str(), msg)
+            APIConnector.log_debug("%s: message received", self.debug_str())
             if self.timeout_callback is not None:
                 loop.remove_timeout(self.timeout_callback)
                 self.timeout_callback = None

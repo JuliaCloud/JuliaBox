@@ -7,7 +7,7 @@ var APIAdmin = (function($, _, undefined){
 		},
 
 		is_valid_name: function (name) {
-			return /^[a-zA-Z0-9]+$/.test(name);
+			return /^[a-zA-Z0-9_\-\.]+$/.test(name);
 		},
 
 		create_api: function (api_name, cmd, description, oncreate) {

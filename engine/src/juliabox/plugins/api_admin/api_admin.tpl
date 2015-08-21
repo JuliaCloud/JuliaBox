@@ -32,7 +32,6 @@
     };
 
     function add_api() {
-        alert("adding api");
         parent.APIAdmin.create_api($('#n_name').val(), $('#n_cmd').val(), $('#n_desc').val(), get_apis);
         return false;
     };
