@@ -27,12 +27,12 @@ function build_web_engines {
 }
 
 function build_containers {
-    for imgspec in juliabox,docker juliaboxapi,container/api
+    for imgspec in juliabox,interactive juliaboxapi,api
     do
         IFS=","
         set ${imgspec}
         IMGTAG="juliabox/$1"
-        DOCKERDIR=${JBOX_DIR}/$2/
+        DOCKERDIR=${JBOX_DIR}/container/$2/
         IMGVER=$(grep "^# Version:" ${DOCKERDIR}/Dockerfile | cut -d":" -f2)
         echo ""
         echo "======================================================"
@@ -44,13 +44,13 @@ function build_containers {
 }
 
 function pull_containers {
-    for imgspec in juliabox,docker juliaboxapi,container/api
+    for imgspec in juliabox,interactive juliaboxapi,api
     do
         IFS=","
         set ${imgspec}
         IMGTAG="juliabox/$1"
         PULLIMGTAG="tanmaykm/$1"
-        DOCKERDIR=${JBOX_DIR}/$2
+        DOCKERDIR=${JBOX_DIR}/container/$2
         IMGVER=$(grep "^# Version:" ${DOCKERDIR}/Dockerfile | cut -d":" -f2)
         echo ""
         echo "======================================================"

@@ -32,12 +32,8 @@ class APIContainer(BaseContainer):
     PINGS = {}
 
     def get_api_name(self):
-        if self.get_name() is None:
-            return None
-        parts = self.get_name().split('_')
-        if len(parts) != 3:
-            return None
-        return parts[1]
+        name = self.get_name()
+        return None if name is None else APIContainer.get_api_name_from_container_name(name)
 
     @staticmethod
     def configure():
@@ -62,8 +58,10 @@ class APIContainer(BaseContainer):
 
     @staticmethod
     def get_api_name_from_container_name(container_name):
+        if container_name.startswith("/"):
+            container_name = container_name[1:]
         parts = container_name.split(BaseContainer.CONTAINER_NAME_SEP)
-        if (len(parts) >= 3) and (parts[-1] == BaseContainer.SFX_API) and (len(parts[0]) == 32):
+        if (len(parts) >= 3) and (parts[-1] == BaseContainer.SFX_API[1:]) and (len(parts[0]) == 40):
             parts.pop(0)
             parts.pop()
             return BaseContainer.CONTAINER_NAME_SEP.join(parts)
@@ -271,6 +269,7 @@ class APIContainer(BaseContainer):
                 result[inst] = api_status['data']
             else:
                 APIContainer.log_error("error fetching api status from %s", inst)
+        APIContainer.log_debug("api status: %r", result)
         return result
 
     def on_start(self):

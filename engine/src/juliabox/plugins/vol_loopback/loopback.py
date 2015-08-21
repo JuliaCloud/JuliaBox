@@ -34,8 +34,8 @@ class JBoxLoopbackVol(JBoxVol):
     @staticmethod
     def _get_disk_ids_used(cid):
         used = []
-        props = JBoxLoopbackVol.dckr().inspect_container(cid)
         try:
+            props = JBoxLoopbackVol.dckr().inspect_container(cid)
             vols = props['Volumes']
             for _cpath, hpath in vols.iteritems():
                 if hpath.startswith(JBoxLoopbackVol.FS_LOC):
