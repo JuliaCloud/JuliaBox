@@ -16,6 +16,7 @@ local json = cjson.new()
 local key = ngx.var.SESSKEY
 
 local api_refreshed_marker = " refreshed "
+local api_refreshing_marker = " refreshing "
 local api_pref_inst = " preferred "
 
 local apimgr_port = 8887
@@ -124,6 +125,9 @@ function M.set_forward_addr(desired_port, force_scheme, force_port)
 end
 
 function M.refresh_apiloc(apiloc)
+    -- set a marker to indicate refresh is triggered
+    apiloc:set(api_refreshing_marker, "", 1*20)
+
     local rand = tostring(math.random(0,10))
     local digest = ngx.hmac_sha1(key, rand)
     local b64 = ngx.encode_base64(digest)
@@ -147,13 +151,13 @@ function M.refresh_apiloc(apiloc)
         ngx.log(ngx.DEBUG, "api_collection " .. api_collection .. ": " .. tostring(locs))
     end
     -- set a marker to indicate if refresh is required
-    apiloc:set(api_refreshed_marker, "", 2*60)
+    apiloc:set(api_refreshed_marker, "", 1*60)
     return true
 end
 
 function M.get_apiloc(api_collection)
     local apiloc = ngx.shared.apiloc
-    if not apiloc:get(api_refreshed_marker) then
+    if not apiloc:get(api_refreshed_marker) and not apiloc:get(api_refreshing_marker) then
         M.refresh_apiloc(apiloc)
     end
 

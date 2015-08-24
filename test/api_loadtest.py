@@ -1,5 +1,9 @@
 import random
+import requests
 from locust import HttpLocust, TaskSet
+
+# disable warnings from printing
+requests.packages.urllib3.disable_warnings()
 
 # register APIs fib1 to fib10 with the following code:
 # fib(n::AbstractString) = fib(parse(Int, n)); fib(n::Int) = (n < 2) ? n : (fib(n-1) + fib(n-2)); process([(fib, false)]);
@@ -26,7 +30,7 @@ def check_response(response, n):
 def genfib(apiname):
     def _fib(l):
         n = random.randint(0, 10)
-        response = l.client.get("/%s/fib/%d" % (apiname, n), catch_response=True)
+        response = l.client.get("/%s/fib/%d" % (apiname, n), catch_response=True, verify=False)
         check_response(response, n)
 
     _fib.__name__ = apiname
