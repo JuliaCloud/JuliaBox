@@ -199,10 +199,13 @@ class SessContainer(BaseContainer):
 
         active_sessions = set()
         for inst in instances:
-            sessions = JBoxAsyncJob.sync_session_status(inst)['data']
-            if len(sessions) > 0:
-                for sess_id in sessions.keys():
-                    active_sessions.add(sess_id)
+            try:
+                sessions = JBoxAsyncJob.sync_session_status(inst)['data']
+                if len(sessions) > 0:
+                    for sess_id in sessions.keys():
+                        active_sessions.add(sess_id)
+            except:
+                SessContainer.log_error("Error receiving sessions list from %r", inst)
 
         return active_sessions
 

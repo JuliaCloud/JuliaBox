@@ -393,9 +393,11 @@ class CompEC2(JBPluginCloud):
     def get_all_instances(gname=None):
         if gname is None:
             gname = CompEC2.AUTOSCALE_GROUP
+        if gname is None:
+            return [CompEC2.get_instance_id()]
         group = CompEC2._get_autoscale_group(gname)
         if (group is None) or (len(group.instances) == 0):
-            return []
+            return [CompEC2.get_instance_id()]
         instances_ids = [i.instance_id for i in group.instances]
         reservations = CompEC2._connect_ec2().get_all_reservations(instances_ids)
         instances = [i.id for r in reservations for i in r.instances]

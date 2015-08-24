@@ -63,7 +63,7 @@ function pull_containers {
 }
 
 function make_user_home {
-	${JBOX_DIR}/docker/mk_user_home.sh $1
+	${JBOX_DIR}/container/interactive/mk_user_home.sh $1
 }
 
 function print_usage {

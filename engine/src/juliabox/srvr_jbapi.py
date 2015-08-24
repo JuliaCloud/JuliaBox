@@ -60,8 +60,24 @@ class JBoxAPI(LoggerMixin):
     @staticmethod
     def do_housekeeping():
         is_leader = is_cluster_leader()
-        terminating = not is_leader and JBoxAsyncJob.sync_is_terminating()
-        if not terminating:
+        if is_leader:
+            JBoxAPI.log_info("I am the cluster leader")
+            terminating = False
+        else:
+            try:
+                terminating = JBoxAsyncJob.sync_is_terminating()
+                if terminating['code'] == 0:
+                    terminating = terminating['data']
+                else:
+                    JBoxAPI.log_error("Error checking if instance is terminating. Assuming False.")
+                    terminating = False
+            except:
+                JBoxAPI.log_error("Exception checking if instance is terminating. Assuming False.")
+                terminating = False
+
+        if terminating:
+            JBoxAPI.log_warn("terminating to scale down")
+        else:
             APIContainer.maintain()
             JBoxAsyncJob.async_plugin_maintenance(is_leader)
 

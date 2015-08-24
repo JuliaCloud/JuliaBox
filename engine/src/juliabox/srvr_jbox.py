@@ -112,16 +112,30 @@ class JBox(LoggerMixin):
         inactive_timeout = JBoxCfg.get('interactive.inactivity_timeout')
         SessContainer.maintain(max_timeout=server_delete_timeout, inactive_timeout=inactive_timeout)
         is_leader = is_cluster_leader()
+
+        if is_leader:
+            terminating = False
+        else:
+            try:
+                terminating = JBoxAsyncJob.sync_is_terminating()
+                if terminating['code'] == 0:
+                    terminating = terminating['data']
+                else:
+                    JBox.log_error("Error checking if instance is terminating. Assuming False.")
+                    terminating = False
+            except:
+                JBox.log_error("Exception checking if instance is terminating. Assuming False.")
+                terminating = False
+
         if is_leader:
             JBox.log_info("I am the cluster leader")
             JBox.monitor_registrations()
             if not JBoxDynConfig.is_stat_collected_within(Compute.get_install_id(), 1):
                 JBoxAsyncJob.async_collect_stats()
-        elif JBoxAsyncJob.sync_is_terminating():
-            terminating = True
-            JBox.log_warn("terminating to scale down")
 
-        if not terminating:
+        if terminating:
+            JBox.log_warn("terminating to scale down")
+        else:
             JBox.do_update_user_home_image()
             JBoxAsyncJob.async_plugin_maintenance(is_leader)
 

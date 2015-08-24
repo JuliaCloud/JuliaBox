@@ -128,8 +128,11 @@ class AdminHandler(JBoxHandler):
                     instances = Compute.get_all_instances()
 
                     for idx in range(0, len(instances)):
-                        inst = instances[idx]
-                        result[inst] = JBoxAsyncJob.sync_session_status(inst)['data']
+                        try:
+                            inst = instances[idx]
+                            result[inst] = JBoxAsyncJob.sync_session_status(inst)['data']
+                        except:
+                            JBoxHandler.log_error("Error receiving sessions list from %r", inst)
                 elif stats == 'apis':
                     result = APIContainer.get_cluster_api_status()
                 else:

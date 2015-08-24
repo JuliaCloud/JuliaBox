@@ -2,7 +2,7 @@ __author__ = 'tan'
 import datetime
 import pytz
 
-from boto.dynamodb2.fields import HashKey, GlobalKeysOnlyIndex
+from boto.dynamodb2.fields import HashKey, RangeKey, GlobalKeysOnlyIndex
 from boto.dynamodb2.types import STRING
 
 from juliabox.db import JBoxDB, JBoxDBItemNotFound
@@ -16,8 +16,9 @@ class JBoxAPISpec(JBoxDB):
     ]
 
     INDEXES = [
-        GlobalKeysOnlyIndex('publisher-index', parts=[
-            HashKey('publisher', data_type=STRING)
+        GlobalKeysOnlyIndex('publisher-api_name-index', parts=[
+            HashKey('publisher', data_type=STRING),
+            RangeKey('api_name', data_type=STRING)
         ])
     ]
 
@@ -113,7 +114,7 @@ class JBoxAPISpec(JBoxDB):
         else:
             if api_name is None:
                 api_name = ' '
-            records = JBoxAPISpec.query(publisher__eq=publisher, api_name__ge=api_name,
+            records = JBoxAPISpec.query(publisher__eq=publisher, api_name__gte=api_name,
                                         index='publisher-api_name-index')
             for api in records:
                 ret.append(JBoxAPISpec(api['api_name']).as_json())

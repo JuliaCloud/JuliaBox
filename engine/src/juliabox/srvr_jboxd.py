@@ -189,6 +189,8 @@ class JBoxd(LoggerMixin):
     @staticmethod
     def publish_perf_counters():
         """ Publish performance counters. Used for status monitoring and auto scaling. """
+        VolMgr.refresh_disk_use_status()
+        
         nactive = BaseContainer.num_active(BaseContainer.SFX_INT)
         Compute.publish_stats("NumActiveContainers", "Count", nactive)
 

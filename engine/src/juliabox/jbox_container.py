@@ -110,7 +110,7 @@ class BaseContainer(LoggerMixin):
             else:
                 typ = BaseContainer.SFX_INT
 
-            if sfx is None or typ == sfx:
+            if ((sfx is None) and (typ != BaseContainer.SFX_SVC)) or (typ == sfx):
                 cnt += 1
         return cnt
 
