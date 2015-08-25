@@ -131,6 +131,7 @@ Welcome to JuliaBox. We hope you will like it and also share with your friends.
         "juliabox.plugins.dns_route53",
         "juliabox.plugins.sendmail_ses",
         "juliabox.plugins.api_admin",
+        "juliabox.plugins.user_admin",
         ""
     ],
 
