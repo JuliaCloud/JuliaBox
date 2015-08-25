@@ -34,7 +34,7 @@ RUN apt-get update \
     python-isodate \
     python-pip \
     python-tz \
-    libzmq-dev \
+    libzmq3-dev \
     && apt-get clean
 
 RUN pip install tornado \

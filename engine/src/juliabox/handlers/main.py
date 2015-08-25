@@ -5,7 +5,7 @@ from oauth2client.client import OAuth2Credentials
 
 from handler_base import JBoxHandler, JBPluginHandler
 from juliabox.jbox_util import unique_sessname, JBoxCfg
-from juliabox.jbox_container import JBoxContainer
+from juliabox.interactive import SessContainer
 from juliabox.cloud import Compute
 
 
@@ -42,7 +42,7 @@ class MainHandler(JBoxHandler):
     def do_monitor_loading_ajax(self, user_id):
         sessname = unique_sessname(user_id)
         self.log_debug("AJAX monitoring loading of session [%s] user[%s]...", sessname, user_id)
-        cont = JBoxContainer.get_by_name(sessname)
+        cont = SessContainer.get_by_name(sessname)
         if (cont is None) or (not cont.is_running()):
             loading_step = int(self.get_loading_state(), 0)
             if loading_step > 30:
@@ -59,7 +59,7 @@ class MainHandler(JBoxHandler):
     def do_monitor_loading(self, user_id):
         sessname = unique_sessname(user_id)
         self.log_debug("Monitoring loading of session [%s] user[%s]...", sessname, user_id)
-        cont = JBoxContainer.get_by_name(sessname)
+        cont = SessContainer.get_by_name(sessname)
         if (cont is None) or (not cont.is_running()):
             loading_step = int(self.get_loading_state(), 0)
             if loading_step > 30:

@@ -20,8 +20,8 @@ do
 done
 
 INTERNAL_PACKAGES="https://github.com/tanmaykm/JuliaBoxUtils.jl.git \
-https://github.com/shashi/Homework.jl.git \
-https://github.com/tanmaykm/JuliaWebAPI.jl.git"
+https://github.com/tanmaykm/JuliaWebAPI.jl.git \
+https://github.com/shashi/Homework.jl.git"
 
 for pkg in ${INTERNAL_PACKAGES}
 do
@@ -52,7 +52,9 @@ do
     /opt/julia_nightly/bin/julia -e "Pkg.add(\"$pkg\")"
 done
 
-JULIA_NIGHTLY_INTERNAL_PACKAGES="https://github.com/tanmaykm/JuliaBoxUtils.jl.git"
+JULIA_NIGHTLY_INTERNAL_PACKAGES="https://github.com/tanmaykm/JuliaBoxUtils.jl.git \
+https://github.com/tanmaykm/JuliaWebAPI.jl.git \
+https://github.com/shashi/Homework.jl.git"
 
 for pkg in ${JULIA_NIGHTLY_INTERNAL_PACKAGES}
 do

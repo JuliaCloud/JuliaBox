@@ -127,6 +127,11 @@
 	    		event.preventDefault();
 	    		parent.JuliaBox.show_instance_info('sessions', 'Sessions');
 	    	});
+
+	    	$('#showapis').click(function(event){
+	    		event.preventDefault();
+	    		parent.JuliaBox.show_instance_info('apis', 'API Containers');
+	    	});
 {% end %}
 
             parent.JuliaBox.set_julia_image_type($('#jimg_curr'), $('#jimg_new'), {{d["jimg_type"]}});
@@ -177,6 +182,7 @@ Julia versions and packages: <a href="#" id="showpackagesstable">stable</a> | <a
 {% if d["manage_containers"] %}
         <tr><td>Configuration:</td><td><a href="#" id="showcfg">View</a></td></tr>
         <tr><td>Sessions:</td><td><a href="#" id="showsessions">View</a></td></tr>
+        <tr><td>API Containers:</td><td><a href="#" id="showapis">View</a></td></tr>
         <tr><td>Instance Loads:</td><td><a href="#" id="showinstanceloads">View</a></td></tr>
 {% end %}
     </table>

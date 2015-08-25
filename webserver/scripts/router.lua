@@ -15,6 +15,13 @@ local json = cjson.new()
 
 local key = ngx.var.SESSKEY
 
+local api_refreshed_marker = " refreshed "
+local api_refreshing_marker = " refreshing "
+local api_pref_inst = " preferred "
+
+local apimgr_port = 8887
+local sessmgr_port = 8888
+
 function M.unquote(s)
     if s ~= nil and s:find'^"' then
         return s:sub(2,-2)
@@ -117,6 +124,60 @@ function M.set_forward_addr(desired_port, force_scheme, force_port)
     return localforward
 end
 
+function M.refresh_apiloc(apiloc)
+    -- set a marker to indicate refresh is triggered
+    apiloc:set(api_refreshing_marker, "", 1*20)
+
+    local rand = tostring(math.random(0,10))
+    local digest = ngx.hmac_sha1(key, rand)
+    local b64 = ngx.encode_base64(digest)
+    local url = "http://127.0.0.1:" .. tostring(apimgr_port) .. "/?key=" .. rand .. "&sign=" .. ngx.escape_uri(b64)
+
+    local httpc = httpM.new()
+    httpc:set_timeout(5000)
+
+    local res, err = httpc:request_uri(url, {
+        method = "GET"
+    })
+    if err or not res then
+        ngx.log(ngx.WARN, "error getting apiloc")
+        return false
+    end
+
+    local apilocjson = json.decode(res.body)
+    for api_collection,locs in pairs(apilocjson) do
+        -- cache status for 2 minutes
+        apiloc:set(api_collection, locs, 2*60)
+        ngx.log(ngx.DEBUG, "api_collection " .. api_collection .. ": " .. tostring(locs))
+    end
+    -- set a marker to indicate if refresh is required
+    apiloc:set(api_refreshed_marker, "", 1*60)
+    return true
+end
+
+function M.get_apiloc(api_collection)
+    local apiloc = ngx.shared.apiloc
+    if not apiloc:get(api_refreshed_marker) and not apiloc:get(api_refreshing_marker) then
+        M.refresh_apiloc(apiloc)
+    end
+
+    local api_hosts = apiloc:get(api_collection)
+    local outgoing_host = "127.0.0.1"
+    if api_hosts and #api_hosts then
+        outgoing_host = api_hosts[math.random(#api_hosts)]
+    else
+        api_hosts = apiloc:get(api_pref_inst)
+        if api_hosts and #api_hosts then
+            outgoing_host = api_hosts[math.random(#api_hosts)]
+        end
+    end
+
+    if (outgoing_host == "localhost") or (outgoing_host == nil) or (outgoing_host == local_hostname) or (outgoing_host == local_ipaddr) then
+        outgoing_host = "127.0.0.1"
+    end
+    return outgoing_host
+end
+
 function M.is_accessible(url)
     local urlhash = "u" .. ngx.md5(url)
     local connchk = ngx.shared.connchk
@@ -204,9 +265,9 @@ function M.jbox_route()
 
     -- route to juliabox container manager
     if (uri == "/") or ngx.re.match(uri, "^/jbox[a-zA-Z0-9_\\-]{1,50}/.*") then
-        M.set_forward_addr(8888, "http", 8888)
+        M.set_forward_addr(sessmgr_port, "http", sessmgr_port)
         if (uri == "/") or ngx.re.match(uri, "/jboxauth/.+") then
-            ngx.var.jbox_forward_addr = M.check_forward_addr(ngx.var.jbox_forward_addr, "http://127.0.0.1:8888")
+            ngx.var.jbox_forward_addr = M.check_forward_addr(ngx.var.jbox_forward_addr, "http://127.0.0.1:" .. tostring(sessmgr_port))
         elseif not ngx.re.match(uri, "/jboxcors/.*") then
             M.forbid_invalid_session()
         end
@@ -242,6 +303,22 @@ function M.jbox_route()
     M.set_forward_addr(portnum, nil, nil)
     ngx.log(ngx.DEBUG, "final websock forward_addr: " .. ngx.var.jbox_forward_addr)
     return
+end
+
+function M.api_route()
+    local uri = ngx.var.uri
+    local match = ngx.re.match(uri, "^/([a-zA-Z0-9_\\-]{1,50})/([a-zA-Z0-9_][^/]*)/.*")
+    if #match ~= 2 then
+        ngx.say("Invalid URL")
+        ngx.exit(ngx.HTTP_FORBIDDEN)
+    end
+
+    local api_collection = match[1]
+    local apiloc = M.get_apiloc(api_collection)
+
+    local outgoing = "http://" .. apiloc .. ":" .. tostring(apimgr_port) .. ngx.var.uri .. (ngx.var.is_args or "") .. (ngx.var.query_string or "")
+    ngx.var.jbox_forward_addr = outgoing
+    ngx.log(ngx.DEBUG, "api destination set to: " .. outgoing)
 end
 
 return M

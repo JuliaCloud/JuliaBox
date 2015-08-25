@@ -48,33 +48,49 @@ datetime_format = %Y/%m/%d %H:%M:%S
 initial_position = start_of_file
 buffer_duration = 5000
 
-[/home/${JBOX_USER}/JuliaBox/engine/engineinteractive_err.log]
-file = /home/${JBOX_USER}/JuliaBox/engine/engineinteractive_err.log
-log_group_name = ${GROUP_PFX}/engine/engineinteractive_err.log
+[/home/${JBOX_USER}/JuliaBox/engine/logs/engineinteractive_err.log]
+file = /home/${JBOX_USER}/JuliaBox/engine/logs/engineinteractive_err.log
+log_group_name = ${GROUP_PFX}/engine/logs/engineinteractive_err.log
 log_stream_name = {instance_id}
 datetime_format = %Y-%m-%d %H:%M:%S,%z
 initial_position = start_of_file
 buffer_duration = 5000
 
-[/home/${JBOX_USER}/JuliaBox/engine/enginedaemon_err.log]
-file = /home/${JBOX_USER}/JuliaBox/engine/enginedaemon_err.log
-log_group_name = ${GROUP_PFX}/engine/enginedaemon_err.log
+[/home/${JBOX_USER}/JuliaBox/engine/logs/enginedaemon_err.log]
+file = /home/${JBOX_USER}/JuliaBox/engine/logs/enginedaemon_err.log
+log_group_name = ${GROUP_PFX}/engine/logs/enginedaemon_err.log
 log_stream_name = {instance_id}
 datetime_format = %Y-%m-%d %H:%M:%S,%z
 initial_position = start_of_file
 buffer_duration = 5000
 
-[/home/${JBOX_USER}/JuliaBox/engine/engineinteractive.log]
-file = /home/${JBOX_USER}/JuliaBox/engine/engineinteractive.log
-log_group_name = ${GROUP_PFX}/engine/engineinteractive.log
+[/home/${JBOX_USER}/JuliaBox/engine/logs/engineapi_err.log]
+file = /home/${JBOX_USER}/JuliaBox/engine/logs/engineapi_err.log
+log_group_name = ${GROUP_PFX}/engine/logs/engineapi_err.log
 log_stream_name = {instance_id}
 datetime_format = %Y-%m-%d %H:%M:%S,%z
 initial_position = start_of_file
 buffer_duration = 5000
 
-[/home/${JBOX_USER}/JuliaBox/engine/enginedaemon.log]
-file = /home/${JBOX_USER}/JuliaBox/engine/enginedaemon.log
-log_group_name = ${GROUP_PFX}/engine/enginedaemon.log
+[/home/${JBOX_USER}/JuliaBox/engine/logs/engineinteractive.log]
+file = /home/${JBOX_USER}/JuliaBox/engine/logs/engineinteractive.log
+log_group_name = ${GROUP_PFX}/engine/logs/engineinteractive.log
+log_stream_name = {instance_id}
+datetime_format = %Y-%m-%d %H:%M:%S,%z
+initial_position = start_of_file
+buffer_duration = 5000
+
+[/home/${JBOX_USER}/JuliaBox/engine/logs/enginedaemon.log]
+file = /home/${JBOX_USER}/JuliaBox/engine/logs/enginedaemon.log
+log_group_name = ${GROUP_PFX}/engine/logs/enginedaemon.log
+log_stream_name = {instance_id}
+datetime_format = %Y-%m-%d %H:%M:%S,%z
+initial_position = start_of_file
+buffer_duration = 5000
+
+[/home/${JBOX_USER}/JuliaBox/engine/logs/engineapi.log]
+file = /home/${JBOX_USER}/JuliaBox/engine/logs/engineapi.log
+log_group_name = ${GROUP_PFX}/engine/logs/engineapi.log
 log_stream_name = {instance_id}
 datetime_format = %Y-%m-%d %H:%M:%S,%z
 initial_position = start_of_file

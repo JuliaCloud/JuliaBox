@@ -1,5 +1,8 @@
 __author__ = 'tan'
 
+import socket
+import fcntl
+import struct
 from juliabox.jbox_util import LoggerMixin, JBoxPluginType
 
 
@@ -103,6 +106,18 @@ class Compute(LoggerMixin):
     @staticmethod
     def get_instance_public_ip(instance_id=None):
         return Compute.impl.get_instance_public_ip(instance_id)
+
+    @staticmethod
+    def get_instance_interface_ip(ifname):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        siocgifaddr = 0x8915
+        ifn = struct.pack('256s', ifname[:15])
+        addr = fcntl.ioctl(s.fileno(), siocgifaddr, ifn)[20:24]
+        return socket.inet_ntoa(addr)
+
+    @staticmethod
+    def get_docker_bridge_ip():
+        return Compute.get_instance_interface_ip('docker0')
 
     @staticmethod
     def get_instance_local_ip(instance_id=None):

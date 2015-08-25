@@ -3,7 +3,7 @@ import tornado.web
 import tornado.gen
 
 from handler_base import JBoxHandler
-from juliabox.jbox_container import JBoxContainer
+from juliabox.interactive import SessContainer
 
 
 class PingHandler(JBoxHandler):
@@ -13,7 +13,7 @@ class PingHandler(JBoxHandler):
         valid_req = self.is_valid_req()
         sessname = self.get_session_id(validate=False)
         if valid_req:
-            JBoxContainer.record_ping("/" + sessname)
+            SessContainer.record_ping("/" + sessname)
             self.set_status(status_code=204)
             self.finish()
         else:

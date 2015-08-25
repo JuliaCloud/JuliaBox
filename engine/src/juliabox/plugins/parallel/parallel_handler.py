@@ -2,7 +2,7 @@ __author__ = 'tan'
 import os
 
 from juliabox.handlers import JBPluginHandler, JBPluginUI
-from juliabox.jbox_container import JBoxContainer
+from juliabox.interactive import SessContainer
 from juliabox.db import JBoxUserV2
 from juliabox.vol import VolMgr, JBoxVol
 from user_cluster import UserCluster
@@ -69,7 +69,7 @@ class ParallelHandler(JBPluginHandler):
             self.write(response)
             return True
 
-        cont = JBoxContainer.get_by_name(sessname)
+        cont = SessContainer.get_by_name(sessname)
         if cont is None:
             self.send_error()
             return

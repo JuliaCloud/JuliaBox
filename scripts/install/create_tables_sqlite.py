@@ -2,11 +2,11 @@
 
 import sys
 import os
-import sqlite3
-
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "engine", "src"))
 
-from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBPluginDB
+import sqlite3
+
+from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBPluginDB, JBoxAPISpec
 
 # import any plugins that contribute tables
 import juliabox.plugins.course_homework
@@ -34,7 +34,7 @@ print("connecting to %s" % (sys.argv[1],))
 conn = sqlite3.connect(sys.argv[1])
 c = conn.cursor()
 
-tables = [JBoxUserV2, JBoxDynConfig, JBoxSessionProps]
+tables = [JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBoxAPISpec]
 for plugin in JBPluginDB.jbox_get_plugins(JBPluginDB.JBP_TABLE_RDBMS):
     tables.append(plugin)
 

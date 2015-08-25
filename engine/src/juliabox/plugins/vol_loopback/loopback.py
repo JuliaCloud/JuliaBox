@@ -4,7 +4,7 @@ import time
 
 from juliabox.jbox_util import ensure_delete, JBoxCfg
 from juliabox.vol import JBoxVol
-from juliabox.jbox_container import JBoxContainer
+from juliabox.interactive import SessContainer
 
 
 class JBoxLoopbackVol(JBoxVol):
@@ -34,8 +34,8 @@ class JBoxLoopbackVol(JBoxVol):
     @staticmethod
     def _get_disk_ids_used(cid):
         used = []
-        props = JBoxLoopbackVol.dckr().inspect_container(cid)
         try:
+            props = JBoxLoopbackVol.dckr().inspect_container(cid)
             vols = props['Volumes']
             for _cpath, hpath in vols.iteritems():
                 if hpath.startswith(JBoxLoopbackVol.FS_LOC):
@@ -58,7 +58,7 @@ class JBoxLoopbackVol(JBoxVol):
                     nfree += 1
 
             if container_id_list is None:
-                container_id_list = [cdesc['Id'] for cdesc in JBoxContainer.session_containers(allcontainers=True)]
+                container_id_list = [cdesc['Id'] for cdesc in SessContainer.session_containers(allcontainers=True)]
 
             for cid in container_id_list:
                 disk_ids = JBoxLoopbackVol._get_disk_ids_used(cid)
