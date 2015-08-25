@@ -113,9 +113,12 @@ class MainHandler(JBoxHandler):
         self.unset_affinity()
         self.log_debug("at hop %d for user %s", nhops, user_id)
         if max_hop:
+            if JBoxCfg.get('cloud_host.scale_down'):
+                msg = "JuliaBox is experiencing a sudden surge. Please try in a few minutes while we increase our capacity."
+            else:
+                msg = "JuliaBox servers are fully loaded. Please try after sometime."
             self.log_error("Server maxed out. Can't launch container at hop %d for user %s", nhops, user_id)
-            self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
-                error="Maximum number of JuliaBox instances active. Please try after sometime.", success=''))
+            self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(error=msg, success=''))
         else:
             redirect_instance = Compute.get_redirect_instance_id()
             if redirect_instance is not None:
