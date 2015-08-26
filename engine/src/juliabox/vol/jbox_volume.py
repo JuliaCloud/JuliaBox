@@ -110,14 +110,16 @@ class JBoxVol(LoggerMixin):
     # this is template method
     @staticmethod
     def configure():
-        backup_location = os.path.expanduser(JBoxCfg.get('backup_location'))
-        make_sure_path_exists(backup_location)
+        backup_location = JBoxCfg.get('backup_location')
+        if backup_location is not None:
+            backup_location = os.path.expanduser(backup_location)
+            make_sure_path_exists(backup_location)
+            JBoxVol.BACKUP_LOC = backup_location
 
         JBoxVol.DCKR = JBoxCfg.dckr
         JBoxVol.NOTEBOOK_WEBSOCK_PROTO = JBoxCfg.get('websocket_protocol') + '://'
         JBoxVol.USER_HOME_IMG = os.path.expanduser(JBoxCfg.get('user_home_image'))
         JBoxVol.PKG_IMG = os.path.expanduser(JBoxCfg.get('pkg_image'))
-        JBoxVol.BACKUP_LOC = backup_location
         JBoxVol.LOCAL_TZ_OFFSET = JBoxVol.local_time_offset()
         JBoxVol.BACKUP_BUCKET = JBoxCfg.get('cloud_host.backup_bucket')
 

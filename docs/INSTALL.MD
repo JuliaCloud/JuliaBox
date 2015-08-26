@@ -24,7 +24,7 @@ Installing JuliaBox on a single machine consists of five principal steps, the sp
 
 	The `jbox_configure.sh` script is executed to configure the JuliaBox installation secret (used as part of encryption key for signing and encrypting session data), and to move the server configuration templates to the work directories (from where they will be mounted by the Docker containers).
 	
-	The `mount_fs.sh` script is executed to configure user home directories. The location, size and number of directories is specified to the script which:
+	On multiuser installations, if it is required to impose limits on available disk space, the `mount_fs.sh` script is executed to configure user home directories. The location, size and number of directories is specified to the script which:
 	
 	- makes subdirectories to store disk images and form mount points,
 	- creates and formats blank disk images in each subdirectory,
@@ -87,7 +87,7 @@ The following procedure will configure a system without authentication, designed
     	- Modify `JuliaBox/scripts/install/sys_install.sh` and set `DOCKER_FS` to `AUFS` instead of `DEVICEMAPPER`. This will avoid certain unnecessary configurations required only in certain production environments.
     	- Run `JuliaBox/scripts/install/sys_install.sh`.
 	- Create work folders:
-		- Execute `sudo mkdir -p /jboxengine/conf /jboxengine/data /jboxengine/data/db`.
+		- Execute `sudo mkdir -p /jboxengine/conf /jboxengine/data/db /jboxengine/data/disks/host`.
 		- Take ownership `sudo chown -R $USER: /jboxengine`.
 
 
@@ -100,9 +100,11 @@ The following procedure will configure a system without authentication, designed
     	"interactive": {
         	"numlocalmax": 2
         },
+        "mnt_location" : "/jboxengine/data/disks/host",
+        "backup_location" : None,
         "plugins": [
             "juliabox.plugins.compute_singlenode",
-            "juliabox.plugins.vol_loopback",
+            "juliabox.plugins.vol_hostdisk",
             "juliabox.plugins.vol_defpkg",
             "juliabox.plugins.auth_zero",
             "juliabox.plugins.db_sqlite3"
@@ -111,8 +113,6 @@ The following procedure will configure a system without authentication, designed
     </pre>
     - Generate JuliaBox configuration files:
 		- Run `JuliaBox/scripts/install/jbox_configure.sh`.
-	- Create disk images, loopback devices, and mount:
-		- Run `sudo JuliaBox/scripts/install/mount_fs.sh /jboxengine/data 3 500 ${USER}` 
 
 3. *JuliaBox* Docker image creation.
 	
@@ -142,7 +142,6 @@ The following procedure will configure a system without authentication, designed
 6. Launch JuliaBox:
     - To start: `JuliaBox/scripts/run/start.sh`
     - To stop: `JuliaBox/scripts/run/stop.sh`
-    - If starting JuliaBox after a system reboot, re-mount the loopback devices by running `mount_fs.sh` as specified in the configuration step above.
 
 ### Multi-user with Google OAuth authentication
 
@@ -182,7 +181,7 @@ The following procedure will configure a system without authentication, designed
 		- Run `JuliaBox/scripts/install/jbox_configure.sh`.
 	- Create disk images, loopback devices, and mount:
 		- Run `sudo JuliaBox/scripts/install/mount_fs.sh /jboxengine/data 30 500 ${USER}`
-
+    - If starting JuliaBox after a system reboot, re-mount the loopback devices by running `mount_fs.sh` as specified in the configuration step above.
 
 ## AWS Cluster Setup
 

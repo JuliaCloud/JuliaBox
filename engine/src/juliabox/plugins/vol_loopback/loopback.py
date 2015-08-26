@@ -12,9 +12,7 @@ class JBoxLoopbackVol(JBoxVol):
 
     FS_LOC = None
     DISK_LIMIT = None
-    MAX_CONTAINERS = 0
     MAX_DISKS = 0
-    VALID_CONTAINERS = {}
     DISK_USE_STATUS = {}
     DISK_RESERVE_TIME = {}
     LOCK = None
