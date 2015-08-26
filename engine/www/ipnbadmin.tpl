@@ -94,6 +94,16 @@
 	    	    parent.JuliaBox.websocktest();
 	    	});
 
+	    	$('#openport').click(function(event){
+	    	    event.preventDefault();
+	    		parent.JuliaBox.open_port();
+	    	});
+
+	    	$('#openedports').click(function(event){
+	    	    event.preventDefault();
+	    	    parent.JuliaBox.show_opened_ports();
+	    	});
+
 {% if (d["manage_containers"] or d["show_report"]) %}
 	    	$('#showuserstats').click(function(event){
 	    		event.preventDefault();
@@ -162,6 +172,7 @@
 	<tr><td>SSH Public Key:</td><td><a href="#" id="showsshkey">View</a></td></tr>
 	<tr><td>Julia Image:</td><td><span id='jimg_curr'>precompiled packages</span> (<a href="#" id="jimg_switch"><small>switch to: <span id='jimg_new'>standard</span></small></a>)</td></tr>
 	<tr><td>Network Connectivity Test:</td><td><a href="#" id="websocktest">Start</a></td></tr>
+	<tr><td>Application Ports:</td><td><a href="#" id="openedports">View</a> | <a href="#" id="openport">Open Another</a></td></tr>
 </table>
 
 <h3>JuliaBox version:</h3>

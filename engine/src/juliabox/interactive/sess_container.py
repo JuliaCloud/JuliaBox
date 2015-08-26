@@ -10,7 +10,6 @@ import docker.utils
 
 
 class SessContainer(BaseContainer):
-    CONTAINER_PORT_BINDINGS = {4200: ('127.0.0.1',), 8000: ('127.0.0.1',), 8998: ('127.0.0.1',)}
     PINGS = {}
     DCKR_IMAGE = None
     MEM_LIMIT = None
@@ -18,7 +17,9 @@ class SessContainer(BaseContainer):
     # By default all groups have 1024 shares.
     # A group with 100 shares will get a ~10% portion of the CPU time (https://wiki.archlinux.org/index.php/Cgroups)
     CPU_LIMIT = 1024
-    PORTS = [4200, 8000, 8998]
+    PORTS_INTERNAL = [4200, 8000, 8998]
+    PORTS_USER = range(8050, 8053)
+    PORTS = PORTS_INTERNAL + PORTS_USER
     VOLUMES = ['/home/juser', JBoxVol.PKG_MOUNT_POINT]
     MAX_CONTAINERS = 0
     VALID_CONTAINERS = {}
@@ -26,7 +27,9 @@ class SessContainer(BaseContainer):
     LAST_CPU_PCT = None
 
     def get_host_ports(self):
-        return self._get_host_ports(SessContainer.PORTS)
+        if self.host_ports is None:
+            self.host_ports = self._get_host_ports(SessContainer.PORTS_INTERNAL)
+        return self.host_ports
 
     def get_disk_allocated(self):
         disk = VolMgr.get_disk_from_container(self.dockid, JBoxVol.JBP_USERHOME)
@@ -58,8 +61,9 @@ class SessContainer(BaseContainer):
             }
         }
 
+        port_bindings = {p: ('127.0.0.1',) for p in SessContainer.PORTS}
         hostcfg = docker.utils.create_host_config(binds=vols,
-                                                  port_bindings=SessContainer.CONTAINER_PORT_BINDINGS,
+                                                  port_bindings=port_bindings,
                                                   mem_limit=SessContainer.MEM_LIMIT)
         jsonobj = BaseContainer.DCKR.create_container(SessContainer.DCKR_IMAGE,
                                                           detach=True,

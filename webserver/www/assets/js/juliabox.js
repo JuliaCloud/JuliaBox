@@ -123,6 +123,63 @@ var JuliaBox = (function($, _, undefined){
             return resp;
         },
 
+		open_port: function() {
+	    	s = function(res){
+	    	    if(res.code != 0) {
+	    	    	bootbox.alert("Error opening port. " + res.data);
+	    	    }
+	    	};
+
+			f = function() { bootbox.alert("Oops. Unexpected error while opening port.<br/><br/>Please try again later."); };
+
+			bootbox.dialog({
+				title: "Open a new port",
+				message: '<div class="row">  ' +
+					'<div class="col-md-12"> ' +
+                    '<form class="form-horizontal"> ' +
+                    '<div class="form-group"> ' +
+                    '<label class="col-md-4 control-label" for="portnum">Port</label> ' +
+                    '<div class="col-md-4"> ' +
+                    '<input id="portnum" name="portnum" type="text" placeholder="8050-8052" class="form-control input-md"> ' +
+                    '<span class="help-block">The port number to open</span> </div> ' +
+                    '</div> ' +
+                    '<div class="form-group"> ' +
+                    '<label class="col-md-4 control-label" for="portname">Alias</label> ' +
+                    '<div class="col-md-4"> ' +
+                    '<input id="portname" name="portname" type="text" placeholder="URL alias" class="form-control input-md"> ' +
+                    '<span class="help-block">The port will be accessible at /jci_&lt;alias&gt; as HTTP and /jcw_&lt;alias&gt; as websocket</span>. </div> ' +
+                    '</div> ' +
+                    '</form> </div>  </div>',
+                buttons: {
+                	success: {
+                		label: "Open",
+                		className: "btn-success",
+                		callback: function () {
+                			portnum = $('#portnum').val();
+                			portname = $('#portname').val();
+                			self.comm('/jboxadmin/', 'GET', {'open_port': portnum, 'port_name': portname}, s, f);
+                		}
+                	}
+                }
+			});
+		},
+
+		show_opened_ports: function() {
+			portnames = {}
+			for (var it in $.cookie()) {
+				if(it.indexOf("jp_") == 0) {
+					n = it.substring(3,it.length);
+					if(['shell', 'nb', 'file'].indexOf(n) == -1) {
+						portnames[n] = "/jci_" + n + " or /jws_" + n;
+					}
+				}
+			}
+			bootbox.dialog({
+				message: self._json_to_table(portnames),
+				title: "Ports"
+			}).find("div.modal-dialog").addClass("bootbox70");
+		},
+
         show_config: function() {
 	    	s = function(cfg){
 	    	    if(cfg.code == 0) {
