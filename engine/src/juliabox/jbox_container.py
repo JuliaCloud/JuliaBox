@@ -35,15 +35,13 @@ class BaseContainer(LoggerMixin):
         return self.props
 
     def _get_host_ports(self, ports):
-        if self.host_ports is None:
-            props = self.get_props()
-            cont_ports = props['NetworkSettings']['Ports']
-            port_map = []
-            for port in ports:
-                tcp_port = str(port) + '/tcp'
-                port_map.append(cont_ports[tcp_port][0]['HostPort'])
-            self.host_ports = tuple(port_map)
-        return self.host_ports
+        props = self.get_props()
+        cont_ports = props['NetworkSettings']['Ports']
+        port_map = []
+        for port in ports:
+            tcp_port = str(port) + '/tcp'
+            port_map.append(cont_ports[tcp_port][0]['HostPort'])
+        return tuple(port_map)
 
     def get_cpu_allocated(self):
         props = self.get_props()

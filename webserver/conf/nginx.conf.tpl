@@ -68,6 +68,16 @@ http {
             include jbox_router.incl;
         }
 
+        location ~ "/jws_[a-zA-Z0-9_\-]{1,50}/.*" {
+            include jbox_router.incl;
+
+            # WebSocket support (nginx 1.4)
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_read_timeout  600;
+        }
+
         location / {
             include jbox_router.incl;
 

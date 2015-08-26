@@ -79,7 +79,7 @@ function M.rewrite_uri()
     local match
 
     ngx.log(ngx.DEBUG, "checking whether to rewrite uri: " .. uri)
-    match = ngx.re.match(uri, "^/jci_[a-zA-Z0-9_\\-]{1,50}/(.*)")
+    match = ngx.re.match(uri, "^/(?:jci|jws)_[a-zA-Z0-9_\\-]{1,50}/(.*)")
 
     if match then
         local rewriteuri = "/" .. (match[1] or "")
@@ -275,7 +275,7 @@ function M.jbox_route()
         return
     end
 
-    local match = ngx.re.match(uri, "^/jci_([a-zA-Z0-9_\\-]{1,50})/.*")
+    local match = ngx.re.match(uri, "^/(?:jci|jws)_([a-zA-Z0-9_\\-]{1,50})/.*")
     if match then
         local sessjson = M.forbid_invalid_session()
         local portname = match[1]

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 import isodate
+import re
 
 from juliabox.cloud import Compute
 from juliabox.jbox_util import JBoxCfg
@@ -38,6 +39,8 @@ class AdminHandler(JBoxHandler):
         if self.handle_if_instance_info(is_admin):
             return
         if self.handle_switch_julia_img(user):
+            return
+        if self.handle_if_open_port(sessname, user_id):
             return
 
         juliaboxver, _upgrade_available = self.get_upgrade_available(cont)
@@ -89,6 +92,30 @@ class AdminHandler(JBoxHandler):
             response = {'code': -1, 'data': 'You do not have permissions to view these stats'}
         else:
             response = {'code': 0, 'data': JBoxCfg.nv}
+        self.write(response)
+        return True
+
+    def handle_if_open_port(self, sessname, user_id):
+        port = self.get_argument('open_port', None)
+        if port is None:
+            return False
+
+        portname = self.get_argument('port_name', "", strip=True)
+        if re.match(r"^[a-zA-Z0-9]{1,20}$", portname) is None:
+            response = {'code': -1, 'data': 'Port name must be alpha numeric only.'}
+        elif portname in ['shell', 'nb', 'file']:
+            response = {'code': -1, 'data': 'Port names "shell", "nb" and "file" are reserved for use by JuliaBox.'}
+        else:
+            port = int(port)
+            if port < 8050 or port > 8052:
+                response = {'code': -1, 'data': 'Only ports in the range 8050-8052 can be used.'}
+            else:
+                cont = SessContainer.get_by_name(sessname)
+                hostport = cont._get_host_ports([port])[0]
+                self.set_container_ports({
+                    portname: hostport
+                })
+                response = {'code': 0, 'data': ''}
         self.write(response)
         return True
 
