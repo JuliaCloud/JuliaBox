@@ -59,16 +59,31 @@ class APIAdminHandler(JBPluginHandler):
         is_admin = sessname in JBoxCfg.get("admin_sessnames", []) or user.has_role(JBoxUserV2.ROLE_SUPER)
         self.log_info("API manager. user_id[%s] is_admin[%r]", user_id, is_admin)
 
-        if self.handle_get_api_info(user_id, is_admin):
-            return
-        if self.handle_create_api(user_id, is_admin):
-            return
-        if self.handle_delete_api(user_id, is_admin):
-            return
+        if user.has_resource_profile(JBoxUserV2.RES_PROF_API_PUBLISHER):
+            if self.handle_get_api_info(user_id, is_admin):
+                return
+            if self.handle_create_api(user_id, is_admin):
+                return
+            if self.handle_delete_api(user_id, is_admin):
+                return
+        else:
+            if self.handle_enable_api(user_id, is_admin):
+                return
 
         self.log_error("no handlers found")
         # only AJAX requests responded to
         self.send_error()
+
+    def handle_enable_api(self, user_id, is_admin):
+        mode = self.get_argument('mode', None)
+        if (mode is None) or (mode != "enable"):
+            return False
+        user = JBoxUserV2(user_id)
+        user.set_resource_profile(JBoxUserV2.RES_PROF_API_PUBLISHER)
+        user.save()
+        response = {'code': 0, 'data': ''}
+        self.write(response)
+        return True
 
     def handle_get_api_info(self, user_id, is_admin):
         mode = self.get_argument('mode', None)

@@ -113,6 +113,24 @@ var APIAdmin = (function($, _, undefined){
                 cb_failure(null)
             };
             JuliaBox.comm('/jboxplugin/api_admin/', 'GET', { 'mode' : 'info' }, s, f, dolock=false);
+        },
+
+        enable_apis: function () {
+        	if(self._inop) {
+        		return;
+        	}
+            s = function(res) {
+            	if (res.code == 0) {
+            	    JuliaBox.popup_alert("API publishing is now enabled for your account. Logout and login again to be able to publish APIs.");
+            	}
+            	else {
+            	    JuliaBox.popup_alert("Could not enable APIs for your account. " + res.data);
+            	}
+            };
+            f = function() {
+            	JuliaBox.popup_alert("Could not enable APIs for your account. Please contact JuliaBox administrator.");
+            };
+            JuliaBox.comm('/jboxplugin/api_admin/', 'GET', { 'mode' : 'enable' }, s, f);
         }
     };
 	return self;

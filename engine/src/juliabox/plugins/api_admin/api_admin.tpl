@@ -1,9 +1,12 @@
 {% from juliabox.plugins.api_admin import APIAdminUIModule %}
 <script type="text/javascript">
 {% if not APIAdminUIModule.is_allowed(handler) %}
-/**
+    function enable_apis() {
+        parent.APIAdmin.enable_apis();
+        return false;
+    };
 {% end %}
-
+{% if APIAdminUIModule.is_allowed(handler) %}
     function encode_str(unsafestring) {
         var safestring = $('<div>').text(unsafestring).html();
         return safestring;
@@ -47,19 +50,17 @@
         // add hooks on buttons
 
     });
-{% if not APIAdminUIModule.is_allowed(handler) %}
-**/
 {% end %}
 </script>
 
-{% if not APIAdminUIModule.is_allowed(handler) %}
-<span style="display:none">
-{% end %}
 <hr/>
 <h3>Published APIs:</h3>
+{% if not APIAdminUIModule.is_allowed(handler) %}
+Host useful packages and functions as REST APIs on JuliaBox.<br/><a href="https://github.com/tanmaykm/JuliaWebAPI.jl" target="_blank">Learn more...</a><br/>
+<a href="#" onclick="return enable_apis();">Enable API Publishing</a>
+{% end %}
+{% if APIAdminUIModule.is_allowed(handler) %}
 <table class="table" id="api_list">
 </table>
-<br/>
-{% if not APIAdminUIModule.is_allowed(handler) %}
-</span>
 {% end %}
+<br/>
