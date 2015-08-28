@@ -31,14 +31,6 @@ http {
     #ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
     #ssl_ciphers ALL:!aNULL:!ADH:!eNULL:!LOW:!EXP:RC4+RSA:+HIGH:+MEDIUM;
 
-    #if ($http_x_forwarded_proto = 'http') {
-    #    return 302 https://$host$request_uri;
-    #}
-
-    #if ($scheme = http) {
-    #    return 302 https://$host$request_uri;
-    #}
-
     root www;
 
     error_page 502 /timedout.html;
@@ -46,6 +38,14 @@ http {
     server {
         listen 80;
         #listen 443 default_server ssl;
+        #if ($http_x_forwarded_proto = 'http') {
+        #    return 302 https://$host$request_uri;
+        #}
+
+        #if ($scheme = http) {
+        #    return 302 https://$host$request_uri;
+        #}
+
         set $SESSKEY '$$SESSKEY';
 
         location /favicon.ico {
