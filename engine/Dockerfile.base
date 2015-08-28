@@ -35,7 +35,10 @@ RUN apt-get update \
     python-pip \
     python-tz \
     libzmq3-dev \
+    language-pack-en-base \
     && apt-get clean
+
+ENV LANG en_US.utf8
 
 RUN pip install tornado \
     futures \

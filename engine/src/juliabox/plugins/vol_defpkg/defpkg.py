@@ -1,4 +1,5 @@
 import os
+import sh
 import threading
 import tarfile
 
@@ -117,8 +118,12 @@ class JBoxDefaultPackagesVol(JBoxVol):
         JBoxDefaultPackagesVol.log_debug("Created packages folder")
 
         # unpack the latest image from PKG_IMG
-        with tarfile.open(JBoxVol.PKG_IMG, 'r:gz') as pkgs:
-            pkgs.extractall(pkgdir)
+        result = sh.tar("-xzf", JBoxVol.PKG_IMG, "-C", pkgdir)
+        if result.exit_code != 0:
+            JBoxDefaultPackagesVol.log_error("Error extracting tar file %r", result.exit_code)
+            raise Exception("Error extracting packages")
+        # with tarfile.open(JBoxVol.PKG_IMG, 'r:gz') as pkgs:
+        #     pkgs.extractall(pkgdir)
 
         JBoxDefaultPackagesVol.CURRENT_BUNDLE = pkg_name
         JBoxDefaultPackagesVol.log_info("Current packages folder set to %s", pkgdir)
