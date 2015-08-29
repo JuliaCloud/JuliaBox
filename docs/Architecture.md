@@ -9,18 +9,20 @@ JuliaBox runs on Docker and Linux. All JuliaBox components are Docker containers
     - Routes connections to components either on same or other instances based on cookie values
     - Delivers static files
 - Engine
-    - App/Session Manager
-        - Based on Tornado and communicates over HTTP
-        - Handles authentication and sessions
-        - Delivers the user interface
+    - Application Engines. Based on Tornado, they expose funcionalities over HTTP.
+        - Interactive Sessions
+            - Notebooks, terminal and applications over an interactive user session
+            - Handles authentication and sessions
+        - REST API
+            - User registered Julia functions exposed as REST API
     - Container Manager
-        - Interacts with App/Session manager over a ZMQ connection
+        - Interacts with application engines over a ZMQ connection
         - Performs both asynchronous and request-response tasks
         - Interfaces with Docker and the host machine to provision other containers
         - The only component to run in priviledged mode
 - Julia Containers
     - Runs Julia in a pre-defined environment
-    - Accessible through the Router
+    - Accessible through the Router and/or application engines.
 
 An single instance of JuliaBox is self contained with all components present in it. A JuliaBox cluster is a collection of instances using some common resources and aware of / connected to each other.
 

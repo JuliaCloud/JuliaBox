@@ -1,13 +1,15 @@
 from datetime import datetime, timedelta
 
 import isodate
+import re
 
 from juliabox.cloud import Compute
 from juliabox.jbox_util import JBoxCfg
 from handler_base import JBoxHandler
-from juliabox.jbox_container import JBoxContainer
+from juliabox.interactive import SessContainer
 from juliabox.jbox_tasks import JBoxAsyncJob
 from juliabox.db import JBoxUserV2, JBoxDynConfig, JBPluginDB
+from juliabox.api import APIContainer
 
 
 class AdminHandler(JBoxHandler):
@@ -22,7 +24,7 @@ class AdminHandler(JBoxHandler):
         is_admin = sessname in JBoxCfg.get("admin_sessnames", [])
         manage_containers = is_admin or user.has_role(JBoxUserV2.ROLE_MANAGE_CONTAINERS)
         show_report = is_admin or user.has_role(JBoxUserV2.ROLE_ACCESS_STATS)
-        cont = JBoxContainer.get_by_name(sessname)
+        cont = SessContainer.get_by_name(sessname)
 
         if cont is None:
             self.send_error()
@@ -38,6 +40,8 @@ class AdminHandler(JBoxHandler):
             return
         if self.handle_switch_julia_img(user):
             return
+        if self.handle_if_open_port(sessname, user_id):
+            return
 
         juliaboxver, _upgrade_available = self.get_upgrade_available(cont)
 
@@ -45,6 +49,7 @@ class AdminHandler(JBoxHandler):
         if user.has_resource_profile(JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP):
             jimg_type = JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP
 
+        expire = JBoxCfg.get('interactive.expire')
         d = dict(
             manage_containers=manage_containers,
             show_report=show_report,
@@ -52,11 +57,11 @@ class AdminHandler(JBoxHandler):
             user_id=user_id,
             created=isodate.datetime_isoformat(cont.time_created()),
             started=isodate.datetime_isoformat(cont.time_started()),
-            allowed_till=isodate.datetime_isoformat((cont.time_started() + timedelta(seconds=JBoxCfg.get('expire')))),
+            allowed_till=isodate.datetime_isoformat((cont.time_started() + timedelta(seconds=expire))),
             mem=cont.get_memory_allocated(),
             cpu=cont.get_cpu_allocated(),
             disk=cont.get_disk_allocated(),
-            expire=JBoxCfg.get('expire'),
+            expire=expire,
             juliaboxver=juliaboxver,
             jimg_type=jimg_type
         )
@@ -90,10 +95,34 @@ class AdminHandler(JBoxHandler):
         self.write(response)
         return True
 
+    def handle_if_open_port(self, sessname, user_id):
+        port = self.get_argument('open_port', None)
+        if port is None:
+            return False
+
+        portname = self.get_argument('port_name', "", strip=True)
+        if re.match(r"^[a-zA-Z0-9]{1,20}$", portname) is None:
+            response = {'code': -1, 'data': 'Port name must be alpha numeric only.'}
+        elif portname in ['shell', 'nb', 'file']:
+            response = {'code': -1, 'data': 'Port names "shell", "nb" and "file" are reserved for use by JuliaBox.'}
+        else:
+            port = int(port)
+            if port < 8050 or port > 8052:
+                response = {'code': -1, 'data': 'Only ports in the range 8050-8052 can be used.'}
+            else:
+                cont = SessContainer.get_by_name(sessname)
+                hostport = cont._get_host_ports([port])[0]
+                self.set_container_ports({
+                    portname: hostport
+                })
+                response = {'code': 0, 'data': ''}
+        self.write(response)
+        return True
+
     def handle_if_logout(self, cont):
         logout = self.get_argument('logout', False)
         if logout == 'me':
-            JBoxContainer.invalidate_container(cont.get_name())
+            SessContainer.invalidate_container(cont.get_name())
             JBoxAsyncJob.async_backup_and_cleanup(cont.dockid)
             response = {'code': 0, 'data': ''}
             self.write(response)
@@ -126,8 +155,13 @@ class AdminHandler(JBoxHandler):
                     instances = Compute.get_all_instances()
 
                     for idx in range(0, len(instances)):
-                        inst = instances[idx]
-                        result[inst] = JBoxAsyncJob.sync_session_status(inst)['data']
+                        try:
+                            inst = instances[idx]
+                            result[inst] = JBoxAsyncJob.sync_session_status(inst)['data']
+                        except:
+                            JBoxHandler.log_error("Error receiving sessions list from %r", inst)
+                elif stats == 'apis':
+                    result = APIContainer.get_cluster_api_status()
                 else:
                     raise Exception("unknown command %s" % (stats,))
 
@@ -182,10 +216,10 @@ class AdminHandler(JBoxHandler):
     def get_upgrade_available(cont):
         cont_images = cont.get_image_names()
         juliaboxver = cont_images[0]
-        if (JBoxContainer.DCKR_IMAGE in cont_images) or ((JBoxContainer.DCKR_IMAGE + ':latest') in cont_images):
+        if (SessContainer.DCKR_IMAGE in cont_images) or ((SessContainer.DCKR_IMAGE + ':latest') in cont_images):
             upgrade_available = None
         else:
-            upgrade_available = JBoxContainer.DCKR_IMAGE
+            upgrade_available = SessContainer.DCKR_IMAGE
             if ':' not in upgrade_available:
                 upgrade_available += ':latest'
         return juliaboxver, upgrade_available

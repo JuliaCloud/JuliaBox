@@ -14,15 +14,21 @@ The only constraint is imagination (and server cost).
 
 ## Features
 
-- Run [IJulia](https://github.com/JuliaLang/IJulia.jl) sessions in sandboxed [Docker](http://www.docker.com) containers.
-- A bash session is also started in the container, which can be used to run the Julia REPL.
-- File transfer facility into a session's container.
-- File synchronization with Google Drive.
-- Clone Github repositories.
+- Run interactive sessions
+    - Run [IJulia](https://github.com/JuliaLang/IJulia.jl) notebooks.
+    - A bash session is also started in the container, which can be used to run the Julia REPL.
+    - Run HTTP/WebSocket/[Escher](https://github.com/shashi/Escher.jl) applications in the container and access them over the browser.
+    - File transfer facility into a session's container.
+    - File synchronization with Google Drive.
+    - Clone Github repositories.
+    - Login via Google authentication. Submit a PR for more auth methods!
+- Expose Julia packages &amp; functions as REST APIs using [JuliaWebAPI](https://github.com/tanmaykm/JuliaWebAPI.jl)
+    - Scale with requests.
+- Sandboxed [Docker](http://www.docker.com) containers.
 - Basic admin screen to delete old and inactive sessions.
-- Login via Google authentication. Submit a PR for more auth methods!
-- Auto cleanup of sessions based on inactivity.
-- Ability to limit CPU, memory, and disk space for user sessions.
+- Auto cleanup of sessions and API servers based on inactivity.
+- Ability to limit CPU, memory, and disk space for user sessions and APIs.
+- Extensible with plugins.
 
 ## Docs
 

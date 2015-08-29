@@ -27,6 +27,7 @@ class CompEC2(JBPluginCloud):
     AUTOSCALE_GROUP = None
     SCALE_UP_POLICY = None
     SCALE_UP_AT_LOAD = 80
+    LAST_SCALE_UP_TIME = None
 
     INSTANCE_ID = None
     INSTANCE_IMAGE_VERS = {}
@@ -393,9 +394,11 @@ class CompEC2(JBPluginCloud):
     def get_all_instances(gname=None):
         if gname is None:
             gname = CompEC2.AUTOSCALE_GROUP
+        if gname is None:
+            return [CompEC2.get_instance_id()]
         group = CompEC2._get_autoscale_group(gname)
         if (group is None) or (len(group.instances) == 0):
-            return []
+            return [CompEC2.get_instance_id()]
         instances_ids = [i.instance_id for i in group.instances]
         reservations = CompEC2._connect_ec2().get_all_reservations(instances_ids)
         instances = [i.id for r in reservations for i in r.instances]
@@ -404,9 +407,16 @@ class CompEC2(JBPluginCloud):
     @staticmethod
     def _add_instance():
         try:
-            CompEC2._connect_autoscale().execute_policy(CompEC2.SCALE_UP_POLICY,
-                                                        as_group=CompEC2.AUTOSCALE_GROUP,
-                                                        honor_cooldown='true')
+            # Execute policy only after a reasonable wait period to let a new machine boot up.
+            # This will prevent thrashing AWS APIs and triggering AWS throttling.
+            # Cooldown policy can also apply after that.
+            now = datetime.datetime.utcnow()
+            if (CompEC2.LAST_SCALE_UP_TIME is None) or \
+                    (now > CompEC2.LAST_SCALE_UP_TIME + datetime.timedelta(minutes=5)):
+                CompEC2.LAST_SCALE_UP_TIME = now
+                CompEC2._connect_autoscale().execute_policy(CompEC2.SCALE_UP_POLICY,
+                                                            as_group=CompEC2.AUTOSCALE_GROUP,
+                                                            honor_cooldown='true')
         except:
             CompEC2.log_exception("Error requesting scale up")
 

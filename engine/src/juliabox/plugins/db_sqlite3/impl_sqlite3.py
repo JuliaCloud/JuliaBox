@@ -11,9 +11,9 @@ class JBoxSQLiteTable(LoggerMixin):
     OP = {
         'eq': (' = ?', lambda x: x),
         'ne': (' != ?', lambda x: x),
-        'le': (' <= ?', lambda x: x),
+        'lte': (' <= ?', lambda x: x),
         'lt': (' < ?', lambda x: x),
-        'ge': (' >= ?', lambda x: x),
+        'gte': (' >= ?', lambda x: x),
         'gt': (' > ?', lambda x: x),
         'beginswith': (' like ?', lambda x: x + '%'),
         'between': (' between ? and ?', lambda x: x)

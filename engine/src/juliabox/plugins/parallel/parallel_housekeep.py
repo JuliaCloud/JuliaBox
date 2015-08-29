@@ -1,6 +1,6 @@
 __author__ = 'tan'
 from juliabox.jbox_tasks import JBPluginTask
-from juliabox.jbox_container import JBoxContainer
+from juliabox.interactive import SessContainer
 from juliabox.srvr_jboxd import jboxd_method
 
 from user_cluster import UserCluster
@@ -21,7 +21,7 @@ class ParallelHousekeep(JBPluginTask):
         ParallelHousekeep.log_info("%d active clusters", len(active_clusters))
         if len(active_clusters) == 0:
             return
-        active_sessions = JBoxContainer.get_active_sessions()
+        active_sessions = SessContainer.get_active_sessions()
         for cluster_id in active_clusters:
             sess_id = "/" + UserCluster.sessname_for_cluster(cluster_id)
             if sess_id not in active_sessions:

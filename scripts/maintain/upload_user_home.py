@@ -12,7 +12,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "engine", "s
 from juliabox.db import JBoxDynConfig
 from juliabox import db
 from juliabox.jbox_util import JBoxCfg, LoggerMixin
-from juliabox.jbox_container import JBoxContainer
+from juliabox.interactive import SessContainer
 from juliabox.cloud import JBPluginCloud
 from juliabox.vol import VolMgr, JBoxVol
 
@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     LoggerMixin.configure()
     db.configure()
-    JBoxContainer.configure()
+    SessContainer.configure()
     VolMgr.configure()
 
     plugin = JBPluginCloud.jbox_get_plugin(JBPluginCloud.JBP_BUCKETSTORE)

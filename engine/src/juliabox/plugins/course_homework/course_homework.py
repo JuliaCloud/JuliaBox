@@ -6,7 +6,7 @@ import json
 from juliabox.cloud import Compute
 from juliabox.jbox_util import JBoxCfg
 from juliabox.handlers import JBPluginHandler
-from juliabox.jbox_container import JBoxContainer
+from juliabox.interactive import SessContainer
 from juliabox.db import JBoxUserV2, JBoxDynConfig
 from course_homework_tbl import JBoxCourseHomework
 
@@ -38,7 +38,7 @@ class HomeworkHandler(JBPluginHandler):
         user = JBoxUserV2(user_id)
         is_admin = sessname in JBoxCfg.get("admin_sessnames", []) or user.has_role(JBoxUserV2.ROLE_SUPER)
         course_owner = is_admin or user.has_role(JBoxUserV2.ROLE_OFFER_COURSES)
-        cont = JBoxContainer.get_by_name(sessname)
+        cont = SessContainer.get_by_name(sessname)
         self.log_info("user_id[%r], is_admin[%r], course_owner[%r]", user_id, is_admin, course_owner)
 
         if cont is None:

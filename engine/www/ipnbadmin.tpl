@@ -94,6 +94,16 @@
 	    	    parent.JuliaBox.websocktest();
 	    	});
 
+	    	$('#openport').click(function(event){
+	    	    event.preventDefault();
+	    		parent.JuliaBox.open_port();
+	    	});
+
+	    	$('#openedports').click(function(event){
+	    	    event.preventDefault();
+	    	    parent.JuliaBox.show_opened_ports();
+	    	});
+
 {% if (d["manage_containers"] or d["show_report"]) %}
 	    	$('#showuserstats').click(function(event){
 	    		event.preventDefault();
@@ -127,6 +137,11 @@
 	    		event.preventDefault();
 	    		parent.JuliaBox.show_instance_info('sessions', 'Sessions');
 	    	});
+
+	    	$('#showapis').click(function(event){
+	    		event.preventDefault();
+	    		parent.JuliaBox.show_instance_info('apis', 'API Containers');
+	    	});
 {% end %}
 
             parent.JuliaBox.set_julia_image_type($('#jimg_curr'), $('#jimg_new'), {{d["jimg_type"]}});
@@ -157,6 +172,7 @@
 	<tr><td>SSH Public Key:</td><td><a href="#" id="showsshkey">View</a></td></tr>
 	<tr><td>Julia Image:</td><td><span id='jimg_curr'>precompiled packages</span> (<a href="#" id="jimg_switch"><small>switch to: <span id='jimg_new'>standard</span></small></a>)</td></tr>
 	<tr><td>Network Connectivity Test:</td><td><a href="#" id="websocktest">Start</a></td></tr>
+	<tr><td>Application Ports:</td><td><a href="#" id="openedports">View</a> | <a href="#" id="openport">Open Another</a></td></tr>
 </table>
 
 <h3>JuliaBox version:</h3>
@@ -177,6 +193,7 @@ Julia versions and packages: <a href="#" id="showpackagesstable">stable</a> | <a
 {% if d["manage_containers"] %}
         <tr><td>Configuration:</td><td><a href="#" id="showcfg">View</a></td></tr>
         <tr><td>Sessions:</td><td><a href="#" id="showsessions">View</a></td></tr>
+        <tr><td>API Containers:</td><td><a href="#" id="showapis">View</a></td></tr>
         <tr><td>Instance Loads:</td><td><a href="#" id="showinstanceloads">View</a></td></tr>
 {% end %}
     </table>

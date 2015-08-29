@@ -8,7 +8,7 @@ from juliabox.db import JBoxSessionProps
 from juliabox.plugins.compute_ec2 import EBSVol
 from juliabox.jbox_util import unique_sessname
 from juliabox.srvr_jboxd import jboxd_method
-from juliabox.jbox_container import JBoxContainer
+from juliabox.interactive import SessContainer
 from disk_state_tbl import JBoxDiskState
 from ebs import JBoxEBSVol
 
@@ -35,7 +35,7 @@ class JBoxEBSHousekeep(JBPluginTask):
             if user_id is None:
                 continue
             sessname = unique_sessname(user_id)
-            cont = JBoxContainer.get_by_name(sessname)
+            cont = SessContainer.get_by_name(sessname)
             if cont is not None:
                 continue
             JBoxEBSHousekeep.log_debug("Found orphaned volume %s for %s, %s", vol_id, user_id, sessname)

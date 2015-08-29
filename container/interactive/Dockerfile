@@ -1,9 +1,9 @@
 # Docker file for JuliaBox
 # Version:34
 
-#FROM julialang/juliaboxpkgdist:v0.3.11
+FROM julialang/juliaboxpkgdist:v0.3.11
 # Switching the base to the bare julia image helps during JuliaBox development by reducing image size
-FROM julialang/julia:v0.3.11
+# FROM julialang/julia:v0.3.11
 
 MAINTAINER Tanmay Mohapatra
 
@@ -38,6 +38,7 @@ WORKDIR /home/juser
 # 4200: http port for console
 # 8000: http port for tornado
 # 8998: ipython port for julia
-EXPOSE  4200 8000 8998
+# 8050-8052: user specified applications
+EXPOSE  4200 8000 8998 8050 8051 8052
 
 ENTRYPOINT ["/usr/bin/supervisord", "-n", "-c", "/home/juser/.juliabox/supervisord.conf", "-l", "/home/juser/.juliabox/supervisord.log", "-j", "/home/juser/.juliabox/supervisord.pid", "-q", "/home/juser/.juliabox"]

@@ -27,7 +27,6 @@ mkdir -p ${PKG_DIR}/jimg/stable
 mkdir -p ${PKG_DIR}/jimg/nightly
 
 cp ${DIR}/setup_julia.sh ${JUSER_HOME}
-cp ${DIR}/build_sysimg.jl ${JUSER_HOME}
 cp ${DIR}/jimg.jl ${JUSER_HOME}
 cp ${DIR}/mkjimg.jl ${JUSER_HOME}
 

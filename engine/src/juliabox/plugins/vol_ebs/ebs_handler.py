@@ -3,11 +3,10 @@ import os
 
 from juliabox.handlers import JBPluginHandler, JBPluginUI
 from juliabox.jbox_tasks import JBPluginTask, JBoxAsyncJob
-from juliabox.jbox_container import JBoxContainer
+from juliabox.interactive import SessContainer
 from juliabox.db import JBoxUserV2
 from juliabox.vol import JBoxVol
 from juliabox.plugins.compute_ec2 import CompEC2
-
 from ebs import JBoxEBSVol
 from disk_state_tbl import JBoxDiskState
 
@@ -29,7 +28,7 @@ class JBoxEBSVolAsyncTask(JBPluginTask):
             JBoxEBSVolAsyncTask.log_error("Data volume access not allowed for user")
             return
 
-        cont = JBoxContainer.get_by_name(sessname)
+        cont = SessContainer.get_by_name(sessname)
         if cont is None:
             return
 

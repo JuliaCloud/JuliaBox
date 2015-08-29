@@ -5,7 +5,7 @@ from oauth2client.client import OAuth2Credentials
 
 from handler_base import JBoxHandler, JBPluginHandler
 from juliabox.jbox_util import unique_sessname, JBoxCfg
-from juliabox.jbox_container import JBoxContainer
+from juliabox.interactive import SessContainer
 from juliabox.cloud import Compute
 
 
@@ -42,7 +42,7 @@ class MainHandler(JBoxHandler):
     def do_monitor_loading_ajax(self, user_id):
         sessname = unique_sessname(user_id)
         self.log_debug("AJAX monitoring loading of session [%s] user[%s]...", sessname, user_id)
-        cont = JBoxContainer.get_by_name(sessname)
+        cont = SessContainer.get_by_name(sessname)
         if (cont is None) or (not cont.is_running()):
             loading_step = int(self.get_loading_state(), 0)
             if loading_step > 30:
@@ -59,7 +59,7 @@ class MainHandler(JBoxHandler):
     def do_monitor_loading(self, user_id):
         sessname = unique_sessname(user_id)
         self.log_debug("Monitoring loading of session [%s] user[%s]...", sessname, user_id)
-        cont = JBoxContainer.get_by_name(sessname)
+        cont = SessContainer.get_by_name(sessname)
         if (cont is None) or (not cont.is_running()):
             loading_step = int(self.get_loading_state(), 0)
             if loading_step > 30:
@@ -113,9 +113,12 @@ class MainHandler(JBoxHandler):
         self.unset_affinity()
         self.log_debug("at hop %d for user %s", nhops, user_id)
         if max_hop:
+            if JBoxCfg.get('cloud_host.scale_down'):
+                msg = "JuliaBox is experiencing a sudden surge. Please try in a few minutes while we increase our capacity."
+            else:
+                msg = "JuliaBox servers are fully loaded. Please try after sometime."
             self.log_error("Server maxed out. Can't launch container at hop %d for user %s", nhops, user_id)
-            self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
-                error="Maximum number of JuliaBox instances active. Please try after sometime.", success=''))
+            self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(error=msg, success=''))
         else:
             redirect_instance = Compute.get_redirect_instance_id()
             if redirect_instance is not None:
