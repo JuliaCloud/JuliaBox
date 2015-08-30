@@ -14,5 +14,6 @@ ADD www /jboxengine/www
 RUN chmod 666 /jboxengine/www/admin_modules.tpl /jboxengine/www/auth_modules.tpl /jboxengine/www/session_modules.tpl
 
 USER juser
+ENV LANG en_US.utf8
 
 ENTRYPOINT ["/jboxengine/src/jbox.py"]

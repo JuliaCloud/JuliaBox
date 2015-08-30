@@ -61,7 +61,7 @@ class JBoxVol(LoggerMixin):
 
     # files that must be restored from user home for proper functioning of JuliaBox
     USER_HOME_ESSENTIALS = ['.juliabox', '.ipython/README', '.ipython/kernels',
-                            '.ipython/profile_julia', '.ipython/profile_default', '.ipython/profile_jboxjulia']
+                            '.ipython/profile_julia', '.ipython/profile_default']
 
     SH_DEVICE_VERSION = None
 
@@ -252,8 +252,7 @@ class JBoxVol(LoggerMixin):
                 user_home.extractall(self.disk_path)
             else:
                 # extract .juliabox, .ipython/README, .ipython/kernels,
-                # .ipython/profile_julia, .ipython/profile_default, .ipython/profile_jboxjulia
-
+                # .ipython/profile_julia, .ipython/profile_default
                 for path in JBoxVol.USER_HOME_ESSENTIALS:
                     full_path = os.path.join(self.disk_path, path)
                     if os.path.exists(full_path):
@@ -287,13 +286,9 @@ class JBoxVol(LoggerMixin):
                 fout.write(replacement)
         os.remove(filepath_temp)
 
-    def setup_julia_image(self, custom_profile, custom_jimg):
-        # switch profile in supervisord.conf
-        supervisordconf_path = os.path.join(self.disk_path, ".juliabox", "supervisord.conf")
-        new_cmd = "command=ipython notebook --profile " + custom_profile + '\n'
-        JBoxVol.replace_in_file(supervisordconf_path, "command=ipython notebook", new_cmd)
-
+    def setup_julia_image(self, custom_jimg):
         # switch profile in kernel.json
+        # this hack should not be required once we move completely to Julia 0.4
         kernel_path = os.path.join(self.disk_path, ".ipython", "kernels", "julia-0.3", "kernel.json")
         kernel_cfg = {
             "argv": ["/usr/bin/julia"],
@@ -318,7 +313,7 @@ class JBoxVol(LoggerMixin):
         if not (os.path.exists(tut_link) or os.path.lexists(tut_link)):
             os.symlink(tut_path, tut_link)
 
-    def setup_instance_config(self, profiles=('julia', 'jboxjulia')):
+    def setup_instance_config(self, profiles=('default',)):
         for profile in profiles:
             profile_path = '.ipython/profile_' + profile
             profile_path = os.path.join(self.disk_path, profile_path)

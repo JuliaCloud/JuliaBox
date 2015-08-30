@@ -10,5 +10,6 @@ MAINTAINER Tanmay Mohapatra
 EXPOSE 8887
 
 USER juser
+ENV LANG en_US.utf8
 
 ENTRYPOINT ["/jboxengine/src/jbapi.py"]

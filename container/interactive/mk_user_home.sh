@@ -32,24 +32,34 @@ cp ${DIR}/mkjimg.jl ${JUSER_HOME}
 
 sudo chown -R 1000:1000 ${JUSER_HOME}
 sudo chown -R 1000:1000 ${PKG_DIR}
-sudo docker run -i -v ${JUSER_HOME}:/home/juser -v ${PKG_DIR}:/opt/julia_packages -e "JULIA_PKGDIR=/opt/julia_packages/.julia" --entrypoint="/home/juser/setup_julia.sh" juliabox/juliabox:latest || error_exit "Could not run juliabox image"
-sudo docker run -i -v ${JUSER_HOME}:/home/juser -v ${PKG_DIR}:/opt/julia_packages -e "JULIA_PKGDIR=/opt/julia_packages/.julia" --user=root --workdir=/home/juser --entrypoint="julia" juliabox/juliabox:latest mkjimg.jl || error_exit "Could not run juliabox image"
+docker run -i -v ${JUSER_HOME}:/home/juser -v ${PKG_DIR}:/opt/julia_packages -e "JULIA_PKGDIR=/opt/julia_packages/.julia" --entrypoint="/home/juser/setup_julia.sh" juliabox/juliabox:latest || error_exit "Could not run juliabox image"
+docker run -i -v ${JUSER_HOME}:/home/juser -v ${PKG_DIR}:/opt/julia_packages -e "JULIA_PKGDIR=/opt/julia_packages/.julia" --user=root --workdir=/home/juser --entrypoint="julia" juliabox/juliabox:latest mkjimg.jl || error_exit "Could not run juliabox image"
+
+## precompilation fails mysteriously sometimes. retry a couple of times to rule out spurious errors
+#n=0
+#until [ $n -ge 3 ]
+#do
+#    docker run -i -v ${JUSER_HOME}:/home/juser -v ${PKG_DIR}:/opt/julia_packages -e "JULIA_PKGDIR=/opt/julia_packages/.julia" --user=root --workdir=/home/juser --entrypoint="julia" juliabox/juliabox:latest mkjimg.jl && break
+#    echo "Building image failed. Will retry."
+#    n=$[$n+1]
+#    sleep 10
+#done
+#
+#if [ $n -ge 3 ]
+#then
+#    error_exit "Could not run juliabox image"
+#fi
+
 sudo chown -R 1000:1000 ${JUSER_HOME}
 sudo chown -R 1000:1000 ${PKG_DIR}
 ${SUDO_JUSER} rm ${JUSER_HOME}/setup_julia.sh ${JUSER_HOME}/build_sysimg.jl ${JUSER_HOME}/jimg.jl ${JUSER_HOME}/mkjimg.jl
 
-for prof in "julia" "jboxjulia"
-do
-    echo "c.NotebookApp.open_browser = False" | ${SUDO_JUSER} tee --append ${JUSER_HOME}/.ipython/profile_${prof}/ipython_notebook_config.py
-    echo "c.NotebookApp.ip = \"*\"" | ${SUDO_JUSER} tee --append ${JUSER_HOME}/.ipython/profile_${prof}/ipython_notebook_config.py
-    echo "c.NotebookApp.allow_origin = \"*\"" | ${SUDO_JUSER} tee --append ${JUSER_HOME}/.ipython/profile_${prof}/ipython_notebook_config.py
-    ${SUDO_JUSER} cp ${DIR}/IJulia/custom.css ${JUSER_HOME}/.ipython/profile_${prof}/static/custom/custom.css
-    ${SUDO_JUSER} cp ${DIR}/IJulia/custom.js ${JUSER_HOME}/.ipython/profile_${prof}/static/custom/custom.js
+${SUDO_JUSER} cp ${DIR}/IJulia/ipython_notebook_config.py ${JUSER_HOME}/.ipython/profile_default/ipython_notebook_config.py
+${SUDO_JUSER} cp ${DIR}/IJulia/custom.css ${JUSER_HOME}/.ipython/profile_default/static/custom/custom.css
+${SUDO_JUSER} cp ${DIR}/IJulia/custom.js ${JUSER_HOME}/.ipython/profile_default/static/custom/custom.js
 
-    # Do not add kernel cmd to config.py files, just having it in kernel.json seems to work.
-    # This avoids the requirement of having to recompile IJulia after switching kernel.
-    ${SUDO_JUSER} sed -i "s/^c.KernelManager.kernel_cmd =/# c.KernelManager.kernel_cmd =/" ${JUSER_HOME}/.ipython/profile_${prof}/ipython_config.py
-done
+# install RISE (slideshow plugin)
+#${SUDO_JUSER} cd /home/juser && git clone https://github.com/damianavila/RISE.git && cd RISE && git checkout -b 3.x 3.x && python setup.py install && cd .. && rm -rf RISE
 
 ${SUDO_JUSER} cp -R ${DIR}/IJulia/tornado ${JUSER_HOME}/.juliabox/tornado
 ${SUDO_JUSER} cp ${DIR}/IJulia/supervisord.conf ${JUSER_HOME}/.juliabox/supervisord.conf

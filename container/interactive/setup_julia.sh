@@ -3,7 +3,7 @@
 julia -e 'Pkg.init()'
 
 # Install packages for Julia stable
-DEFAULT_PACKAGES="IJulia PyPlot SIUnits Gadfly DataStructures HDF5 MAT \
+DEFAULT_PACKAGES="IJulia Gadfly PyPlot SIUnits DataStructures HDF5 MAT \
 Iterators NumericExtensions SymPy Interact Roots \
 DataFrames RDatasets Distributions SVM Clustering GLM \
 Optim JuMP GLPKMathProgInterface Clp NLopt Ipopt \

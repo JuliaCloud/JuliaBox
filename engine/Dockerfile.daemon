@@ -29,5 +29,6 @@ ENV HOST_MNT_PFX="nsenter --target 1 --proc /hostproc --mnt --" \
     HOST_IPC_PFX="nsenter --target 1 --proc /hostproc --ipc --"
 
 USER juser
+ENV LANG en_US.utf8
 
 ENTRYPOINT ["/jboxengine/src/jboxd.py"]
