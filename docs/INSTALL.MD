@@ -153,7 +153,11 @@ The following procedure will configure a system without authentication, designed
     - Run `sudo update-grub`.
     - Reboot.
     
-3. Sign-up for using [Google Identity](https://developers.google.com/identity/) and get the OAuth key and secret to use.
+3. Sign-up for using [Google Identity](https://developers.google.com/identity/), get the OAuth key and secret to use, and enable the JuliaBox authorisation redirect.
+	- In the [Google Developers Console](https://console.developers.google.com) navigate to to the 'Credentials' panel within 'APIs & Auth'.
+	- Add a new credential, selecting 'OAuth 2.0 client ID', choose the 'Web application' credential type.
+	- Under 'Authorized redirect URIs' enter: `FQDN/jboxauth/google/`, replacing `FQDN` with the correct fully qualified domain name of your server.
+	- Note the 'Client ID' and 'Client secret', and save your changes.
 
 4. Complete setup as per single user, zero authentication, <b>replacing step two with</b>:
 
