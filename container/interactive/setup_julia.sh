@@ -30,7 +30,7 @@ do
     julia -e "Pkg.clone(\"$pkg\")"
 done
 
-if [[ $DEFAULT_PACKAGES == *" Interact "*]]
+if [[ $DEFAULT_PACKAGES == *" Interact "* ]]
 then
     echo "Checking out Interact package for IPython 3 compatibility"
     julia -e "Pkg.checkout(\"Interact\")"
@@ -67,7 +67,7 @@ do
     /opt/julia_nightly/bin/julia -e "Pkg.clone(\"$pkg\")"
 done
 
-if [[ $JULIA_NIGHTLY_DEFAULT_PACKAGES == *" Interact "*]]
+if [[ $JULIA_NIGHTLY_DEFAULT_PACKAGES == *" Interact "* ]]
 then
     echo "Checking out Interact package for IPython 3 compatibility"
     /opt/julia_nightly/bin/julia -e "Pkg.checkout(\"Interact\")"

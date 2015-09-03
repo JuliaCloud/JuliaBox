@@ -134,6 +134,7 @@ The following procedure will configure a system without authentication, designed
 		- Run `JuliaBox/scripts/install/img_create.sh home /jboxengine/data`
 	
 4. *JuliaBox services* Docker image creation.
+	- If gid of the docker group on the host machine is not 999 (the default on most systems), update `engine/Dockerfile.base` accordingly.
 	- Run `JuliaBox/scripts/install/img_create.sh jbox`
 
 5. JuliaBox database preperation
