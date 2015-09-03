@@ -2,6 +2,7 @@ __author__ = 'tan'
 
 import threading
 import sqlite3
+import decimal
 
 from juliabox.db import JBPluginDB, JBoxDBItemNotFound
 from juliabox.jbox_util import JBoxCfg, LoggerMixin
@@ -33,7 +34,7 @@ class JBoxSQLiteTable(LoggerMixin):
             rowdict = dict(zip(pragma_cols, row))
             colname = rowdict['name']
             columns.append(colname)
-            if rowdict['pk'] == 1:
+            if rowdict['pk'] > 0:
                 pk.append(colname)
         c.close()
         self.columns = columns
@@ -170,6 +171,18 @@ class JBoxSQLite3(JBPluginDB):
 
     @staticmethod
     def configure():
+
+        def adapt_decimal(d):
+            return str(d)
+
+        def convert_decimal(s):
+            return decimal.Decimal(s)
+
+        # Register the adapter
+        sqlite3.register_adapter(decimal.Decimal, adapt_decimal)
+        # Register the converter
+        sqlite3.register_converter("decimal", convert_decimal)
+
         dbconf = JBoxCfg.get("db")
         JBoxSQLite3.log_debug("db_conf: %r", dbconf)
         if dbconf is not None and 'connect_str' in dbconf:
