@@ -130,6 +130,10 @@ class JBoxCourseHomework(JBPluginDB):
     def get_report(course_id, problemset_id, question_ids, student_id=None):
         questions = []
         pset_max_score = 0.0
+
+        def valid_get(dictionary, key, default):
+            return dictionary[key] if key in dictionary and dictionary[key] is not None else default
+
         for question_id in question_ids:
             students = []
             question_gid = JBoxCourseHomework.question_gid(course_id, problemset_id, question_id)
@@ -148,12 +152,12 @@ class JBoxCourseHomework(JBPluginDB):
                     continue
                 for rec in recset:
                     if rec['student_id'] == JBoxCourseHomework.ANSWER_KEY:
-                        qmax_score = float(rec['score'] if 'score' in rec else 0)
+                        qmax_score = float(valid_get(rec, 'max_score', 0))
                         pset_max_score += qmax_score
-                        qmax_attempts = int(rec['attempts'] if 'attempts' in rec else 0)
+                        qmax_attempts = int(valid_get(rec, 'attempts', 0))
                         continue
-                    score = rec['score'] if 'score' in rec else 0
-                    attempts = rec['attempts'] if 'attempts' in rec else 0
+                    score = valid_get(rec, 'score', 0)
+                    attempts = valid_get(rec, 'attempts', 0)
                     students.append({
                         'id': rec['student_id'],
                         'answer': rec['answer'],
