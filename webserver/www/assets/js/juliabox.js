@@ -509,7 +509,7 @@ var JuliaBox = (function($, _, undefined){
 		websocktest: function() {
 		    bootbox.dialog({
                 message: '<iframe src="/assets/html/wsocktest.html" frameborder="0" width="100%" height="40%"></iframe>',
-                title: "Testing WekSocket Connectivity..."
+                title: "Testing WebSocket Connectivity..."
             }).find("div.modal-dialog").addClass("bootbox50");
 		}
 	};
