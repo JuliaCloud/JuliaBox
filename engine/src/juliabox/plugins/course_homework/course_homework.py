@@ -86,7 +86,7 @@ class HomeworkHandler(JBPluginHandler):
 
         record = (mode == "submit")
 
-        status, score, used_attempts, max_score, max_attempts = \
+        status, score, used_attempts, max_score, max_attempts, explanation = \
             JBoxCourseHomework.check_answer(course, problemset, question, user_id, answer, record)
         response = {
             'code': 0,
@@ -95,7 +95,8 @@ class HomeworkHandler(JBPluginHandler):
                 'score': float(score),
                 'attempts': int(used_attempts),
                 'max_score': float(max_score),
-                'max_attempts': int(max_attempts)
+                'max_attempts': int(max_attempts),
+                'explanation': explanation
             }
         }
         self.write(response)
@@ -219,13 +220,17 @@ class HomeworkHandler(JBPluginHandler):
                 answer = question['ans']
                 score = question['score'] if 'score' in question else 0
                 attempts = question['attempts'] if 'attempts' in question else 0
+                explanation = question['explanation'] if 'explanation' in question else None
                 # nscore = question['nscore'] if 'nscore' in question else 0
                 try:
                     ans = JBoxCourseHomework(course_id, problemset_id, question_id, JBoxCourseHomework.ANSWER_KEY,
-                                             answer=answer, state=JBoxCourseHomework.STATE_CORRECT, create=True)
+                                             answer=answer, state=JBoxCourseHomework.STATE_CORRECT, create=True, explanation=explanation)
                 except:
+                    # The correct q&a entry already exists, update it.
                     ans = JBoxCourseHomework(course_id, problemset_id, question_id, JBoxCourseHomework.ANSWER_KEY)
                     ans.set_answer(answer, JBoxCourseHomework.STATE_CORRECT)
+                    ans.set_explanation(explanation)
+
                 ans.set_score(score)
                 ans.set_attempts(attempts)
                 ans.save()
