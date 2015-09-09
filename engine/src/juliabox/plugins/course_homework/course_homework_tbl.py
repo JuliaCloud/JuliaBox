@@ -25,7 +25,7 @@ class JBoxCourseHomework(JBPluginDB):
 
     KEYS = ['question_gid', 'student_id']
     ATTRIBUTES = ['course_id', 'problemset_id', 'question_id',
-                  'answer', 'attempts', 'score',
+                  'answer', 'explanation', 'attempts', 'score',
                   'state', 'create_time']
 
     SEP = '|'
@@ -35,7 +35,7 @@ class JBoxCourseHomework(JBPluginDB):
     STATE_INCORRECT = -1
     STATE_PENDING = 0
 
-    def __init__(self, course_id, problemset_id, question_id, student_id, answer=None, state=None, create=False):
+    def __init__(self, course_id, problemset_id, question_id, student_id, answer=None, state=None, create=False, explanation=None):
         if create:
             if (answer is None) or (state is None) or (not JBoxCourseHomework.valid_state(state)) or\
                     (student_id is None) or (course_id is None) or (problemset_id is None) or (question_id is None):
@@ -54,6 +54,7 @@ class JBoxCourseHomework(JBPluginDB):
                 'question_id': question_id,
                 'student_id': student_id,
                 'answer': answer,
+                'explanation': explanation if student_id == JBoxCourseHomework.ANSWER_KEY else None,
                 'state': state,
                 'create_time': JBoxCourseHomework.datetime_to_epoch_secs(dt)
             }
@@ -76,6 +77,9 @@ class JBoxCourseHomework(JBPluginDB):
         self.set_attrib('answer', answer)
         self.set_attrib('state', state)
 
+    def set_explanation(self, explanation):
+        self.set_attrib('explanation', explanation)
+
     def increment_attempts(self):
         self.set_attrib('attempts', int(self.get_attrib('attempts', 0))+1)
 
@@ -89,42 +93,57 @@ class JBoxCourseHomework(JBPluginDB):
     def get_answer(course_id, problemset_id, question_id, student_id=ANSWER_KEY):
         try:
             rec = JBoxCourseHomework(course_id, problemset_id, question_id, student_id)
-            return rec.get_attrib('answer', None), float(rec.get_attrib('score', 0)), int(rec.get_attrib('attempts', 0))
+            return rec.get_attrib('answer', None), float(rec.get_attrib('score', 0)), int(rec.get_attrib('attempts', 0)), rec.get_attrib('explanation', None)
         except:
             JBoxCourseHomework.log_exception("exception while getting answer")
-            return None, int(0), int(0)
+            return None, int(0), int(0), None
 
     @staticmethod
     def check_answer(course_id, problemset_id, question_id, student_id, answer, record=True):
-        ans, score, attempts = JBoxCourseHomework.get_answer(course_id, problemset_id, question_id)
-        max_score = score
-        JBoxCourseHomework.log_debug("comparing [%r] with answer [%r] for course[%s], pset[%s], q[%s], student[%s]",
-                                     answer, ans, course_id, problemset_id, question_id, student_id)
+        # Get the correct answer.
+        ans, max_score, max_attempts, explanation = JBoxCourseHomework.get_answer(
+               course_id, problemset_id, question_id
+        )
+
+        JBoxCourseHomework.log_debug(
+            "comparing [%r] with answer [%r] for course[%s], pset[%s], q[%s], student[%s]",
+             answer, ans, course_id, problemset_id, question_id, student_id
+        )
+
         correct = (ans == answer)
-        state = JBoxCourseHomework.STATE_CORRECT if correct else JBoxCourseHomework.STATE_INCORRECT
-        if state != JBoxCourseHomework.STATE_CORRECT:
+
+        if correct:
+            score = max_score
+            state = JBoxCourseHomework.STATE_CORRECT
+        else:
             score = 0
+            state = JBoxCourseHomework.STATE_INCORRECT
+            # Don't yet show the explanation
+            explanation = None
 
         used_attempts = 1
         if record:
             try:
                 rec = JBoxCourseHomework(course_id, problemset_id, question_id, student_id)
                 used_attempts = rec.get_attrib('attempts', 0)
-                max_attempts = used_attempts >= attempts > 0
+                attempts_ran_out = used_attempts >= max_attempts > 0
                 # if correct answer not provided yet, record the latest answer
-                if (rec.get_attrib('state') != JBoxCourseHomework.STATE_CORRECT) and not max_attempts:
+                if (rec.get_attrib('state') != JBoxCourseHomework.STATE_CORRECT) and not attempts_ran_out:
                     rec.set_answer(answer, state)
                 else:
                     score = rec.get_attrib('score', 0)
             except JBoxDBItemNotFound:
+                # If this is the first attempt, add an entry to record the attempt
                 rec = JBoxCourseHomework(course_id, problemset_id, question_id, student_id,
                                          answer=answer, state=state, create=True)
+
             if state == JBoxCourseHomework.STATE_INCORRECT:
                 rec.increment_attempts()
+
             rec.set_score(score)
             rec.save()
 
-        return state, score, used_attempts, max_score, attempts
+        return state, score, used_attempts, max_score, max_attempts, explanation
 
     @staticmethod
     def get_report(course_id, problemset_id, question_ids, student_id=None):
