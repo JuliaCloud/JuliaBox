@@ -110,15 +110,16 @@ class JBoxCourseHomework(JBPluginDB):
              answer, ans, course_id, problemset_id, question_id, student_id
         )
 
+        score = 0
+        state = JBoxCourseHomework.STATE_INCORRECT
+
         correct = (ans == answer)
 
         if correct:
             score = max_score
             state = JBoxCourseHomework.STATE_CORRECT
         else:
-            score = 0
-            state = JBoxCourseHomework.STATE_INCORRECT
-            # Don't yet show the explanation
+            # Don't show explanation yet
             explanation = None
 
         used_attempts = 1
@@ -151,7 +152,7 @@ class JBoxCourseHomework(JBPluginDB):
         pset_max_score = 0.0
 
         def valid_get(dictionary, key, default):
-            return dictionary[key] if key in dictionary and dictionary[key] is not None else default
+            return dictionary[key] if (key in dictionary) and (dictionary[key] is not None) else default
 
         for question_id in question_ids:
             students = []
@@ -171,9 +172,9 @@ class JBoxCourseHomework(JBPluginDB):
                     continue
                 for rec in recset:
                     if rec['student_id'] == JBoxCourseHomework.ANSWER_KEY:
-                        qmax_score = float(valid_get(rec, 'max_score', 0))
+                        qmax_score = float(rec['score'])
                         pset_max_score += qmax_score
-                        qmax_attempts = int(valid_get(rec, 'attempts', 0))
+                        qmax_attempts = int(rec['attempts'])
                         continue
                     score = valid_get(rec, 'score', 0)
                     attempts = valid_get(rec, 'attempts', 0)
