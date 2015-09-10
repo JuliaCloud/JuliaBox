@@ -76,31 +76,6 @@ var JuliaBox = (function($, _, undefined){
 	    	self.comm('/jci_file/pkginfo', 'GET', {'ver': ver}, s, f);
 	    },
 
-	    switch_julia_image: function(disp_curr, disp_switch) {
-	    	s = function(img){
-	    	    if(img.code == 0) {
-	    	        self.set_julia_image_type(disp_curr, disp_switch, img.data);
-	    	        bootbox.alert('Your Julia image has been changed and will be effective the next time you log in.');
-	    	    }
-	    	    else {
-	    	        bootbox.alert("Oops. Unexpected error while switching Julia image.<br/><br/>Please try again later.");
-	    	    }
-	    	};
-	    	f = function() { bootbox.alert("Oops. Unexpected error while switching Julia image.<br/><br/>Please try again later."); };
-	    	self.comm('/jboxadmin/', 'GET', {'switch_julia_img': true}, s, f);
-	    },
-
-	    set_julia_image_type: function(disp_curr, disp_switch, curr_img_type) {
-	        if(0 == curr_img_type) {
-	            disp_curr.html("standard");
-	            disp_switch.html("precompiled packages");
-	        }
-	        else {
-	            disp_switch.html("standard");
-	            disp_curr.html("precompiled packages");
-	        }
-	    },
-
         _json_to_table: function(o) {
             resp = '<table class="table">';
             for(n in o) {

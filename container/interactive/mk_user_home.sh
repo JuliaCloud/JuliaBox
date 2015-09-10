@@ -23,17 +23,17 @@ sudo rm -rf ${PKG_DIR}
 mkdir -p ${JUSER_HOME}
 mkdir -p ${PKG_DIR}
 mkdir -p ${JUSER_HOME}/.juliabox
-mkdir -p ${PKG_DIR}/jimg/stable
-mkdir -p ${PKG_DIR}/jimg/nightly
+#mkdir -p ${PKG_DIR}/jimg/stable
+#mkdir -p ${PKG_DIR}/jimg/nightly
 
 cp ${DIR}/setup_julia.sh ${JUSER_HOME}
-cp ${DIR}/jimg.jl ${JUSER_HOME}
-cp ${DIR}/mkjimg.jl ${JUSER_HOME}
+#cp ${DIR}/jimg.jl ${JUSER_HOME}
+#cp ${DIR}/mkjimg.jl ${JUSER_HOME}
 
 sudo chown -R 1000:1000 ${JUSER_HOME}
 sudo chown -R 1000:1000 ${PKG_DIR}
 docker run -i -v ${JUSER_HOME}:/home/juser -v ${PKG_DIR}:/opt/julia_packages -e "JULIA_PKGDIR=/opt/julia_packages/.julia" --entrypoint="/home/juser/setup_julia.sh" juliabox/juliabox:latest || error_exit "Could not run juliabox image"
-docker run -i -v ${JUSER_HOME}:/home/juser -v ${PKG_DIR}:/opt/julia_packages -e "JULIA_PKGDIR=/opt/julia_packages/.julia" --user=root --workdir=/home/juser --entrypoint="julia" juliabox/juliabox:latest mkjimg.jl || error_exit "Could not run juliabox image"
+# docker run -i -v ${JUSER_HOME}:/home/juser -v ${PKG_DIR}:/opt/julia_packages -e "JULIA_PKGDIR=/opt/julia_packages/.julia" --user=root --workdir=/home/juser --entrypoint="julia" juliabox/juliabox:latest mkjimg.jl || error_exit "Could not run juliabox image"
 
 ## precompilation fails mysteriously sometimes. retry a couple of times to rule out spurious errors
 #n=0
@@ -52,7 +52,7 @@ docker run -i -v ${JUSER_HOME}:/home/juser -v ${PKG_DIR}:/opt/julia_packages -e 
 
 sudo chown -R 1000:1000 ${JUSER_HOME}
 sudo chown -R 1000:1000 ${PKG_DIR}
-${SUDO_JUSER} rm ${JUSER_HOME}/setup_julia.sh ${JUSER_HOME}/build_sysimg.jl ${JUSER_HOME}/jimg.jl ${JUSER_HOME}/mkjimg.jl
+${SUDO_JUSER} rm ${JUSER_HOME}/setup_julia.sh # ${JUSER_HOME}/build_sysimg.jl ${JUSER_HOME}/jimg.jl ${JUSER_HOME}/mkjimg.jl
 
 ${SUDO_JUSER} cp ${DIR}/IJulia/ipython_notebook_config.py ${JUSER_HOME}/.ipython/profile_default/ipython_notebook_config.py
 ${SUDO_JUSER} cp ${DIR}/IJulia/custom.css ${JUSER_HOME}/.ipython/profile_default/static/custom/custom.css
