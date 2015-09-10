@@ -38,16 +38,10 @@ class AdminHandler(JBoxHandler):
             return
         if self.handle_if_instance_info(is_admin):
             return
-        if self.handle_switch_julia_img(user):
-            return
         if self.handle_if_open_port(sessname, user_id):
             return
 
         juliaboxver, _upgrade_available = self.get_upgrade_available(cont)
-
-        jimg_type = 0
-        if user.has_resource_profile(JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP):
-            jimg_type = JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP
 
         expire = JBoxCfg.get('interactive.expire')
         d = dict(
@@ -62,26 +56,10 @@ class AdminHandler(JBoxHandler):
             cpu=cont.get_cpu_allocated(),
             disk=cont.get_disk_allocated(),
             expire=expire,
-            juliaboxver=juliaboxver,
-            jimg_type=jimg_type
+            juliaboxver=juliaboxver
         )
 
         self.rendertpl("ipnbadmin.tpl", d=d)
-
-    def handle_switch_julia_img(self, user):
-        switch_julia_img = self.get_argument('switch_julia_img', None)
-        if switch_julia_img is None:
-            return False
-        if user.has_resource_profile(JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP):
-            user.unset_resource_profile(JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP)
-            new_img_type = 0
-        else:
-            user.set_resource_profile(JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP)
-            new_img_type = JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP
-        user.save()
-        response = {'code': 0, 'data': new_img_type}
-        self.write(response)
-        return True
 
     def handle_if_show_cfg(self, is_allowed):
         show_cfg = self.get_argument('show_cfg', None)

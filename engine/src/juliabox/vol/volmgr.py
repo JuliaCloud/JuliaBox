@@ -135,12 +135,12 @@ class VolMgr(LoggerMixin):
     @staticmethod
     def get_disk_for_user(email):
         VolMgr.log_debug("restoring disk for %s", email)
-        user = JBoxUserV2(email)
+        # user = JBoxUserV2(email)
 
         custom_jimg = None
         # TODO: image path should be picked up from config
-        if user.has_resource_profile(JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP):
-            custom_jimg = '/opt/julia_packages/jimg/stable/sys.ji'
+        # if user.has_resource_profile(JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP):
+        #     custom_jimg = '/opt/julia_packages/jimg/stable/sys.ji'
 
         plugin = JBoxVol.jbox_get_plugin(JBoxVol.JBP_USERHOME)
         if plugin is None:
