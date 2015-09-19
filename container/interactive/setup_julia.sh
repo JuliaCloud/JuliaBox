@@ -30,12 +30,6 @@ do
     julia -e "Pkg.clone(\"$pkg\")"
 done
 
-if [[ $DEFAULT_PACKAGES == *" Interact "* ]]
-then
-    echo "Checking out Interact package for IPython 3 compatibility"
-    julia -e "Pkg.checkout(\"Interact\")"
-fi
-
 echo ""
 echo "Creating Julia stable package list..."
 julia -e 'println("JULIA_HOME: $JULIA_HOME\n"); versioninfo(); println(""); Pkg.status()' > /opt/julia_packages/stable_packages.txt
@@ -66,12 +60,6 @@ do
     echo "Adding internal package $pkg to Julia nightly"
     /opt/julia_nightly/bin/julia -e "Pkg.clone(\"$pkg\")"
 done
-
-if [[ $JULIA_NIGHTLY_DEFAULT_PACKAGES == *" Interact "* ]]
-then
-    echo "Checking out Interact package for IPython 3 compatibility"
-    /opt/julia_nightly/bin/julia -e "Pkg.checkout(\"Interact\")"
-fi
 
 echo ""
 echo "Creating Julia nightly package list..."
