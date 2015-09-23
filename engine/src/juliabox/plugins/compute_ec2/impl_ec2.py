@@ -247,8 +247,8 @@ class CompEC2(JBPluginCloud):
             # exclude machines with load >= avg_load
             filtered_nodes = [k for k, v in cluster_load.iteritems() if v < avg_load]
         else:
-            # exclude machines with load <= avg_load
-            filtered_nodes = [k for k, v in cluster_load.iteritems() if v > avg_load]
+            # exclude machines with load <= avg_load and load >= 100
+            filtered_nodes = [k for k, v in cluster_load.iteritems() if 100 > v > avg_load]
 
         if len(filtered_nodes) == 0:
             filtered_nodes = cluster_load.keys()
