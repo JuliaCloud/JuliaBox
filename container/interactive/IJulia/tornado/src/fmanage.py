@@ -5,6 +5,7 @@ import time
 import sys
 import shutil
 import traceback
+import tempfile
 import re
 
 import tornado.ioloop
@@ -113,12 +114,27 @@ class SSHKeyHandler(tornado.web.RequestHandler):
 class PkgInfoHandler(tornado.web.RequestHandler):
     def get(self):
         ver = self.get_argument('ver')
-        with open('/opt/julia_packages/' + ver + '_packages.txt', "r") as f:
+        with open('/opt/julia_packages/julia-' + ver + '.packages.txt', "r") as f:
             response = {
                 'code': 0,
                 'data': f.read()
             }
             self.write(response)
+
+
+class ResetPackagesHandler(tornado.web.RequestHandler):
+    def get(self):
+        pkgpath = os.path.expanduser('~/.julia')
+        tmppath = ''
+        if os.path.exists(pkgpath):
+            tmppath = tempfile.mktemp(suffix='.julia', dir=os.path.expanduser('~/'))
+            os.rename(pkgpath, tmppath)
+
+        response = {
+            'code': 0,
+            'data': tmppath
+        }
+        self.write(response)
 
 
 class SyncHandler(tornado.web.RequestHandler):
@@ -298,6 +314,7 @@ if __name__ == "__main__":
         (r"/sync", SyncHandler),
         (r"/sshkey", SSHKeyHandler),
         (r"/pkginfo", PkgInfoHandler),
+        (r"/pkgreset", ResetPackagesHandler),
         (r"/", PingHandler)
     ])
     application.listen(cfg['port'])
