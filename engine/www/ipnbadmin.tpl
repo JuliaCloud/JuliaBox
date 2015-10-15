@@ -74,15 +74,15 @@
 	    		parent.JuliaBox.show_ssh_key();
 	    	});
 
-	    	$('#showpackagesstable').click(function(event){
-	    		event.preventDefault();
-	    		parent.JuliaBox.show_packages('stable');
-	    	});
+            $('.showpackages').click(function(event) {
+            	tid = event.target.id;
+            	ver = tid.split('-')[1]
+	    		parent.JuliaBox.show_packages(ver);
+            });
 
-	    	$('#showpackagesnightly').click(function(event){
-	    		event.preventDefault();
-	    		parent.JuliaBox.show_packages('nightly');
-	    	});
+            $('#delpackages').click(function(event) {
+	    		parent.JuliaBox.del_packages_confirm();
+            });
 
 	    	$('#websocktest').click(function(event){
 	    	    event.preventDefault();
@@ -170,7 +170,12 @@
 
 <h3>JuliaBox version:</h3>
 JuliaBox version: {{d["juliaboxver"]}} <br/>
-Julia versions and packages: <a href="#" id="showpackagesstable">stable</a> | <a href="#" id="showpackagesnightly">nightly</a><br/>
+Julia versions and packages: <a href="#" class="showpackages" id="showpackages-0.3">0.3</a> | <a href="#" class="showpackages" id="showpackages-0.4">0.4</a> | <a href="#" class="showpackages" id="showpackages-0.5">0.5</a><br/>
+<p>
+	<br/>
+	Note: A conflict between system packages those installed by you may cause errors and failures while starting notebooks.<br/>
+	In such cases, delete/update conflicting packages or <a href="#" id="delpackages">click here</a> to go back to using system installed packages only.<br/>
+</p>
 <br/>
 
 {% include "../../../www/admin_modules.tpl" %}

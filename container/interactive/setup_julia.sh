@@ -1,9 +1,32 @@
 #!/bin/bash
 
-julia -e 'Pkg.init()'
+function init_packages {
+    JULIA_VER=$1
+    /opt/julia-${JULIA_VER}/bin/julia -e "Pkg.init()"
+}
 
-# Install packages for Julia stable
-DEFAULT_PACKAGES="IJulia Gadfly PyPlot SIUnits DataStructures HDF5 MAT \
+function include_packages {
+    JULIA_VER=$1
+    PKG_LIST=$2
+    METHOD=$3
+    for PKG in $PKG_LIST
+    do
+        echo ""
+        echo "$METHOD package $PKG to Julia $JULIA_VER ..."
+        /opt/julia-${JULIA_VER}/bin/julia -e "Pkg.${METHOD}(\"$PKG\")"
+    done
+}
+
+function list_packages {
+    JULIA_VER=$1
+    echo ""
+    echo "Listing packages for Julia $JULIA_VER ..."
+    /opt/julia-${JULIA_VER}/bin/julia -e 'println("JULIA_HOME: $JULIA_HOME\n"); versioninfo(); println(""); Pkg.status()' > /opt/julia_packages/julia-${JULIA_VER}.packages.txt
+}
+
+# Install packages for Julia 0.3
+DEFAULT_PACKAGES="IJulia \
+Gadfly PyPlot SIUnits DataStructures HDF5 MAT \
 Iterators NumericExtensions SymPy Interact Roots \
 DataFrames RDatasets Distributions SVM Clustering GLM \
 Optim JuMP GLPKMathProgInterface Clp NLopt Ipopt \
@@ -12,55 +35,26 @@ Images ImageView WAV ODE Sundials LinearLeastSquares \
 BayesNets PGFPlots GraphLayout \
 Stan Patchwork Quandl Lazy QuantEcon MixedModels Escher"
 
-for pkg in ${DEFAULT_PACKAGES}
-do
-    echo ""
-    echo "Adding default package $pkg to Julia stable"
-    julia -e "Pkg.add(\"$pkg\")"
-done
+INTERNAL_PACKAGES="https://github.com/tanmaykm/JuliaBoxUtils.jl.git \
+https://github.com/tanmaykm/JuliaWebAPI.jl.git \
+https://github.com/shashi/Homework.jl.git"
+
+init_packages "0.3"
+include_packages "0.3" "$DEFAULT_PACKAGES" "add"
+include_packages "0.3" "$INTERNAL_PACKAGES" "clone"
+list_packages "0.3"
+
+# Install packages for Julia 0.4 and 0.5
+DEFAULT_PACKAGES="IJulia"
 
 INTERNAL_PACKAGES="https://github.com/tanmaykm/JuliaBoxUtils.jl.git \
 https://github.com/tanmaykm/JuliaWebAPI.jl.git \
 https://github.com/shashi/Homework.jl.git"
 
-for pkg in ${INTERNAL_PACKAGES}
+for ver in 0.4 0.5
 do
-    echo ""
-    echo "Adding internal package $pkg to Julia stable"
-    julia -e "Pkg.clone(\"$pkg\")"
+    init_packages "$ver"
+    include_packages "$ver" "$DEFAULT_PACKAGES" "add"
+    include_packages "$ver" "$INTERNAL_PACKAGES" "clone"
+    list_packages "$ver"
 done
-
-echo ""
-echo "Creating Julia stable package list..."
-julia -e 'println("JULIA_HOME: $JULIA_HOME\n"); versioninfo(); println(""); Pkg.status()' > /opt/julia_packages/stable_packages.txt
-#echo ""
-#echo "Running package tests..."
-#julia -e "Pkg.test()" > /opt/julia_packages/packages_test_result.txt
-
-
-/opt/julia_nightly/bin/julia -e 'Pkg.init()'
-
-# Install packages for Julia nightly
-JULIA_NIGHTLY_DEFAULT_PACKAGES="IJulia"
-
-for pkg in ${JULIA_NIGHTLY_DEFAULT_PACKAGES}
-do
-    echo ""
-    echo "Adding default package $pkg to Julia nightly"
-    /opt/julia_nightly/bin/julia -e "Pkg.add(\"$pkg\")"
-done
-
-JULIA_NIGHTLY_INTERNAL_PACKAGES="https://github.com/tanmaykm/JuliaBoxUtils.jl.git \
-https://github.com/tanmaykm/JuliaWebAPI.jl.git \
-https://github.com/shashi/Homework.jl.git"
-
-for pkg in ${JULIA_NIGHTLY_INTERNAL_PACKAGES}
-do
-    echo ""
-    echo "Adding internal package $pkg to Julia nightly"
-    /opt/julia_nightly/bin/julia -e "Pkg.clone(\"$pkg\")"
-done
-
-echo ""
-echo "Creating Julia nightly package list..."
-/opt/julia_nightly/bin/julia -e 'println("JULIA_HOME: $JULIA_HOME\n"); versioninfo(); println(""); Pkg.status()' > /opt/julia_packages/nightly_packages.txt

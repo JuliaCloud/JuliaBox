@@ -1,5 +1,5 @@
 # Docker file for JuliaBox
-# Version:36
+# Version:37
 
 FROM julialang/juliaboxpkgdist:v0.3.11
 # Switching the base to the bare julia image helps during JuliaBox development by reducing image size
@@ -16,16 +16,26 @@ RUN groupadd juser \
     && useradd -m -d /home/juser -s /bin/bash -g juser -G staff juser \
     && echo "export HOME=/home/juser" >> /home/juser/.bashrc
 
-# add Julia nightly build
-RUN mkdir -p /opt/julia_0.4.0 && \
-    curl -s -L https://julialang.s3.amazonaws.com/bin/linux/x64/0.4/julia-0.4.0-rc2-linux-x86_64.tar.gz | tar -C /opt/julia_0.4.0 -x -z --strip-components=1 -f -
-RUN ln -fs /opt/julia_0.4.0 /opt/julia_nightly
+# link Julia v0.3
+RUN ln -fs /opt/julia_0.3.11 /opt/julia-0.3.11 && \
+    ln -fs /opt/julia-0.3.11 /opt/julia-0.3
+
+# add Julia v0.4.0 build
+RUN mkdir -p /opt/julia-0.4.0 && \
+    curl -s -L https://julialang.s3.amazonaws.com/bin/linux/x64/0.4/julia-0.4.0-linux-x86_64.tar.gz | tar -C /opt/julia-0.4.0 -x -z --strip-components=1 -f -
+RUN ln -fs /opt/julia-0.4.0 /opt/julia-0.4
+
+# add Julia v0.5 nightly build
+RUN mkdir -p /opt/julia-0.5.0-dev && \
+    curl -s -L https://status.julialang.org/download/linux-x86_64 | tar -C /opt/julia-0.5.0-dev -x -z --strip-components=1 -f -
+RUN ln -fs /opt/julia-0.5.0-dev /opt/julia-0.5
 
 # JuliaBox package bundle shall be mounted at /opt/julia_packages.
 # They are added to LOAD_PATH through respective juliarc.jl scripts.
 RUN mkdir /opt/julia_packages
-RUN echo 'push!(LOAD_PATH, "/opt/julia_packages/.julia/v0.4/")' >> /opt/julia_0.4.0/etc/julia/juliarc.jl
-RUN echo 'push!(LOAD_PATH, "/opt/julia_packages/.julia/v0.3/")' >> /opt/julia_0.3.11/etc/julia/juliarc.jl
+RUN echo 'push!(LOAD_PATH, "/opt/julia_packages/.julia/v0.5/")' >> /opt/julia-0.5/etc/julia/juliarc.jl
+RUN echo 'push!(LOAD_PATH, "/opt/julia_packages/.julia/v0.4/")' >> /opt/julia-0.4/etc/julia/juliarc.jl
+RUN echo 'push!(LOAD_PATH, "/opt/julia_packages/.julia/v0.3/")' >> /opt/julia-0.3/etc/julia/juliarc.jl
 
 # Data volumes shall be mounted at /mnt/data
 RUN mkdir /mnt/data
