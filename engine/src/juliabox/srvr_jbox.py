@@ -1,5 +1,8 @@
 import socket
 import signal
+import datetime
+import tempfile
+import os
 
 import tornado.ioloop
 import tornado.web
@@ -106,6 +109,38 @@ class JBox(LoggerMixin):
                 JBoxAsyncJob.async_schedule_activations()
 
     @staticmethod
+    def update_juliabox_status():
+        instances = Compute.get_all_instances()
+
+        in_error = 0
+        HTML = "<html><body><center><pre>\nJuliaBox is Up.\n\nLast updated: " + datetime.datetime.now().isoformat() + " UTC\n\nLoads: "
+
+        for inst in instances:
+            try:
+                status = JBoxAsyncJob.sync_api_status(inst)['data']
+                HTML += (str(status['load']) + '% ')
+            except:
+                in_error += 1
+                pass
+
+        HTML += ("\n\nErrors: " + str(in_error) + "\n\nAWS Status: <a href='http://status.aws.amazon.com/'>status.aws.amazon.com</a></pre></center></body></html>")
+
+        plugin = JBPluginCloud.jbox_get_plugin(JBPluginCloud.JBP_BUCKETSTORE)
+        bkt = JBoxCfg.get("cloud_host.status_bucket")
+        if plugin is not None and bkt is not None:
+            try:
+                f = open("/tmp/index.html", "w")
+                f.write(HTML)
+                f.close()
+                plugin.push(bkt, "/tmp/index.html")
+            finally:
+                os.remove("/tmp/index.html")
+        else:
+            JBox.log_debug("Status: %s", HTML)
+
+        return None
+
+    @staticmethod
     def do_housekeeping():
         terminating = False
         server_delete_timeout = JBoxCfg.get('interactive.expire')
@@ -129,6 +164,7 @@ class JBox(LoggerMixin):
 
         if is_leader:
             JBox.log_info("I am the cluster leader")
+            JBox.update_juliabox_status()
             JBox.monitor_registrations()
             if not JBoxDynConfig.is_stat_collected_within(Compute.get_install_id(), 1):
                 JBoxAsyncJob.async_collect_stats()
