@@ -75,6 +75,7 @@
 
     	# Configure names for tables and buckets
 	    "backup_bucket": "juliabox-userbackup",
+        "status_bucket": "juliabox-status",
 
 	    # EBS disk template snapshot id
 	    "ebs_template": None,
