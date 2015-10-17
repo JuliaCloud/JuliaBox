@@ -30,8 +30,7 @@ class JBoxDefaultPackagesVol(JBoxVol):
         used = []
         props = JBoxDefaultPackagesVol.dckr().inspect_container(cid)
         try:
-            vols = props['Volumes']
-            for _cpath, hpath in vols.iteritems():
+            for _cpath, hpath in JBoxVol.extract_mounts(props):
                 if hpath.startswith(JBoxDefaultPackagesVol.FS_LOC):
                     used.append(hpath.split('/')[-1])
         except:
