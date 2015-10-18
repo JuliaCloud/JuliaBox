@@ -333,6 +333,16 @@ class JBoxVol(LoggerMixin):
             return time.timezone
 
     @staticmethod
+    def extract_mounts(props):
+        vols = props['Mounts']
+        mounts = []
+        for m in vols:
+            cpath = m['Destination']
+            hpath = m['Source']
+            mounts.append((cpath, hpath))
+        return mounts
+
+    @staticmethod
     def pull_from_bucketstore(local_file, metadata_only=False):
         plugin = JBPluginCloud.jbox_get_plugin(JBPluginCloud.JBP_BUCKETSTORE)
         if plugin is None or JBoxVol.BACKUP_BUCKET is None:

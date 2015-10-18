@@ -34,8 +34,7 @@ class JBoxLoopbackVol(JBoxVol):
         used = []
         try:
             props = JBoxLoopbackVol.dckr().inspect_container(cid)
-            vols = props['Volumes']
-            for _cpath, hpath in vols.iteritems():
+            for _cpath, hpath in JBoxVol.extract_mounts(props):
                 if hpath.startswith(JBoxLoopbackVol.FS_LOC):
                     used.append(int(hpath.split('/')[-1]))
         except:

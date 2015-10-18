@@ -27,8 +27,7 @@ class JBoxHostDiskVol(JBoxVol):
         used = []
         try:
             props = JBoxHostDiskVol.dckr().inspect_container(cid)
-            vols = props['Volumes']
-            for _cpath, hpath in vols.iteritems():
+            for _cpath, hpath in JBoxVol.extract_mounts(props):
                 if hpath.startswith(JBoxHostDiskVol.FS_LOC):
                     used.append(hpath.split('/')[-1])
         except:
