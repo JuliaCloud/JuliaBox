@@ -2,6 +2,7 @@ __author__ = 'tan'
 import datetime
 import pytz
 import json
+import traceback
 
 from juliabox.cloud import Compute
 from juliabox.jbox_util import JBoxCfg
@@ -263,11 +264,17 @@ class HomeworkHandler(JBPluginHandler):
             return False
 
         self.log_debug("handling create course")
-        course = self.get_argument('params', None)
-        course = json.loads(course)
-        ret = HomeworkHandler.upload_course(user_id, course)
-        msg = '' if ret == 0 else 'Course id already used by another user. \
-            Please use a different course id or request the creator to add you as course administrator.'
+
+        try:
+            course = self.get_argument('params', None)
+            course = json.loads(course)
+            ret = HomeworkHandler.upload_course(user_id, course)
+            msg = '' if ret == 0 else 'Course id already used by another user. \
+                Please use a different course id or request the creator to add you as course administrator.'
+        except:
+            ret = -1
+            msg = traceback.format_exc()
+
         response = {
             'code': ret,
             'data': msg
