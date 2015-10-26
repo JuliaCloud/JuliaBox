@@ -5,6 +5,7 @@ import hashlib
 import datetime
 import pytz
 import docker.utils
+from docker.utils import Ulimit
 
 from juliabox.jbox_container import BaseContainer
 from juliabox.jbox_util import JBoxCfg
@@ -23,6 +24,8 @@ class APIContainer(BaseContainer):
     # A group with 100 shares will get a ~10% portion of the CPU time (https://wiki.archlinux.org/index.php/Cgroups)
     CPU_LIMIT = 1024
     MEM_LIMIT = None
+    ULIMITS = None
+
     EXPIRE_SECS = 0
     MAX_CONTAINERS = 0
     MAX_PER_API_CONTAINERS = 0
@@ -40,6 +43,12 @@ class APIContainer(BaseContainer):
         BaseContainer.DCKR = JBoxCfg.dckr
         APIContainer.DCKR_IMAGE = JBoxCfg.get('api.docker_image')
         APIContainer.MEM_LIMIT = JBoxCfg.get('api.mem_limit')
+
+        APIContainer.ULIMITS = []
+        limits = JBoxCfg.get('interactive.ulimits')
+        for (n, v) in limits.iteritems():
+            APIContainer.ULIMITS.append(Ulimit(name=n, soft=v, hard=v))
+
         APIContainer.CPU_LIMIT = JBoxCfg.get('api.cpu_limit')
         APIContainer.MAX_CONTAINERS = JBoxCfg.get('api.numlocalmax')
         APIContainer.MAX_PER_API_CONTAINERS = JBoxCfg.get('api.numapilocalmax')

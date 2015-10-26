@@ -7,12 +7,14 @@ from juliabox.jbox_util import JBoxCfg
 from juliabox.jbox_container import BaseContainer
 from juliabox.vol import VolMgr, JBoxVol
 import docker.utils
+from docker.utils import Ulimit
 
 
 class SessContainer(BaseContainer):
     PINGS = {}
     DCKR_IMAGE = None
     MEM_LIMIT = None
+    ULIMITS = None
 
     # By default all groups have 1024 shares.
     # A group with 100 shares will get a ~10% portion of the CPU time (https://wiki.archlinux.org/index.php/Cgroups)
@@ -42,6 +44,12 @@ class SessContainer(BaseContainer):
         BaseContainer.DCKR = JBoxCfg.dckr
         SessContainer.DCKR_IMAGE = JBoxCfg.get('interactive.docker_image')
         SessContainer.MEM_LIMIT = JBoxCfg.get('interactive.mem_limit')
+
+        SessContainer.ULIMITS = []
+        limits = JBoxCfg.get('interactive.ulimits')
+        for (n, v) in limits.iteritems():
+            SessContainer.ULIMITS.append(Ulimit(name=n, soft=v, hard=v))
+
         SessContainer.CPU_LIMIT = JBoxCfg.get('interactive.cpu_limit')
         SessContainer.MAX_CONTAINERS = JBoxCfg.get('interactive.numlocalmax')
 
@@ -64,7 +72,8 @@ class SessContainer(BaseContainer):
         port_bindings = {p: ('127.0.0.1',) for p in SessContainer.PORTS}
         hostcfg = docker.utils.create_host_config(binds=vols,
                                                   port_bindings=port_bindings,
-                                                  mem_limit=SessContainer.MEM_LIMIT)
+                                                  mem_limit=SessContainer.MEM_LIMIT,
+                                                  ulimits=SessContainer.ULIMITS)
         jsonobj = BaseContainer.DCKR.create_container(SessContainer.DCKR_IMAGE,
                                                           detach=True,
                                                           host_config=hostcfg,

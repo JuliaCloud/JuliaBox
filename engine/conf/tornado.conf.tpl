@@ -34,7 +34,9 @@
         # Maximum number of requests in queue before rejecting new requests
         "numapilocalmax" : 5,
         # Seconds to wait before force deleting a non-responding container
-        "expire" : 1800
+        "expire" : 1800,
+        # ulimit for container, set as both hard and soft limit
+        "ulimits" : { "nofile": 1024 }
     },
 
     # interactive container configuration
@@ -52,7 +54,9 @@
         # Seconds to wait before clearing an inactive session, for example, when the user closes the browser window
         "inactivity_timeout" : 300,
         # Upper time limit for a user session before it is auto-deleted. 0 means never expire
-        "expire" : 0
+        "expire" : 0,
+        # ulimit for container, set as both hard and soft limit
+        "ulimits" : { "nofile": 1024 }
     },
 
     # if using Google auth, the API key and secret to use
