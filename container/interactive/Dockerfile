@@ -10,6 +10,9 @@ MAINTAINER Tanmay Mohapatra
 RUN ln -fs /opt/julia/bin/julia /usr/bin/julia
 RUN git clone https://github.com/tanmaykm/shellinabox_fork.git; cd shellinabox_fork; ./configure; make install; cd ..; rm -rf shellinabox_fork
 
+# CloudArray dependencies
+RUN apt-get install -y sshpass
+
 # add juser
 # create group and user with specific ids if required on systems where the user running juliabox is not the first user
 RUN groupadd juser \

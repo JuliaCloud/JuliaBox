@@ -45,10 +45,11 @@ include_packages "0.3" "$INTERNAL_PACKAGES" "clone"
 list_packages "0.3"
 
 # Install packages for Julia 0.4 and 0.5
-DEFAULT_PACKAGES="IJulia"
+DEFAULT_PACKAGES="IJulia Requests DistributedArrays"
 
 INTERNAL_PACKAGES="https://github.com/tanmaykm/JuliaBoxUtils.jl.git \
 https://github.com/tanmaykm/JuliaWebAPI.jl.git \
+https://github.com/gsd-ufal/CloudArray.jl.git \
 https://github.com/shashi/Homework.jl.git"
 
 for ver in 0.4 0.5
