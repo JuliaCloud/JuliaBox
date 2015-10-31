@@ -89,6 +89,8 @@ The following procedure will configure a system without authentication, designed
 	- Create work folders:
 		- Execute `sudo mkdir -p /jboxengine/conf /jboxengine/data/db /jboxengine/data/disks/host`.
 		- Take ownership `sudo chown -R $USER: /jboxengine`.
+	- Ensure that the system is accessible on the browser with a FQDN that it resolves to from within the machine
+		- This typically needs an appropriate entry in the system `hosts` file.
 
 
 2. JuliaBox configuration.

@@ -364,6 +364,7 @@ class JBoxd(LoggerMixin):
 
         if VolMgr.has_update_for_user_home_image():
             VolMgr.update_user_home_image(fetch=False)
+            VolMgr.refresh_user_home_image()
 
         while True:
             self.log_debug("JBox daemon waiting for commands...")

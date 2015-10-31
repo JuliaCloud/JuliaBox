@@ -209,9 +209,9 @@ class CompEC2(JBPluginCloud):
     def can_terminate(is_leader):
         uptime = CompEC2._uptime_minutes()
 
-        # if uptime less than hour and half return false
-        if uptime < 90:
-            CompEC2.log_debug("not terminating as uptime (%r) < 90", uptime)
+        # if uptime less than hour return false
+        if uptime < 50:
+            CompEC2.log_debug("not terminating as uptime (%r) < 50", uptime)
             return False
 
         # cluster leader stays
@@ -250,6 +250,15 @@ class CompEC2(JBPluginCloud):
             # exclude machines with load <= avg_load and load >= 100
             filtered_nodes = [k for k, v in cluster_load.iteritems() if 100 > v > avg_load]
 
+            if len(filtered_nodes) == 0:
+                # exclude the least loaded machine and machines with load >= 100
+                least_load = min(cluster_load.values())
+                filtered_nodes = [k for k, v in cluster_load.iteritems() if 100 > v > least_load]
+
+            if len(filtered_nodes) == 0:
+                # just remove machines loaded at 100%
+                filtered_nodes = [k for k, v in cluster_load.iteritems() if 100 > v]
+
         if len(filtered_nodes) == 0:
             filtered_nodes = cluster_load.keys()
 
@@ -259,11 +268,16 @@ class CompEC2(JBPluginCloud):
 
     @staticmethod
     def should_accept_session(is_leader):
-        self_load = CompEC2.get_instance_stats(CompEC2.get_instance_id(), 'Load')
+        self_instance_id = CompEC2.get_instance_id()
+        self_load = CompEC2.get_instance_stats(self_instance_id, 'Load')
         CompEC2.log_debug("Self load: %r", self_load)
 
         cluster_load = CompEC2.get_cluster_stats('Load')
         CompEC2.log_debug("Cluster load: %r", cluster_load)
+
+        # add self to cluster if not yet registered in cluster stats
+        if self_instance_id not in cluster_load.keys():
+            cluster_load[self_instance_id] = self_load
 
         # remove machines with older AMIs
         cluster_load = {k: v for k, v in cluster_load.iteritems() if CompEC2.get_image_recentness(k) >= 0}
@@ -300,6 +314,7 @@ class CompEC2(JBPluginCloud):
             CompEC2.log_debug("Accepting: only instance (new AMI)")
             return True
 
+        filtered_nodes = []
         if avg_load >= 50:
             if self_load >= avg_load:
                 CompEC2.log_debug("Accepting: not least loaded (self load >= avg)")
@@ -307,7 +322,8 @@ class CompEC2(JBPluginCloud):
 
             # exclude machines with load >= avg_load
             filtered_nodes = [k for k, v in cluster_load.iteritems() if v < avg_load]
-        else:
+
+        if len(filtered_nodes) == 0:
             filtered_nodes = cluster_load.keys()
 
         # at low load values, sorting by load will be inaccurate, sort alphabetically instead
