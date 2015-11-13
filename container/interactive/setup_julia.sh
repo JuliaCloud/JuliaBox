@@ -14,6 +14,7 @@ function include_packages {
         echo ""
         echo "$METHOD package $PKG to Julia $JULIA_VER ..."
         /opt/julia-${JULIA_VER}/bin/julia -e "Pkg.${METHOD}(\"$PKG\")"
+        /opt/julia-${JULIA_VER}/bin/julia -e "Pkg.build(\"$PKG\")"
     done
 }
 

@@ -1,7 +1,7 @@
 # Docker file for JuliaBox APIs
-# Version:37
+# Version:38
 
-FROM julialang/juliaboxpkgdist:v0.3.11
+FROM julialang/juliaboxpkgdist:v0.3.12
 
 MAINTAINER Tanmay Mohapatra
 
@@ -14,13 +14,13 @@ RUN groupadd juser \
     && echo "export HOME=/home/juser" >> /home/juser/.bashrc
 
 # link Julia v0.3
-RUN ln -fs /opt/julia_0.3.11 /opt/julia-0.3.11 && \
-    ln -fs /opt/julia-0.3.11 /opt/julia-0.3
+RUN ln -fs /opt/julia_0.3.12 /opt/julia-0.3.12 && \
+    ln -fs /opt/julia-0.3.12 /opt/julia-0.3
 
 # add Julia v0.4 build
-RUN mkdir -p /opt/julia-0.4.0 && \
-    curl -s -L https://julialang.s3.amazonaws.com/bin/linux/x64/0.4/julia-0.4.0-linux-x86_64.tar.gz | tar -C /opt/julia-0.4.0 -x -z --strip-components=1 -f -
-RUN ln -fs /opt/julia-0.4.0 /opt/julia-0.4
+RUN mkdir -p /opt/julia-0.4.1 && \
+    curl -s -L https://julialang.s3.amazonaws.com/bin/linux/x64/0.4/julia-0.4.1-linux-x86_64.tar.gz | tar -C /opt/julia-0.4.1 -x -z --strip-components=1 -f -
+RUN ln -fs /opt/julia-0.4.1 /opt/julia-0.4
 
 # add Julia v0.5 nightly build
 RUN mkdir -p /opt/julia-0.5.0-dev && \
