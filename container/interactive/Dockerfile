@@ -36,8 +36,8 @@ RUN ln -fs /opt/julia-0.5.0-dev /opt/julia-0.5
 # JuliaBox package bundle shall be mounted at /opt/julia_packages.
 # They are added to LOAD_PATH through respective juliarc.jl scripts.
 RUN mkdir /opt/julia_packages
-RUN echo 'push!(LOAD_PATH, "/opt/julia_packages/.julia/v0.5/"); try using JuliaBoxUtils; JuliaBoxUtils.SysLim.setrlimit(JuliaBoxUtils.SysLim.RLIMIT_NOFILE, 256) end' >> /opt/julia-0.5/etc/julia/juliarc.jl
-RUN echo 'push!(LOAD_PATH, "/opt/julia_packages/.julia/v0.4/"); try using JuliaBoxUtils; JuliaBoxUtils.SysLim.setrlimit(JuliaBoxUtils.SysLim.RLIMIT_NOFILE, 256) end' >> /opt/julia-0.4/etc/julia/juliarc.jl
+RUN echo 'push!(LOAD_PATH, "/opt/julia_packages/.julia/v0.5/"); push!(Base.LOAD_CACHE_PATH, "/opt/julia_packages/.julia/lib/v0.5"); try using JuliaBoxUtils; JuliaBoxUtils.SysLim.setrlimit(JuliaBoxUtils.SysLim.RLIMIT_NOFILE, 256) end' >> /opt/julia-0.5/etc/julia/juliarc.jl
+RUN echo 'push!(LOAD_PATH, "/opt/julia_packages/.julia/v0.4/"); push!(Base.LOAD_CACHE_PATH, "/opt/julia_packages/.julia/lib/v0.4"); try using JuliaBoxUtils; JuliaBoxUtils.SysLim.setrlimit(JuliaBoxUtils.SysLim.RLIMIT_NOFILE, 256) end' >> /opt/julia-0.4/etc/julia/juliarc.jl
 RUN echo 'push!(LOAD_PATH, "/opt/julia_packages/.julia/v0.3/"); try using JuliaBoxUtils; JuliaBoxUtils.SysLim.setrlimit(JuliaBoxUtils.SysLim.RLIMIT_NOFILE, 256) end' >> /opt/julia-0.3/etc/julia/juliarc.jl
 
 # Data volumes shall be mounted at /mnt/data
