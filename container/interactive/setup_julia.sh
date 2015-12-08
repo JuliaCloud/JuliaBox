@@ -14,7 +14,10 @@ function include_packages {
         echo ""
         echo "$METHOD package $PKG to Julia $JULIA_VER ..."
         /opt/julia-${JULIA_VER}/bin/julia -e "Pkg.${METHOD}(\"$PKG\")"
-        /opt/julia-${JULIA_VER}/bin/julia -e "Pkg.build(\"$PKG\")"
+        if [ ${METHOD} == "add" ]
+        then
+            /opt/julia-${JULIA_VER}/bin/julia -e "Pkg.build(\"$PKG\")"
+        fi
     done
 }
 
@@ -34,10 +37,9 @@ Optim JuMP GLPKMathProgInterface Clp NLopt Ipopt \
 Cairo GraphViz \
 Images ImageView WAV ODE Sundials LinearLeastSquares \
 BayesNets PGFPlots GraphLayout \
-Stan Patchwork Quandl Lazy QuantEcon MixedModels Escher"
+Stan Patchwork Quandl Lazy QuantEcon MixedModels Escher JuliaWebAPI"
 
 INTERNAL_PACKAGES="https://github.com/tanmaykm/JuliaBoxUtils.jl.git \
-https://github.com/tanmaykm/JuliaWebAPI.jl.git \
 https://github.com/shashi/Homework.jl.git"
 
 init_packages "0.3"
@@ -49,7 +51,6 @@ list_packages "0.3"
 DEFAULT_PACKAGES="IJulia"
 
 INTERNAL_PACKAGES="https://github.com/tanmaykm/JuliaBoxUtils.jl.git \
-https://github.com/tanmaykm/JuliaWebAPI.jl.git \
 https://github.com/shashi/Homework.jl.git"
 
 for ver in 0.4 0.5
