@@ -47,7 +47,6 @@ RUN pip install tornado \
     boto \
     pycrypto \
     psutil \
-    cli53 \
     sh \
     pyzmq \
     docker-py

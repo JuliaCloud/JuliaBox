@@ -1,5 +1,5 @@
 # Docker file for JuliaBox
-# Version:38
+# Version:39
 
 FROM julialang/juliaboxpkgdist:v0.3.12
 # Switching the base to the bare julia image helps during JuliaBox development by reducing image size
@@ -23,10 +23,10 @@ RUN groupadd juser \
 RUN ln -fs /opt/julia_0.3.12 /opt/julia-0.3.12 && \
     ln -fs /opt/julia-0.3.12 /opt/julia-0.3
 
-# add Julia v0.4.1 build
-RUN mkdir -p /opt/julia-0.4.1 && \
-    curl -s -L https://julialang.s3.amazonaws.com/bin/linux/x64/0.4/julia-0.4.1-linux-x86_64.tar.gz | tar -C /opt/julia-0.4.1 -x -z --strip-components=1 -f -
-RUN ln -fs /opt/julia-0.4.1 /opt/julia-0.4
+# add Julia v0.4.2 build
+RUN mkdir -p /opt/julia-0.4.2 && \
+    curl -s -L https://julialang.s3.amazonaws.com/bin/linux/x64/0.4/julia-0.4.2-linux-x86_64.tar.gz | tar -C /opt/julia-0.4.2 -x -z --strip-components=1 -f -
+RUN ln -fs /opt/julia-0.4.2 /opt/julia-0.4
 
 # add Julia v0.5 nightly build
 RUN mkdir -p /opt/julia-0.5.0-dev && \

@@ -1,12 +1,12 @@
 import socket
 import signal
 import datetime
-import tempfile
 import os
 
 import tornado.ioloop
 import tornado.web
 import tornado.auth
+from tornado.httpclient import AsyncHTTPClient
 
 from cloud import Compute, JBPluginCloud
 import db
@@ -56,6 +56,9 @@ class JBox(LoggerMixin):
         self.log_info("Container maintenance every " + str(run_interval / (60 * 1000)) + " minutes")
         self.ct = tornado.ioloop.PeriodicCallback(JBox.do_housekeeping, run_interval, self.ioloop)
         self.sigct = tornado.ioloop.PeriodicCallback(JBox.do_signals, 1000, self.ioloop)
+
+        # or configure cacerts
+        AsyncHTTPClient.configure(None, defaults=dict(validate_cert=None))
 
     @staticmethod
     def get_pluggedin_features():
