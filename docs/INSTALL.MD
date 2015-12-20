@@ -14,7 +14,7 @@ Installing JuliaBox on a single machine consists of five principal steps, the sp
 	- configuration and launch of Docker.
 
 	Finally, the necessary work folders to store data & configuration items must be created.
-	
+
 2. JuliaBox configuration.
 
 	The `jbox.user` JuliaBox configuration file is created according to templates provided later in this document. This file sets:
@@ -23,9 +23,9 @@ Installing JuliaBox on a single machine consists of five principal steps, the sp
 	- the plugins to be used for this deployment.
 
 	The `jbox_configure.sh` script is executed to configure the JuliaBox installation secret (used as part of encryption key for signing and encrypting session data), and to move the server configuration templates to the work directories (from where they will be mounted by the Docker containers).
-	
+
 	On multiuser installations, if it is required to impose limits on available disk space, the `mount_fs.sh` script is executed to configure user home directories. The location, size and number of directories is specified to the script which:
-	
+
 	- makes subdirectories to store disk images and form mount points,
 	- creates and formats blank disk images in each subdirectory,
 	- changes ownership of the disk images to the current user, and,
@@ -42,31 +42,31 @@ Installing JuliaBox on a single machine consists of five principal steps, the sp
 	- archives the packages and temporary home directory to the work directory, for deployment when a new user logs in.
 
 	The Dockerfiles specifies a base Julia image upon which the JuliaBox image is created. To acquire the base Julia image, you may either pull an existing image from DockerHub, or, build an image from a Dockerfile. Suitable Dockerfiles, configuration scripts, and instructions are hosted [here](https://github.com/tanmaykm/JuliaDockerImages).
-	
+
 	There are two ways in which default packages can be included in a deployment,
-	
-	- by building a custom base Julia image with the desired packages, or, 
+
+	- by building a custom base Julia image with the desired packages, or,
 	- by modifying `setup_julia.sh` to add the desired packages during creation of the JuliaBox image.
 
 	If choosing the latter option, ensure that any libraries required by your packages are included in the base Julia image.
-	
+
 	NOTE: The JuliaBox Dockerfile also automatically downloads and installs a nightly version of Julia into the container (apart from the latest stable version). Packages can also be installed for this version by modifying the `setup_julia.sh` script.
 
 4. *JuliaBox services* Docker image creation.
 
 	JuliaBox service Docker images are also built and tagged by the `img_create.sh` script. Four images, the role of each being detailed in the [architecture document](Architecture.md), are built:
-	
+
 	- webserver, the 'router',
 	- enginebase, upon which are based:
 		- enginedaemon, the 'container manager', and,
 		- engineinteractive, the 'interactive session manager'.
 		- engineapi, the 'REST API manager'.
-	
+
 5. JuliaBox database preperation.
 
 	The JuliaBox database is initialised using the provided `create_tables_*` script, which creates the required tables in the database system chosen for use.
-	
-JuliaBox is now ready to be launched using the scripts provided in the distribution.	
+
+JuliaBox is now ready to be launched using the scripts provided in the distribution.
 ## Single-machine setup
 
 Before commencing installation:
@@ -90,8 +90,7 @@ The following procedure will configure a system without authentication, designed
 		- Execute `sudo mkdir -p /jboxengine/conf /jboxengine/data/db /jboxengine/data/disks/host`.
 		- Take ownership `sudo chown -R $USER: /jboxengine`.
 	- Ensure that the system is accessible on the browser with a FQDN that it resolves to from within the machine
-		- This typically needs an appropriate entry in the system `hosts` file.
-
+		- This typically needs an appropriate entry in the system `hosts` file, i.e. add a line with the host name and the actual IP of the network interface.
 
 2. JuliaBox configuration.
     - Create a configuration file `/jboxengine/conf/jbox.user` as: <pre>
@@ -117,24 +116,25 @@ The following procedure will configure a system without authentication, designed
 		- Run `JuliaBox/scripts/install/jbox_configure.sh`.
 
 3. *JuliaBox* Docker image creation.
-	
+
 	- Acquire a base Julia image. This can be achieved by pulling an existing image, or building from a specified Dockerfile.
 
 		- To pull an image:
 			- [Review available images](https://github.com/tanmaykm/JuliaDockerImages)
-			- Pull selected image, e.g., `sudo docker pull julialang/julia:v0.3.11`
-			
+			- Pull selected image, e.g., `sudo docker pull julialang/julia:v0.3.12`
+			- Note that it is recommended to use the base image version referenced in Dockerfile in the repository. Later versions are pulled in automatically during image building.
+
 		- To build an image:
 			- Run `docker pull ubuntu:14.04`.
 			- Clone template Dockerfiles: `git clone https://github.com/tanmaykm/JuliaDockerImages.git`.
 			- Follow instructions in repository to build and tag images.
-	
+
 	- Build JuliaBox image on top of selected base image:
 		- Modify `FROM` in `JuliaBox/container/interactive/Dockerfile` and `JuliaBox/container/api/Dockerfile` to point to the correct base image.
 		- Modify `DEFAULT_PACKAGES` in `JuliaBox/container/interactive/setup_julia.sh` to add any desired packages not included in your base image.
 		- Run `JuliaBox/scripts/install/img_create.sh cont build`
 		- Run `JuliaBox/scripts/install/img_create.sh home /jboxengine/data`
-	
+
 4. *JuliaBox services* Docker image creation.
 	- If gid of the docker group on the host machine is not 999 (the default on most systems), update `engine/Dockerfile.base` accordingly.
 	- Run `JuliaBox/scripts/install/img_create.sh jbox`
@@ -155,7 +155,7 @@ The following procedure will configure a system without authentication, designed
     - Add "max_loop=64" to GRUB_CMDLINE_LINUX in file "/etc/default/grub". Replace 64 with an appropriate number.
     - Run `sudo update-grub`.
     - Reboot.
-    
+
 3. Sign-up for using [Google Identity](https://developers.google.com/identity/), get the OAuth key and secret to use, and enable the JuliaBox authorisation redirect.
 	- In the [Google Developers Console](https://console.developers.google.com) navigate to to the 'Credentials' panel within 'APIs & Auth'.
 	- Add a new credential, selecting 'OAuth 2.0 client ID', choose the 'Web application' credential type.
