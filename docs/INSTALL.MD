@@ -3,7 +3,7 @@
 JuliaBox is developed and tested on Ubuntu 14.04. But it should be easy to adapt to any Linux environment supporting Docker.
 
 ## Installation overview
-Installing JuliaBox on a single machine consists of five principal steps, the specifics of which vary depending upon the desired configuration. The following is a general overview of the process, and the key scripts and files involved. It may be useful to consult the included [architecture document](Architecture.md) to gain a high-level overview of JuliaBox before reading these instructions.
+Installing JuliaBox on a single machine consists of five principal steps, the specifics of which vary depending upon the desired configuration. The following is a general overview of the process, and the key scripts and files involved. It may be useful to consult the included [architecture document](Architecture.md) to gain a high-level overview of JuliaBox before reading these instructions. Some common problems experienced during installation are addressed at the end of this document.
 
 1. System preparation.
 
@@ -193,3 +193,18 @@ The following procedure will configure a system without authentication, designed
 ## AWS Cluster Setup
 
 TODO
+
+## Known issues and frequently asked questions
+	
+-  After starting JuliaBox, a blank page is served [(#343)](https://github.com/JuliaLang/JuliaBox/issues/343)
+	- Running ```docker ps``` shows that only the ```webserver``` routing engine is running.
+	- ```JuliaBox/engine/logs/engineinteractive.log``` reveals that containers have failed to start with the error ```Error response from daemon: Could not find container for entity id ...```.
+ 
+ This problem appears to be caused by the corruption of Docker's SQLite database which links the names and internal IDs of Docker containers. Removing the corrupt database has been shown to fix this problem, but care must be taken in a production environment, as the consequences of this action are unknown.
+ ```
+JuliaBox/scripts/run/stop.sh
+sudo service docker stop
+sudo mv /var/lib/docker/linkgraph.db linkgraph.old
+sudo service docker start
+JuliaBox/scripts/run/start.sh
+```
