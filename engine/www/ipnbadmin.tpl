@@ -173,8 +173,11 @@ JuliaBox version: {{d["juliaboxver"]}} <br/>
 Julia versions and packages: <a href="#" class="showpackages" id="showpackages-0.3">0.3</a> | <a href="#" class="showpackages" id="showpackages-0.4">0.4</a> | <a href="#" class="showpackages" id="showpackages-0.5">0.5</a><br/>
 <p>
 	<br/>
-	Note: A conflict between system packages those installed by you may cause errors and failures while starting notebooks.<br/>
+	<b>Kernel failing to initialise?</b>
+	<p> 
+	A conflict between system packages those installed by you may cause errors and failures while starting notebooks.<br/>
 	In such cases, delete/update conflicting packages or <a href="#" id="delpackages">click here</a> to go back to using system installed packages only.<br/>
+	</p>
 </p>
 <br/>
 
