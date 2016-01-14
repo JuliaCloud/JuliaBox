@@ -50,7 +50,7 @@ Installing JuliaBox on a single machine consists of five principal steps, the sp
 
 	If choosing the latter option, ensure that any libraries required by your packages are included in the base Julia image.
 
-	NOTE: The JuliaBox Dockerfile also automatically downloads and installs a nightly version of Julia into the container (apart from the latest stable version). Packages can also be installed for this version by modifying the `setup_julia.sh` script.
+	NOTE: The default JuliaBox Dockerfile is based upon the Julia 0.3.x series, but also downloads and installs the most recent release in the 0.4.x series, in addition to a nightly version of 0.5-dev. Packages can also be installed for these versions by modifying the `setup_julia.sh` script.
 
 4. *JuliaBox services* Docker image creation.
 
@@ -116,22 +116,9 @@ The following procedure will configure a system without authentication, designed
 		- Run `JuliaBox/scripts/install/jbox_configure.sh`.
 
 3. *JuliaBox* Docker image creation.
-
-	- Acquire a base Julia image. This can be achieved by pulling an existing image, or building from a specified Dockerfile.
-
-		- To pull an image:
-			- [Review available images](https://github.com/tanmaykm/JuliaDockerImages)
-			- Pull selected image, e.g., `sudo docker pull julialang/julia:v0.3.12`
-			- Note that it is recommended to use the base image version referenced in Dockerfile in the repository. Later versions are pulled in automatically during image building.
-
-		- To build an image:
-			- Run `docker pull ubuntu:14.04`.
-			- Clone template Dockerfiles: `git clone https://github.com/tanmaykm/JuliaDockerImages.git`.
-			- Follow instructions in repository to build and tag images.
-
 	- Build JuliaBox image on top of selected base image:
-		- Modify `FROM` in `JuliaBox/container/interactive/Dockerfile` and `JuliaBox/container/api/Dockerfile` to point to the correct base image.
-		- Modify `DEFAULT_PACKAGES` in `JuliaBox/container/interactive/setup_julia.sh` to add any desired packages not included in your base image.
+		- Optionally modify `FROM` in `JuliaBox/container/interactive/Dockerfile` and `JuliaBox/container/api/Dockerfile` to point to the desired base image (you may [review suitable  images here](https://github.com/tanmaykm/JuliaDockerImages), or build your own: see FAQ). The default is suitable in most cases.
+		- Optionally modify `DEFAULT_PACKAGES` in `JuliaBox/container/interactive/setup_julia.sh` to add any desired packages not included in your base image. The default is suitable in most cases.
 		- Run `JuliaBox/scripts/install/img_create.sh cont build`
 		- Run `JuliaBox/scripts/install/img_create.sh home /jboxengine/data`
 
@@ -157,8 +144,8 @@ The following procedure will configure a system without authentication, designed
     - Reboot.
 
 3. Sign-up for using [Google Identity](https://developers.google.com/identity/), get the OAuth key and secret to use, and enable the JuliaBox authorisation redirect.
-	- In the [Google Developers Console](https://console.developers.google.com) navigate to to the 'Credentials' panel within 'APIs & Auth'.
-	- Add a new credential, selecting 'OAuth 2.0 client ID', choose the 'Web application' credential type.
+	- In the [Google Developers Console](https://console.developers.google.com) navigate to to the 'Credentials' panel within the 'APIs Manager'.
+	- Add a new credential, selecting 'OAuth client ID', choose the 'Web application' credential type.
 	- Under 'Authorized redirect URIs' enter: `FQDN/jboxauth/google/`, replacing `FQDN` with the correct fully qualified domain name of your server.
 	- Note the 'Client ID' and 'Client secret', and save your changes.
 
@@ -194,7 +181,7 @@ The following procedure will configure a system without authentication, designed
 
 TODO
 
-## Known issues and frequently asked questions
+## Known issues 
 	
 -  After starting JuliaBox, a blank page is served [(#343)](https://github.com/JuliaLang/JuliaBox/issues/343)
 	- Running ```docker ps``` shows that only the ```webserver``` routing engine is running.
@@ -208,3 +195,12 @@ sudo mv /var/lib/docker/linkgraph.db linkgraph.old
 sudo service docker start
 JuliaBox/scripts/run/start.sh
 ```
+
+## Frequently asked questions
+
+ - How do I build a custom Dockerfile base image, upon which the appropraite containers are built?
+   
+	The easiest solutiuon is to construct a custom image based upon existing templates:
+	- Run `docker pull ubuntu:14.04`.
+	- Clone template Dockerfiles: `git clone https://github.com/tanmaykm/JuliaDockerImages.git`.
+	- Follow instructions in repository to build and tag images.
