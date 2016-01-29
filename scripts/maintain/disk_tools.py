@@ -9,34 +9,36 @@ import pytz
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "engine", "src"))
 
-from juliabox.plugins.bucket_s3 import JBoxS3
+from juliabox.cloud import JBPluginCloud
 from juliabox.jbox_util import LoggerMixin, unique_sessname, JBoxCfg
 from juliabox.vol import JBoxVol, VolMgr
 from juliabox import db
 
 
-class S3Disk(LoggerMixin):
+class JBoxDisk(LoggerMixin):
+    PLUGIN = None
+
     @staticmethod
     def rename_and_delete(user_email):
         sessname = unique_sessname(user_email)
         renamed_sessname = sessname + '_old'
-        JBoxS3.move(sessname + ".tar.gz", renamed_sessname + ".tar.gz", JBoxVol.BACKUP_BUCKET)
+        JBoxDisk.PLUGIN.move(sessname + ".tar.gz", renamed_sessname + ".tar.gz", JBoxVol.BACKUP_BUCKET)
 
     @staticmethod
     def delete(user_email):
         sessname = unique_sessname(user_email)
-        JBoxS3.delete(JBoxVol.BACKUP_BUCKET, sessname + ".tar.gz")
+        JBoxDisk.PLUGIN.delete(JBoxVol.BACKUP_BUCKET, sessname + ".tar.gz")
 
     @staticmethod
     def pull_backup(user_email):
         sessname = unique_sessname(user_email)
-        S3Disk.log_info("pulling %s.tar.gz from %s", sessname, JBoxVol.BACKUP_BUCKET)
-        JBoxS3.pull(JBoxVol.BACKUP_BUCKET, sessname + ".tar.gz", metadata_only=False)
+        JBoxDisk.log_info("pulling %s.tar.gz from %s", sessname, JBoxVol.BACKUP_BUCKET)
+        JBoxDisk.PLUGIN.pull(JBoxVol.BACKUP_BUCKET, sessname + ".tar.gz", metadata_only=False)
 
     @staticmethod
     def push_backup(user_email, disk_path):
         sessname = unique_sessname(user_email)
-        S3Disk.log_info("pushing %s.tar.gz from %s to %s", sessname, disk_path, JBoxVol.BACKUP_BUCKET)
+        JBoxDisk.log_info("pushing %s.tar.gz from %s to %s", sessname, disk_path, JBoxVol.BACKUP_BUCKET)
 
         bkup_file = os.path.join('/tmp', sessname + ".tar.gz")
         bkup_tar = tarfile.open(bkup_file, 'w:gz')
@@ -56,20 +58,21 @@ class S3Disk(LoggerMixin):
         bkup_tar.close()
         os.chmod(bkup_file, 0666)
 
-        # Upload to S3 if so configured. Delete from local if successful.
+        # Upload to cloud storage if so configured. Delete from local if successful.
         bkup_file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(bkup_file), pytz.utc) + \
             datetime.timedelta(seconds=JBoxVol.LOCAL_TZ_OFFSET)
         if JBoxVol.BACKUP_BUCKET is not None:
-            if JBoxS3.push(JBoxVol.BACKUP_BUCKET, bkup_file,
-                           metadata={'backup_time': bkup_file_mtime.isoformat()}) is not None:
+            if JBoxDisk.PLUGIN.push(JBoxVol.BACKUP_BUCKET, bkup_file,
+                                    metadata={'backup_time': bkup_file_mtime.isoformat()}) is not None:
                 os.remove(bkup_file)
-                S3Disk.log_info("Moved backup to S3 " + sessname)
+                JBoxDisk.log_info("Moved backup to cloud " + sessname)
 
     @staticmethod
     def init():
         LoggerMixin.configure()
         db.configure()
         VolMgr.configure()
+        JBoxDisk.PLUGIN = JBPluginCloud.jbox_get_plugin(JBPluginCloud.JBP_BUCKETSTORE)
 
 
 def process_args(argv):
@@ -80,17 +83,17 @@ def process_args(argv):
         print("\t%s <rename> <user>" % (argv[0],))
         print("\t%s <delete> <user>" % (argv[0],))
         exit(1)
-    S3Disk.init()
+    JBoxDisk.init()
     cmd = argv[1]
     user = argv[2]
     if cmd == 'pull':
-        S3Disk.pull_backup(user)
+        JBoxDisk.pull_backup(user)
     elif cmd == 'push':
-        S3Disk.push_backup(user, argv[3])
+        JBoxDisk.push_backup(user, argv[3])
     elif cmd == 'rename':
-        S3Disk.rename_and_delete(user)
+        JBoxDisk.rename_and_delete(user)
     elif cmd == 'delete':
-        S3Disk.delete(user)
+        JBoxDisk.delete(user)
 
     print("Done")
 
