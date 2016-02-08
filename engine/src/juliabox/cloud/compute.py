@@ -52,6 +52,7 @@ class JBPluginCloud(LoggerMixin):
 
     JBP_BUCKETSTORE = "cloud.bucketstore"
     JBP_BUCKETSTORE_S3 = "cloud.bucketstore.s3"
+    JBP_BUCKETSTORE_GS = "cloud.bucketstore.gs"
 
     JBP_DNS = "cloud.dns"
     JBP_DNS_ROUTE53 = "cloud.dns.route53"
