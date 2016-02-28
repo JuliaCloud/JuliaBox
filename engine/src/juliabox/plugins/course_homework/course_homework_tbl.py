@@ -27,7 +27,11 @@ class JBoxCourseHomework(JBPluginDB):
     ATTRIBUTES = ['course_id', 'problemset_id', 'question_id',
                   'answer', 'explanation', 'attempts', 'score',
                   'state', 'create_time']
-
+    SQL_INDEXES = None
+    KEYS_TYPES = [JBPluginDB.INT, JBPluginDB.VCHAR]
+    TYPES = [JBPluginDB.INT, JBPluginDB.INT, JBPluginDB.INT,
+             JBPluginDB.VCHAR, JBPluginDB.VCHAR, JBPluginDB.INT, JBPluginDB.INT,
+             JBPluginDB.INT, JBPluginDB.INT]
     SEP = '|'
     ANSWER_KEY = '-'
 

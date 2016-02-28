@@ -10,6 +10,8 @@ class JBoxDBItemNotFound(Exception):
 
 class JBoxDB(LoggerMixin):
     DB_IMPL = None
+    INT = 'INT'
+    VCHAR = 'VARCHAR(200)'
 
     @staticmethod
     def configure():
@@ -115,10 +117,12 @@ class JBPluginDB(JBoxDB):
     JBP_DB = "db"
     JBP_DB_DYNAMODB = "db.dynamodb"
     JBP_DB_RDBMS = "db.rdbms"
+    JBP_DB_CLOUDSQL = "db.cloudsql"
 
     JBP_TABLE = "db.table"
     JBP_TABLE_DYNAMODB = "db.table.dynamodb"
     JBP_TABLE_RDBMS = "db.table.rdbms"
+    JBP_TABLE_CLOUDSQL = "db.table.cloudsql"
 
     JBP_USAGE_ACCOUNTING = "db.usage.accounting"
 
