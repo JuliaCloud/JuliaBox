@@ -25,7 +25,14 @@ class JBoxAPISpec(JBoxDB):
     TABLE = None
 
     KEYS = ['api_name']
-    ATTRIBUTES = ['publisher', 'cmd', 'image_name', 'description', 'timeout_secs', 'create_time']
+    ATTRIBUTES = ['publisher', 'cmd', 'image_name', 'description',
+                  'timeout_secs', 'create_time']
+    SQL_INDEXES = [
+        {'name': 'publisher-api_name-index', 'cols': ['publisher', 'api_name']}
+    ]
+    KEYS_TYPES = [JBoxDB.VCHAR]
+    TYPES = [JBoxDB.VCHAR, JBoxDB.VCHAR, JBoxDB.VCHAR, JBoxDB.VCHAR,
+             JBoxDB.INT, JBoxDB.INT]
 
     def __init__(self, api_name, cmd=None, image_name=None, description=None,
                  publisher=None, timeout_secs=None, create=False):

@@ -36,6 +36,7 @@ RUN apt-get update \
     python-tz \
     libzmq3-dev \
     language-pack-en-base \
+    libmysqlclient-dev \
     && apt-get clean
 
 ENV LANG en_US.utf8
@@ -49,7 +50,8 @@ RUN pip install tornado \
     psutil \
     sh \
     pyzmq \
-    docker-py
+    docker-py \
+    MySQL-python
 
 # Create docker group and juser which will run the engine.
 # Note: Assumption of docker gid=999 may not be true always. But this is better than a 777 permission on the docker socket.

@@ -19,6 +19,9 @@ class JBoxSessionProps(JBoxDB):
 
     KEYS = ['session_id']
     ATTRIBUTES = ['user_id', 'snapshot_id', 'message']
+    SQL_INDEXES = None
+    KEYS_TYPES = [JBoxDB.VCHAR]
+    TYPES = [JBoxDB.VCHAR, JBoxDB.VCHAR, JBoxDB.VCHAR]
 
     def __init__(self, session_id, create=False, user_id=None):
         try:
