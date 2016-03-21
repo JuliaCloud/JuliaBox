@@ -26,7 +26,7 @@ function sysinstall_pystuff {
 function sysinstall_libs {
     # Stuff required for docker, and tornado
     sudo apt-get -y update
-    sudo apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev netcat git python-setuptools supervisor python-dev python-isodate python-pip python-tz libzmq-dev
+    sudo apt-get -y install build-essential libreadline-dev libncurses-dev libpcre3-dev libssl-dev netcat git python-setuptools supervisor python-dev python-isodate python-pip python-tz libzmq-dev libmysqlclient-dev
 }
 
 function sysinstall_docker {
@@ -60,10 +60,17 @@ function configure_docker {
     sleep 1
 }
 
+function configure_cloudsql {
+    docker pull b.gcr.io/cloudsql-docker/gce-proxy
+    sudo mkdir /cloudsql
+    sudo chmod 777 /cloudsql
+}
+
 sysinstall_libs
 sysinstall_docker
 sysinstall_pystuff
 configure_docker
+# configure_cloudsql           # Uncomment if using Google CloudSQL
 echo
 echo "DONE!"
  

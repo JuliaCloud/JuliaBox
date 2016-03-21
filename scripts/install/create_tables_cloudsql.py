@@ -47,10 +47,14 @@ def indexes_create(table_name, indexes):
 
 def get_connection():
     # Copy from /jboxengine/conf/jbox.user
-    user = 'user'
-    passwd = 'passwd'
-    unix_socket = '/cloudsql/project:region:sqlinstance'
-    db = 'JuliaBox'
+    conf = None
+    with open('/jboxengine/conf/jbox.user') as f:
+        conf = eval(f.read())
+    db = conf['db']
+    user = db['user']
+    passwd = db['passwd']
+    unix_socket = db['unix_socket']
+    db = db['db']
     return MySQLdb.connect(user=user, passwd=passwd, db=db, unix_socket=unix_socket)
 
 conn = get_connection()

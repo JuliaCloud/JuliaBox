@@ -1,10 +1,8 @@
 # Google Cloud SQL
 
-Pull the cloudsql proxy docker image:
+Uncomment the line `# configure_cloudsql` in `scripts/install/sys_install.sh` and run it.
 
-```
-> docker pull b.gcr.io/cloudsql-docker/gce-proxy
-```
+Uncomment the block `[program:cloudsqlproxy]` from `host/supervisord.conf`.
 
 Add the following to `/jboxengine/conf/jbox.user`:
 
@@ -16,5 +14,3 @@ Add the following to `/jboxengine/conf/jbox.user`:
     'db': 'JuliaBox'
 }
 ```
-
-Uncomment the `[program:cloudsqlproxy]` part of `host/supervisord.conf`.

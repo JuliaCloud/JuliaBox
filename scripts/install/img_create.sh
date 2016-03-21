@@ -69,7 +69,7 @@ function make_user_home {
 function print_usage {
     echo "Usage:"
     echo "Build JulaiBox components: img_create.sh jbox"
-    echo "Build/Pull JulaiBox containers: img_create.sh cont <build | pull>"
+    echo "Build/Pull JuliaBox containers: img_create.sh cont <build | pull>"
     echo "Build pkg bundle and user home image: img_create.sh home <data_location>"
 }
 

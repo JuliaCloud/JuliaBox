@@ -5,9 +5,10 @@ import urllib
 import io
 from juliabox.cloud import JBPluginCloud
 from juliabox.jbox_util import JBoxCfg
-from oauth2client.service_account import _ServiceAccountCredentials
+from oauth2client.client import GoogleCredentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
+from googleapiclient.errors import HttpError
 from mimetypes import MimeTypes
 
 class JBoxGS(JBPluginCloud):
@@ -18,13 +19,7 @@ class JBoxGS(JBPluginCloud):
     @staticmethod
     def connect():
         if JBoxGS.CONN is None:
-            google_oauth = JBoxCfg.get("google_oauth")
-            creds = _ServiceAccountCredentials(
-                service_account_id=google_oauth["client_id"],
-                service_account_email=google_oauth["client_email"],
-                private_key_id=google_oauth["key"],
-                private_key_pkcs8_text=google_oauth["secret"],
-                scopes=[])
+            creds = GoogleCredentials.get_application_default()
             JBoxGS.CONN = build("storage", "v1", credentials=creds)
         return JBoxGS.CONN
 
