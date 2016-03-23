@@ -12,6 +12,7 @@ PKG_DIR=/tmp/jpkg
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 #SUDO_JUSER="sudo -u#1000 -g#1000"
 SUDO_JUSER=""
+IDS=1000:1000
 
 function error_exit {
 	echo "$1" 1>&2
@@ -26,12 +27,12 @@ mkdir -p ${JUSER_HOME}/.juliabox
 
 cp ${DIR}/setup_julia.sh ${JUSER_HOME}
 
-sudo chown -R 1000:1000 ${JUSER_HOME}
-sudo chown -R 1000:1000 ${PKG_DIR}
+sudo chown -R ${IDS} ${JUSER_HOME}
+sudo chown -R ${IDS} ${PKG_DIR}
 docker run -i -v ${JUSER_HOME}:/home/juser -v ${PKG_DIR}:/opt/julia_packages -e "JULIA_PKGDIR=/opt/julia_packages/.julia" --entrypoint="/home/juser/setup_julia.sh" juliabox/juliabox:latest || error_exit "Could not run juliabox image"
 
-sudo chown -R 1000:1000 ${JUSER_HOME}
-sudo chown -R 1000:1000 ${PKG_DIR}
+sudo chown -R ${IDS} ${JUSER_HOME}
+sudo chown -R ${IDS} ${PKG_DIR}
 ${SUDO_JUSER} rm ${JUSER_HOME}/setup_julia.sh
 
 ${SUDO_JUSER} cp ${DIR}/IJulia/ipython_notebook_config.py ${JUSER_HOME}/.ipython/profile_default/ipython_notebook_config.py

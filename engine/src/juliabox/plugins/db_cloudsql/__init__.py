@@ -1,2 +1,2 @@
 __author__ = 'Nishanth'
-from impl_datastore import JBoxDatastore
+from impl_cloudsql import JBoxCloudSQL
