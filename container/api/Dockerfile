@@ -1,5 +1,5 @@
 # Docker file for JuliaBox APIs
-# Version:40
+# Version:41
 
 FROM julialang/juliaboxpkgdist:v0.3.12
 
@@ -18,9 +18,9 @@ RUN ln -fs /opt/julia_0.3.12 /opt/julia-0.3.12 && \
     ln -fs /opt/julia-0.3.12 /opt/julia-0.3
 
 # add Julia v0.4 build
-RUN mkdir -p /opt/julia-0.4.3 && \
-    curl -s -L https://julialang.s3.amazonaws.com/bin/linux/x64/0.4/julia-0.4.3-linux-x86_64.tar.gz | tar -C /opt/julia-0.4.3 -x -z --strip-components=1 -f -
-RUN ln -fs /opt/julia-0.4.3 /opt/julia-0.4
+RUN mkdir -p /opt/julia-0.4.5 && \
+    curl -s -L https://julialang.s3.amazonaws.com/bin/linux/x64/0.4/julia-0.4.5-linux-x86_64.tar.gz | tar -C /opt/julia-0.4.5 -x -z --strip-components=1 -f -
+RUN ln -fs /opt/julia-0.4.5 /opt/julia-0.4
 
 # add Julia v0.5 nightly build
 RUN mkdir -p /opt/julia-0.5.0-dev && \
