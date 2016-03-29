@@ -207,7 +207,9 @@ class GDriveSync:
             shutil.rmtree(loc)
 
         # create the folder and .gdrive file
-        os.mkdir(loc)
+        if not os.path.exists(loc):
+            os.mkdir(loc)
+
         with open(os.path.join(loc, '.gdrive'), 'w') as f:
             f.write(gfolder)
         GDriveSync._clone_gfolder(GDriveSync.folder_id(gfolder), loc)

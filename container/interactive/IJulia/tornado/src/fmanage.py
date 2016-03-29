@@ -179,7 +179,11 @@ class SyncHandler(tornado.web.RequestHandler):
         gfolder = self.get_argument('repo', '').strip()
         loc = SyncHandler.sanitize_loc(self.get_argument('loc', '').strip())
         loc = os.path.join(os.path.expanduser(SyncHandler.LOC), loc)
-        GDriveSync.clone(gfolder, loc, True)
+        # clone gdrive to local
+        GDriveSync.clone(gfolder, loc, False)
+        # sync existing local files to gdrive
+        gs = GDriveSync(loc)
+        gs.sync()
         return retcode
 
     def action_delgdrive(self):
