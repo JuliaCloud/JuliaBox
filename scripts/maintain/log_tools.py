@@ -44,6 +44,7 @@ def sanitize_pfx(name_pfx):
     return name_pfx
 
 
+datetime_begin = lambda: datetime.now().replace(year=2014)
 datetime_from_ms = lambda ms: datetime.utcfromtimestamp(ms//1000).replace(microsecond=ms%1000*1000)
 ms_from_datetime = lambda dt: time.mktime(dt.timetuple()) * 1000
 current_milli_time = lambda: int(round(time.time() * 1000))
@@ -72,7 +73,7 @@ def show_log_groups(name_pfx=None):
 
 
 def get_log_streams(group_name, name_pfx=None, show_empty=False,
-                    time_from=datetime_from_ms(0),
+                    time_from=datetime_begin(),
                     time_till=datetime_from_ms(current_milli_time())):
     name_pfx = sanitize_pfx(name_pfx)
     next_token = None
@@ -112,7 +113,7 @@ def filter_event_message(events, filter_string):
 
 
 def filter_log_events(group_name, stream_name, outfile, filter_string=None,
-                      time_from=datetime_from_ms(0),
+                      time_from=datetime_begin(),
                       time_till=datetime_from_ms(current_milli_time())):
     next_token = None
     time_from = ms_from_datetime(time_from)
@@ -143,7 +144,7 @@ def filter_log_events(group_name, stream_name, outfile, filter_string=None,
 
 
 def show_log_streams(group_name, name_pfx=None, show_empty=False,
-                     time_from=datetime_from_ms(0),
+                     time_from=datetime_begin(),
                      time_till=datetime_from_ms(current_milli_time())):
     filtered_streams = get_log_streams(group_name, name_pfx, show_empty, time_from, time_till)
     if len(filtered_streams) == 0:
@@ -159,7 +160,7 @@ def show_log_streams(group_name, name_pfx=None, show_empty=False,
 
 
 def download_logs(group_name, outfile, filter_string=None,
-                  time_from=datetime_from_ms(0),
+                  time_from=datetime_begin(),
                   time_till=datetime_from_ms(current_milli_time())):
     filtered_streams = get_log_streams(group_name, None, False, time_from, time_till)
     ntotal = 0
@@ -180,7 +181,7 @@ def process_show_streams(argv):
         else:
             time_till = datetime.now()
     else:
-        time_from = datetime_from_ms(0)
+        time_from = datetime_begin()
         time_till = datetime_from_ms(current_milli_time())
 
     if '*' not in grp_match:
@@ -205,7 +206,7 @@ def process_download(argv):
         else:
             time_till = datetime.now()
     else:
-        time_from = datetime_from_ms(0)
+        time_from = datetime_begin()
         time_till = datetime_from_ms(current_milli_time())
 
     if '*' not in grp_match:
