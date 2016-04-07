@@ -8,6 +8,8 @@ import math
 import logging
 
 import isodate
+import httplib
+import errno
 
 
 def parse_iso_time(tm):
@@ -289,3 +291,16 @@ class JBoxPluginType(type):
                 if feature in plugin.provides:
                     return plugin
         return None
+
+def retry_on_bsl(f):
+    def func(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except httplib.BadStatusLine as bsl:  # Retry on bad status line
+            return f(*args, **kwargs)
+        except IOError as e:
+            if e.errno == errno.EPIPE:        # Retry on broken pipe errno 32
+                return f(*args, **kwargs)
+            else:
+                raise
+    return func

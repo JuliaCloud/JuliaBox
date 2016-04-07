@@ -4,12 +4,17 @@ import os
 import urllib
 import io
 from juliabox.cloud import JBPluginCloud
-from juliabox.jbox_util import JBoxCfg
+from juliabox.jbox_util import JBoxCfg, retry_on_bsl
 from oauth2client.client import GoogleCredentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 from googleapiclient.errors import HttpError
 from mimetypes import MimeTypes
+
+class KeyStruct:
+    def __init__(self, **entries): 
+        self.__dict__.update(entries)
+        self.size = int(self.size)
 
 class JBoxGS(JBPluginCloud):
     provides = [JBPluginCloud.JBP_BUCKETSTORE, JBPluginCloud.JBP_BUCKETSTORE_GS]
@@ -24,6 +29,7 @@ class JBoxGS(JBPluginCloud):
         return JBoxGS.CONN
 
     @staticmethod
+    @retry_on_bsl
     def connect_bucket(bucket):
         if bucket not in JBoxGS.BUCKETS:
             JBoxGS.BUCKETS[bucket] = JBoxGS.connect().buckets().get(bucket=bucket).execute()
@@ -37,21 +43,25 @@ class JBoxGS(JBPluginCloud):
         return mime_type[0]
 
     @staticmethod
+    @retry_on_bsl
     def push(bucket, local_file, metadata=None):
         objconn = JBoxGS.connect().objects()
         fh = open(local_file, "rb")
         media = MediaIoBaseUpload(fh, JBoxGS._get_mime_type(local_file))
         if metadata:
-            retval = objconn.insert(bucket=bucket, media_body=media,
-                                    name=os.path.basename(local_file),
-                                    body={"metadata": metadata}).execute()
+            k = objconn.insert(bucket=bucket, media_body=media,
+                               name=os.path.basename(local_file),
+                               body={"metadata": metadata}).execute()
         else:
-            retval = objconn.insert(bucket=bucket, media_body=media,
-                                    name=os.path.basename(local_file)).execute()
+            k = objconn.insert(bucket=bucket, media_body=media,
+                               name=os.path.basename(local_file)).execute()
         fh.close()
-        return retval
+        if k is None:
+            return None
+        return KeyStruct(**k)
 
     @staticmethod
+    @retry_on_bsl
     def pull(bucket, local_file, metadata_only=False):
         objname = os.path.basename(local_file)
         k = None
@@ -64,9 +74,7 @@ class JBoxGS(JBPluginCloud):
             else:
                 return None
 
-        if metadata_only:
-            return k
-        else:
+        if not metadata_only:
             req = JBoxGS.connect().objects().get_media(bucket=bucket,
                                                        object=objname)
 
@@ -80,15 +88,22 @@ class JBoxGS(JBPluginCloud):
                 fh.close()
                 if not done:
                     os.remove(local_file)
-            return k
+
+        if k is None:
+            return None
+        return KeyStruct(**k)
 
     @staticmethod
+    @retry_on_bsl
     def delete(bucket, local_file):
         key_name = os.path.basename(local_file)
         k = JBoxGS.connect().objects().delete(bucket=bucket, object=key_name).execute()
-        return k
+        if k is None:
+            return None
+        return KeyStruct(**k)
 
     @staticmethod
+    @retry_on_bsl
     def copy(from_file, to_file, from_bucket, to_bucket=None):
         if to_bucket is None:
             to_bucket = from_bucket
@@ -101,7 +116,9 @@ class JBoxGS(JBPluginCloud):
                                             destinationBucket=to_bucket,
                                             destinationObject=to_key_name,
                                             body={}).execute()
-        return k
+        if k is None:
+            return None
+        return KeyStruct(**k)
 
     @staticmethod
     def move(from_file, to_file, from_bucket, to_bucket=None):
