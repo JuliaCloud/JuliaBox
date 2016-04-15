@@ -5,6 +5,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "engine", "src"))
 
 import MySQLdb
+import time
 
 from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBPluginDB, JBoxAPISpec
 from juliabox.jbox_util import JBoxCfg
@@ -72,3 +73,12 @@ for cls in tables:
         table_create(cls.NAME, cls.ATTRIBUTES, cls.TYPES, cls.KEYS, cls.KEYS_TYPES)
         indexes_create(cls.NAME, cls.SQL_INDEXES)
         print("\tcreated.")
+
+print('Creating scale_up_time')
+if table_exists('scale_up_time'):
+    print('\texists already!')
+else:
+    table_create('scale_up_time', ['scale_up_time'], ['INT'])
+    c.execute('INSERT INTO scale_up_time (scale_up_time) VALUES (%d)' % int(time.time()))
+    conn.commit()
+    print('\tcreated.')
