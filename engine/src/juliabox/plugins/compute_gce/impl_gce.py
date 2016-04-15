@@ -597,6 +597,7 @@ class CompGCE(JBPluginCloud):
 
         ret = c.execute('UPDATE scale_up_time SET scale_up_time = %d WHERE ' \
                         'scale_up_time = %d' % (now, last_time))
+        conn.commit()
         c.close()
         if ret == 0:
             return False
