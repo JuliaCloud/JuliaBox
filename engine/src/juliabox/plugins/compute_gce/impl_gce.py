@@ -587,19 +587,19 @@ class CompGCE(JBPluginCloud):
         conn = plugin.conn()
         c = conn.cursor()
 
-        c.execute('LOCK TABLES scale_up_time WRITE')
         c.execute('SELECT * FROM scale_up_time')
         last_time = c.fetchone()[0]
 
         now = int(time.time())
         if now < last_time + CompGCE.SCALE_UP_INTERVAL:
-            c.execute('UNLOCK TABLES')
             c.close()
             return False
 
-        c.execute('UPDATE scale_up_time set scale_up_time = %d' % now)
-        c.execute('UNLOCK TABLES')
+        ret = c.execute('UPDATE scale_up_time SET scale_up_time = %d WHERE ' \
+                        'scale_up_time = %d' % (now, last_time))
         c.close()
+        if ret == 0:
+            return False
         return True
 
     @staticmethod
