@@ -56,9 +56,11 @@ class JBPluginCloud(LoggerMixin):
 
     JBP_DNS = "cloud.dns"
     JBP_DNS_ROUTE53 = "cloud.dns.route53"
+    JBP_DNS_GCD = "cloud.dns.gcd"
 
     JBP_SENDMAIL = "cloud.sendmail"
     JBP_SENDMAIL_SES = "cloud.sendmail.ses"
+    JBP_SENDMAIL_SMTP = "cloud.sendmail.smtp"
 
     JBP_COMPUTE = "cloud.compute"
     JBP_COMPUTE_EC2 = "cloud.compute.ec2"
