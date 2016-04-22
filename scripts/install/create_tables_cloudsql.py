@@ -82,3 +82,11 @@ else:
     c.execute('INSERT INTO scale_up_time (scale_up_time) VALUES (%d)' % int(time.time()))
     conn.commit()
     print('\tcreated.')
+
+print('Creating mails')
+if table_exists('mails'):
+    print('\texists already!')
+else:
+    table_create('mails', ['rcpt', 'sender', 'timestamp'],
+                 ['VARCHAR(200)', 'VARCHAR(200)', 'INT'])
+    print('\tcreated.')
