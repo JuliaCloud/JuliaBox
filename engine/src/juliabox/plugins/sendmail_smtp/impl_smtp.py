@@ -3,8 +3,10 @@ __author__ = 'Nishanth'
 import smtplib
 from email.MIMEMultipart import MIMEMultipart
 from email.MIMEText import MIMEText
+import time
 
 from juliabox.cloud import JBPluginCloud
+from juliabox.db import JBPluginDB
 from juliabox.jbox_util import JBoxCfg
 
 class JBoxSMTP(JBPluginCloud):
@@ -16,24 +18,26 @@ class JBoxSMTP(JBPluginCloud):
     SMTP_URL = None
     SMTP_PORT_NO = None
     CONN = None
+    SENDER = None
 
     @staticmethod
     def configure():
         mail_data = JBoxCfg.get('user_activation')
-        JBoxd.SENDER_PASSWORD = mail_data['sender_password']
-        JBoxd.SMTP_URL = mail_data['smtp_url']
-        JBoxd.SMTP_PORT_NO = mail_data['smtp_port_no']
-        JBoxd.MAX_24HRS = mail_data['max_24hrs']
-        JBoxd.MAX_RATE_PER_SEC = mail_data['max_rate_per_sec']
+        JBoxSMTP.SENDER = mail_data['sender']
+        JBoxSMTP.SENDER_PASSWORD = mail_data['sender_password']
+        JBoxSMTP.SMTP_URL = mail_data['smtp_url']
+        JBoxSMTP.SMTP_PORT_NO = mail_data['smtp_port_no']
+        JBoxSMTP.MAX_24HRS = mail_data['max_24hrs']
+        JBoxSMTP.MAX_RATE_PER_SEC = mail_data['max_rate_per_sec']
 
     @staticmethod
     def connect():
-        if not CONN:
+        if not JBoxSMTP.CONN:
             JBoxSMTP.configure()
-            CONN = smtplib.SMTP(JBoxSMTP.SMTP_URL, JBoxSMTP.SMTP_PORT_NO)
-            CONN.starttls()
-            CONN.login(sender, JBoxSMTP.SENDER_PASSWORD)
-        return CONN
+            JBoxSMTP.CONN = smtplib.SMTP(JBoxSMTP.SMTP_URL, JBoxSMTP.SMTP_PORT_NO)
+            JBoxSMTP.CONN.starttls()
+            JBoxSMTP.CONN.login(JBoxSMTP.SENDER, JBoxSMTP.SENDER_PASSWORD)
+        return JBoxSMTP.CONN
 
     DB_PLUGIN = None
     @staticmethod
@@ -50,7 +54,7 @@ class JBoxSMTP(JBPluginCloud):
 
         now = int(time.time())
         c.execute('INSERT INTO mails (rcpt, sender, timestamp) values ' \
-                  '(%s, %s, %d)', (rcpt, sender, now))
+                  '("%s", "%s", %d)' % (rcpt, sender, now))
         conn.commit()
         c.close()
 
@@ -90,6 +94,8 @@ class JBoxSMTP(JBPluginCloud):
         except smtplib.SMTPHeloError:
             try:
                 JBoxSMTP.CONN.quit()
+            except:
+                pass
             JBoxSMTP.CONN = None
             JBoxSMTP.connect().sendmail(sender, rcpt, text)
 
