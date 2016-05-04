@@ -28,8 +28,15 @@ conf = None
 with open('/jboxengine/conf/jbox.user') as f:
     conf = eval(f.read())
 LOGPATHS = argv[1:]
-ch = conf['cloud_host']
-INTERVAL = ch['log-interval']
+
+ch = conf.get('cloud_host')
+if not ch:
+    print('Error: `cloud_host` entry not found in jbox.user')
+    exit(-1)
+
+INTERVAL = ch.get('log-interval', 5)
+INSTALL_ID = ch['install_id']
+
 creds = GoogleCredentials.get_application_default()
 conn = build('logging', 'v2beta1', credentials=creds)
 MYNAME = gethostname()
@@ -55,7 +62,14 @@ def retry_on_bsl(f):
     return func
 
 @retry_on_bsl
-def cloud_log(line, sev=None):
+def cloud_log(data_list):
+    ent = conn.entries()
+    body = {
+        'entries': data_list,
+    }
+    ent.write(body=body).execute()
+
+def get_log_data(line, source, sev=None):
     if not sev:
         try:
             sev = line.split(' - ')[1]
@@ -64,24 +78,22 @@ def cloud_log(line, sev=None):
         except:
             sev = 'INFO'
 
-    ent = conn.entries()
-    body = {
-        'entries': [
-            {
-                'severity': sev,
-                'textPayload': line,
-                'logName': logurl,
-                'resource': {
-                    'labels': {
-                        'instance_id': INSTANCE_ID,
-                        'zone': ZONE
-                    },
-                    'type': 'gce_instance'
-                }
-            }
-        ]
+    data = {
+        'severity': sev,
+        'textPayload': line,
+        'logName': logurl,
+        'resource': {
+            'labels': {
+                'instance_id': INSTANCE_ID,
+                'zone': ZONE,
+            },
+            'type': 'gce_instance'
+        },
+        'labels': {
+            'source': source,
+        },
     }
-    ent.write(body=body).execute()
+    return data
 
 class FileData:
     def __init__(self, file_name, path):
@@ -110,9 +122,11 @@ class FileData:
 
     def upload_lines(self):
         flag = 'ERROR' if self.is_error_file else None
+        data_list = []
         for line in self.file_handle.read().split('\n'):
             if line:
-                cloud_log(line, flag)
+                data_list.append(get_log_data(line, self.file_name, flag))
+        cloud_log(data_list)
 
 def get_file_data(path):
     return [FileData(f, path) for f in os.listdir(path)]
