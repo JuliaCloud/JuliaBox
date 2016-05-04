@@ -400,7 +400,15 @@ class JBoxHandler(JBoxCookies):
         return False
 
     def post_auth_launch_container(self, user_id):
+        for plugin in JBPluginHandler.jbox_get_plugins(JBPluginHandler.JBP_HANDLER_POST_AUTH):
+            self.log_info("Passing user %r to post auth plugin %r", user_id, plugin)
+            pass_allowed = plugin.process_user_id(self, user_id)
+            if not pass_allowed:
+                self.log_info('Login restricted for user %r by plugin %r', user_id, plugin)
+                return
+
         jbuser = JBoxUserV2(user_id, create=True)
+
         if not JBPluginHandler.is_user_activated(jbuser):
             self.redirect('/?pending_activation=' + user_id)
             return
@@ -486,6 +494,8 @@ class JBPluginHandler(JBoxHandler):
     JBP_HANDLER_AUTH_ZERO = 'handler.auth.zero'
     JBP_HANDLER_AUTH_GOOGLE = 'handler.auth.google'
     JBP_JS_TOP = 'handler.js.top'
+
+    JBP_HANDLER_POST_AUTH = 'handler.post_auth'
 
     PLUGIN_JAVASCRIPTS = []
 
