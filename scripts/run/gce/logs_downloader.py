@@ -5,6 +5,11 @@ from oauth2client.client import GoogleCredentials
 from googleapiclient.discovery import build
 from datetime import datetime
 
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                             "engine", "src"))
+from juliabox.jbox_util import retry_on_errors
+
 conf = None
 with open('/jboxengine/conf/jbox.user') as f:
     conf = eval(f.read())
@@ -18,6 +23,10 @@ creds = GoogleCredentials.get_application_default()
 conn = build('logging', 'v2beta1', credentials=creds).entries()
 
 RFC_3339_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
+@retry_on_errors()
+def _list_logs(body):
+    return conn.list(body=body).execute()
 
 def list_logs(tsstart, tsend):
     fil = """
@@ -33,14 +42,16 @@ timestamp<="%s"
         'filter': fil,
     }
 
-    l = conn.list(body=body).execute()
+    l = _list_logs(body)
     next_page_token = l.get('nextPageToken', None)
-    entries = l['entries']
+    entries = l.get('entries')
+    if not entries:
+        return []
     print("Got %d entries" % len(entries))
 
     while next_page_token:
         body['pageToken'] = next_page_token
-        l = conn.list(body=body).execute()
+        l = _list_logs(body)
         next_page_token = l.get('nextPageToken', None)
         entries.extend(l['entries'])
         print("Got %d entries" % len(entries))
@@ -105,5 +116,8 @@ if __name__ == '__main__':
         f.write('Project: %r\nStart datetime: %r\nEnd datetime: %r' % 
                 (INSTALL_ID, tstart, tend))
     entries = list_logs(tstart, tend)
+    if len(entries) == 0:
+        print 'No logs during this interval.'
+        exit(0)
     logs = get_logs_dict(entries)
     write_logs(logs, path)

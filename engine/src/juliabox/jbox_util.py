@@ -292,15 +292,33 @@ class JBoxPluginType(type):
                     return plugin
         return None
 
-def retry_on_bsl(f):
-    def func(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except httplib.BadStatusLine as bsl:  # Retry on bad status line
-            return f(*args, **kwargs)
-        except IOError as e:
-            if e.errno == errno.EPIPE:        # Retry on broken pipe errno 32
-                return f(*args, **kwargs)
-            else:
-                raise
-    return func
+def retry_on_errors(retries=10, backoff=2, max_sleep_time=32):
+    from googleapiclient.errors import HttpError
+    def g(f):
+        def func(*args, **kwargs):
+            nretry = 0
+            while True:
+                err = None
+                try:
+                    return f(*args, **kwargs)
+                except httplib.BadStatusLine, e:
+                    err = e
+                except IOError, e:
+                    if e.errno == errno.EPIPE:
+                        err = e
+                    else:
+                        raise
+                except HttpError, e:
+                    if err.resp.status in [500, 502, 503, 504, 404]:
+                        err = e
+                    else:
+                        raise
+                if err:
+                    if nretry > retries:
+                        raise err
+                    else:
+                        sleep_time = min(backoff**nretry, max_sleep_time)
+                        sleep(sleep_time + random())
+                nretry += 1
+        return func
+    return g

@@ -15,7 +15,7 @@ from oauth2client.client import GoogleCredentials
 
 from juliabox.cloud import JBPluginCloud
 from juliabox.db import JBPluginDB
-from juliabox.jbox_util import JBoxCfg, parse_iso_time, retry, retry_on_bsl
+from juliabox.jbox_util import JBoxCfg, parse_iso_time, retry, retry_on_errors
 
 class CompGCE(JBPluginCloud):
     provides = [JBPluginCloud.JBP_COMPUTE, JBPluginCloud.JBP_COMPUTE_GCE]
@@ -153,7 +153,7 @@ class CompGCE(JBPluginCloud):
             raise Exception("Invalid value_type argument.")
 
     @staticmethod
-    @retry_on_bsl
+    @retry_on_errors(retries=2)
     def _write_metric(metric_name, labels, value, value_type):
         value_type = CompGCE._process_value_type(value_type)
         timedesc = {
@@ -308,7 +308,7 @@ class CompGCE(JBPluginCloud):
         return None
 
     @staticmethod
-    @retry_on_bsl
+    @retry_on_errors(retries=2)
     def terminate_instance(instance=None):
         if instance is None:
             instance = CompGCE.get_instance_id()
@@ -462,7 +462,7 @@ class CompGCE(JBPluginCloud):
         return CompGCE.ZONE
 
     @staticmethod
-    @retry_on_bsl
+    @retry_on_errors(retries=2)
     def _get_instance_data(instname):
         conn = CompGCE._connect_gce().instances()
         inst = conn.get(project=CompGCE.INSTALL_ID, zone=CompGCE._zone(),
@@ -470,7 +470,7 @@ class CompGCE(JBPluginCloud):
         return inst
 
     @staticmethod
-    @retry_on_bsl
+    @retry_on_errors(retries=2)
     def _get_disk_data(diskname):
         conn = CompGCE._connect_gce().disks()
         disk = conn.get(project=CompGCE.INSTALL_ID, zone=CompGCE._zone(),
@@ -523,7 +523,7 @@ class CompGCE(JBPluginCloud):
         return CompGCE.MONITORING_CONN
 
     @staticmethod
-    @retry_on_bsl
+    @retry_on_errors(retries=2)
     def _instance_attrs(instance_name=None):
         if instance_name is None:
             instance_name = CompGCE.get_instance_id()
@@ -541,7 +541,7 @@ class CompGCE(JBPluginCloud):
         return minutes
 
     @staticmethod
-    @retry_on_bsl
+    @retry_on_errors(retries=2)
     def _get_instances(gname, only_running=False):
         conn = CompGCE._connect_gce().instanceGroups()
         flag = 'RUNNING' if only_running else 'ALL'
@@ -565,7 +565,7 @@ class CompGCE(JBPluginCloud):
         return instances
 
     @staticmethod
-    @retry_on_bsl
+    @retry_on_errors(retries=2)
     def _increment_num_instances():
         conn = CompGCE._connect_gce().instanceGroupManagers()
         curr = conn.get(project=CompGCE.INSTALL_ID, zone=CompGCE._zone(),

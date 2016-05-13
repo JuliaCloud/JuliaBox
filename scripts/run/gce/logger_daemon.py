@@ -20,6 +20,11 @@ import json
 import requests
 import subprocess
 
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                             "engine", "src"))
+from juliabox.jbox_util import retry_on_errors
+
 if len(argv) < 2:
     print('USAGE: ./logger_daemon.py <log_files_paths>')
     exit(-1)
@@ -48,20 +53,7 @@ ZONE = json.loads(requests.get(
     "http://metadata.google.internal/computeMetadata/v1/instance/?recursive=true",
     headers={"Metadata-Flavor": "Google"}).text)["zone"].split('/')[-1]
 
-def retry_on_bsl(f):
-    def func(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except httplib.BadStatusLine as bsl:  # Retry on bad status line
-            return f(*args, **kwargs)
-        except IOError as e:
-            if e.errno == errno.EPIPE:        # Retry on broken pipe errno 32
-                return f(*args, **kwargs)
-            else:
-                raise
-    return func
-
-@retry_on_bsl
+@retry_on_errors()
 def cloud_log(data_list):
     ent = conn.entries()
     body = {

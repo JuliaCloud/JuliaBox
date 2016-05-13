@@ -2,7 +2,7 @@ __author__ = 'Nishanth'
 
 
 from juliabox.cloud import JBPluginCloud
-from juliabox.jbox_util import JBoxCfg, retry_on_bsl
+from juliabox.jbox_util import JBoxCfg, retry_on_errors
 from googleapiclient.discovery import build
 from oauth2client.client import GoogleCredentials
 
@@ -36,7 +36,7 @@ class JBoxGCD(JBPluginCloud):
         return JBoxGCD.CONN
 
     @staticmethod
-    @retry_on_bsl
+    @retry_on_errors(retries=2)
     def add_cname(name, value):
         JBoxGCD.connect().changes().create(
             project=JBoxGCD.INSTALLID, managedZone=JBoxGCD.REGION,
@@ -49,7 +49,7 @@ class JBoxGCD(JBPluginCloud):
                        'ttl': 300}    ] }).execute()
 
     @staticmethod
-    @retry_on_bsl
+    @retry_on_errors(retries=2)
     def delete_cname(name):
         resp = JBoxGCD.connect().resourceRecordSets().list(
             project=JBoxGCD.INSTALLID, managedZone=JBoxGCD.REGION,
