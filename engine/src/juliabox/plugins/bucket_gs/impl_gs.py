@@ -4,7 +4,7 @@ import os
 import urllib
 import io
 from juliabox.cloud import JBPluginCloud
-from juliabox.jbox_util import JBoxCfg, retry_on_bsl
+from juliabox.jbox_util import JBoxCfg
 from oauth2client.client import GoogleCredentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
@@ -29,7 +29,6 @@ class JBoxGS(JBPluginCloud):
         return JBoxGS.CONN
 
     @staticmethod
-    @retry_on_bsl
     def connect_bucket(bucket):
         if bucket not in JBoxGS.BUCKETS:
             JBoxGS.BUCKETS[bucket] = JBoxGS.connect().buckets().get(bucket=bucket).execute()
@@ -43,7 +42,6 @@ class JBoxGS(JBPluginCloud):
         return mime_type[0]
 
     @staticmethod
-    @retry_on_bsl
     def push(bucket, local_file, metadata=None):
         objconn = JBoxGS.connect().objects()
         fh = open(local_file, "rb")
@@ -61,7 +59,6 @@ class JBoxGS(JBPluginCloud):
         return KeyStruct(**k)
 
     @staticmethod
-    @retry_on_bsl
     def pull(bucket, local_file, metadata_only=False):
         objname = os.path.basename(local_file)
         k = None
@@ -94,7 +91,6 @@ class JBoxGS(JBPluginCloud):
         return KeyStruct(**k)
 
     @staticmethod
-    @retry_on_bsl
     def delete(bucket, local_file):
         key_name = os.path.basename(local_file)
         k = JBoxGS.connect().objects().delete(bucket=bucket, object=key_name).execute()
@@ -103,7 +99,6 @@ class JBoxGS(JBPluginCloud):
         return KeyStruct(**k)
 
     @staticmethod
-    @retry_on_bsl
     def copy(from_file, to_file, from_bucket, to_bucket=None):
         if to_bucket is None:
             to_bucket = from_bucket

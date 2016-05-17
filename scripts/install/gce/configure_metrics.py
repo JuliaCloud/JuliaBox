@@ -1,9 +1,13 @@
 #!/usr/bin/python
 
-import httplib
 from sys import argv
 from googleapiclient.discovery import build
 from oauth2client.client import GoogleCredentials
+
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                             "engine", "src"))
+from juliabox.jbox_util import retry_on_errors
 
 if len(argv) != 2:
     print("Usage: ./configure_metrics <install-id>")
@@ -13,14 +17,6 @@ INSTALL_ID = argv[1]
 CUSTOM_METRIC_DOMAIN = "custom.cloudmonitoring.googleapis.com/"
 ALLOWED_CUSTOM_GCE_VALUE_TYPES = ["double", "int64"]
 ALLOWED_EC2_VALUE_TYPES = ["Percent", "Count"]
-
-def retry_on_bsl(f):
-    def func(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except httplib.BadStatusLine as bsl:
-            return f(*args, **kwargs)
-    return func
 
 def _process_value_type(value_type):
     if value_type in ALLOWED_EC2_VALUE_TYPES:
@@ -36,7 +32,7 @@ def _connect_google_monitoring():
     return build("cloudmonitoring", "v2beta2",
                  credentials=GoogleCredentials.get_application_default())
 
-@retry_on_bsl
+@retry_on_errors()
 def _create_metric_descriptor(metric_name, value_type, label_descriptors,
                               metric_desc=""):
     value_type = _process_value_type(value_type)
