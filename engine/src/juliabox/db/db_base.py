@@ -12,6 +12,7 @@ class JBoxDB(LoggerMixin):
     DB_IMPL = None
     INT = 'INT'
     VCHAR = 'VARCHAR(200)'
+    TEXT = 'TEXT'
 
     @staticmethod
     def configure():

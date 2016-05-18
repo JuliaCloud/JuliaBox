@@ -25,7 +25,7 @@ class JBoxDynConfig(JBoxDB):
     ATTRIBUTES = ['value']
     SQL_INDEXES = None
     KEYS_TYPES = [JBoxDB.VCHAR]
-    TYPES = [JBoxDB.VCHAR]
+    TYPES = [JBoxDB.TEXT]
 
     DEFAULT_REGISTRATION_RATE = 60
 

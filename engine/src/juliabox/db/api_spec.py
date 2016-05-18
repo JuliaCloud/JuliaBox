@@ -31,7 +31,7 @@ class JBoxAPISpec(JBoxDB):
         {'name': 'publisher-api_name-index', 'cols': ['publisher', 'api_name']}
     ]
     KEYS_TYPES = [JBoxDB.VCHAR]
-    TYPES = [JBoxDB.VCHAR, JBoxDB.VCHAR, JBoxDB.VCHAR, JBoxDB.VCHAR,
+    TYPES = [JBoxDB.VCHAR, JBoxDB.TEXT, JBoxDB.VCHAR, JBoxDB.VCHAR,
              JBoxDB.INT, JBoxDB.INT]
 
     def __init__(self, api_name, cmd=None, image_name=None, description=None,
