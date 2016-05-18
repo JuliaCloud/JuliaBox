@@ -304,11 +304,21 @@ class JBoxHandler(JBoxCookies):
             return False
 
         ports = self.get_ports()
-        container_ports = (ports[JBoxCookies.COOKIE_PORT_SHELL],
-                           ports[JBoxCookies.COOKIE_PORT_UPL],
-                           ports[JBoxCookies.COOKIE_PORT_IPNB])
-        if not SessContainer.is_valid_container("/" + sessname, container_ports):
-            self.log_info('not valid req. container deleted or ports not matching')
+        isvalid = True
+        if not ports or \
+           any(not ports.has_key(k) for k in [JBoxCookies.COOKIE_PORT_SHELL,
+                                              JBoxCookies.COOKIE_PORT_UPL,
+                                              JBoxCookies.COOKIE_PORT_IPNB]):
+            isvalid = False
+        else:
+            container_ports = (ports[JBoxCookies.COOKIE_PORT_SHELL],
+                               ports[JBoxCookies.COOKIE_PORT_UPL],
+                               ports[JBoxCookies.COOKIE_PORT_IPNB])
+            if not SessContainer.is_valid_container("/" + sessname, container_ports):
+                isvalid = False
+
+        if not isvalid:
+            self.log_info('Not valid request. Container deleted or ports not matching.')
             return False
 
         return True
