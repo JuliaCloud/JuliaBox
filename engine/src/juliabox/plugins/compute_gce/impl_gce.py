@@ -153,8 +153,7 @@ class CompGCE(JBPluginCloud):
             raise Exception("Invalid value_type argument.")
 
     @staticmethod
-    @retry_on_errors(retries=2)
-    def _write_metric(metric_name, labels, value, value_type):
+    def _get_timeseries_dict(metric_name, labels, value, value_type):
         value_type = CompGCE._process_value_type(value_type)
         timedesc = {
             "metric": CompGCE.CUSTOM_METRIC_DOMAIN + metric_name,
@@ -169,21 +168,33 @@ class CompGCE(JBPluginCloud):
                 value_type + "Value": value
             }
         }
+        return timeseries
 
+    @staticmethod
+    @retry_on_errors(retries=2)
+    def _timeseries_write(timeseries):
         ts = CompGCE._connect_google_monitoring().timeseries()
         return ts.write(project=CompGCE.INSTALL_ID,
-                        body={"timeseries": [timeseries]}).execute()
+                        body={"timeseries": timeseries}).execute()
 
     @staticmethod
     def publish_stats(stat_name, stat_unit, stat_value):
         """ Publish custom cloudwatch statistics. Used for status monitoring and auto scaling. """
-        CompGCE.SELF_STATS[stat_name] = stat_value
-        CompGCE.log_info("CloudMonitoring %s.%s.%s=%r(%s)",
-                         CompGCE.INSTALL_ID, CompGCE.get_instance_id(),
-                         stat_name, stat_value, stat_unit)
+        CompGCE.publish_stats_multi([(stat_name, stat_unit, stat_value)])
+
+    @staticmethod
+    def publish_stats_multi(stats):
+        timeseries = []
         label = {CompGCE.CUSTOM_METRIC_DOMAIN + 'InstanceID': CompGCE.get_instance_id(),
                  CompGCE.CUSTOM_METRIC_DOMAIN + 'GroupID' : CompGCE.AUTOSCALE_GROUP}
-        return CompGCE._write_metric(stat_name, label, stat_value, stat_unit)
+        for (stat_name, stat_unit, stat_value) in stats:
+            CompGCE.SELF_STATS[stat_name] = stat_value
+            CompGCE.log_info("CloudMonitoring %s.%s.%s=%r(%s)",
+                             CompGCE.INSTALL_ID, CompGCE.get_instance_id(),
+                             stat_name, stat_value, stat_unit)
+            timeseries.append(CompGCE._get_timeseries_dict(stat_name, label,
+                                                           stat_value, stat_unit))
+        CompGCE._timeseries_write(timeseries)
 
     @staticmethod
     def _list_metric(project, metric_name, labels, timespan, window, aggregator):

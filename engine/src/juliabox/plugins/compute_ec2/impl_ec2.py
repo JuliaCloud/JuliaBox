@@ -126,6 +126,11 @@ class CompEC2(JBPluginCloud):
                                                       unit=stat_unit, value=stat_value, dimensions=dims)
 
     @staticmethod
+    def publish_stats_multi(stats):
+        for (stat_name, stat_unit, stat_value) in stats:
+            CompEC2.publish_stats(stat_name, stat_unit, stat_value)
+
+    @staticmethod
     def get_instance_stats(instance, stat_name, namespace=None):
         if (instance == CompEC2.get_instance_id()) and (stat_name in CompEC2.SELF_STATS):
             CompEC2.log_debug("Using cached self_stats. %s=%r", stat_name, CompEC2.SELF_STATS[stat_name])

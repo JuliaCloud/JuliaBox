@@ -81,6 +81,11 @@ class CompSingleNode(JBPluginCloud):
                                 stat_name, stat_value, stat_unit)
 
     @staticmethod
+    def publish_stats_multi(stats):
+        for (stat_name, stat_unit, stat_value) in stats:
+            CompSingleNode.publish_stats(stat_name, stat_unit, stat_value)
+
+    @staticmethod
     def get_instance_stats(instance, stat_name, namespace=None):
         stat_val = None
         if (instance == CompSingleNode.get_instance_id()) and (stat_name in CompSingleNode.SELF_STATS):
