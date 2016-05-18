@@ -192,19 +192,20 @@ class JBoxd(LoggerMixin):
         VolMgr.refresh_disk_use_status()
         
         nactive = BaseContainer.num_active(BaseContainer.SFX_INT)
-        Compute.publish_stats("NumActiveContainers", "Count", nactive)
+        stats = []
+        stats.append(("NumActiveContainers", "Count", nactive))
 
         nactive_api = BaseContainer.num_active(BaseContainer.SFX_API)
-        Compute.publish_stats("NumActiveAPIContainers", "Count", nactive_api)
+        stats.append(("NumActiveAPIContainers", "Count", nactive_api))
 
         curr_cpu_used_pct = psutil.cpu_percent()
         last_cpu_used_pct = curr_cpu_used_pct if BaseContainer.LAST_CPU_PCT is None else BaseContainer.LAST_CPU_PCT
         BaseContainer.LAST_CPU_PCT = curr_cpu_used_pct
         cpu_used_pct = int((curr_cpu_used_pct + last_cpu_used_pct)/2)
-        Compute.publish_stats("CPUUsed", "Percent", cpu_used_pct)
+        stats.append(("CPUUsed", "Percent", cpu_used_pct))
 
         mem_used_pct = psutil.virtual_memory().percent
-        Compute.publish_stats("MemUsed", "Percent", mem_used_pct)
+        stats.append(("MemUsed", "Percent", mem_used_pct))
 
         disk_used_pct = 0
         for x in psutil.disk_partitions():
@@ -216,18 +217,19 @@ class JBoxd(LoggerMixin):
         if BaseContainer.INITIAL_DISK_USED_PCT is None:
             BaseContainer.INITIAL_DISK_USED_PCT = disk_used_pct
         disk_used_pct = max(0, (disk_used_pct - BaseContainer.INITIAL_DISK_USED_PCT))
-        Compute.publish_stats("DiskUsed", "Percent", disk_used_pct)
+        stats.append(("DiskUsed", "Percent", disk_used_pct))
 
         cont_load_pct = min(100, max(0, nactive * 100 / SessContainer.MAX_CONTAINERS))
-        Compute.publish_stats("ContainersUsed", "Percent", cont_load_pct)
+        stats.append(("ContainersUsed", "Percent", cont_load_pct))
 
         api_cont_load_pct = min(100, max(0, nactive_api * 100 / APIContainer.MAX_CONTAINERS))
-        Compute.publish_stats("APIContainersUsed", "Percent", api_cont_load_pct)
+        stats.append(("APIContainersUsed", "Percent", api_cont_load_pct))
 
-        Compute.publish_stats("DiskIdsUsed", "Percent", VolMgr.used_pct())
+        stats.append(("DiskIdsUsed", "Percent", VolMgr.used_pct()))
 
         overall_load_pct = max(cont_load_pct, api_cont_load_pct, disk_used_pct, mem_used_pct, cpu_used_pct, VolMgr.used_pct())
-        Compute.publish_stats("Load", "Percent", overall_load_pct)
+        stats.append(("Load", "Percent", overall_load_pct))
+        Compute.publish_stats_multi(stats)
 
     @staticmethod
     def schedule_housekeeping(cmd, is_leader):

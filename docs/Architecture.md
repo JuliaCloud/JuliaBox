@@ -190,6 +190,7 @@ Interfaces with cloud service providers or provides similar services locally.
     - `get_instance_public_ip(instance_id=None)`
     - `get_instance_local_ip(instance_id=None)`
     - `publish_stats(stat_name, stat_unit, stat_value)`: Record performance/load statistics.
+    - `publish_stats_multi(stats)`: Record multiple performance/load statistics.
     - `get_instance_stats(instance, stat_name, namespace=None)`: Query recorded statistics.
     - `get_cluster_stats(stat_name, namespace=None)`: Query cluster wide recorded statistics.
     - `get_cluster_average_stats(stat_name, namespace=None, results=None)`: Query cluster wide averages of recorded statistics.
