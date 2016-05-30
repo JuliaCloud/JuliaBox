@@ -150,13 +150,12 @@ class CompGCE(JBPluginCloud):
             raise Exception("Invalid value_type argument.")
 
     @staticmethod
-    def _get_timeseries_dict(metric_name, labels, value, value_type):
+    def _get_timeseries_dict(metric_name, labels, value, value_type, timenow):
         value_type = CompGCE._process_value_type(value_type)
         timedesc = {
             "metric": CompGCE.CUSTOM_METRIC_DOMAIN + metric_name,
             "labels": labels
         }
-        timenow = CompGCE._get_google_now()
         timeseries = {
             "timeseriesDesc": timedesc,
             "point": {
@@ -169,10 +168,29 @@ class CompGCE(JBPluginCloud):
 
     @staticmethod
     @retry_on_errors(retries=2)
-    def _timeseries_write(timeseries):
+    def _ts_write(timeseries):
         ts = CompGCE._connect_google_monitoring().timeseries()
-        return ts.write(project=CompGCE.INSTALL_ID,
-                        body={"timeseries": timeseries}).execute()
+        ts.write(project=CompGCE.INSTALL_ID,
+                 body={"timeseries": timeseries}).execute()
+
+    @staticmethod
+    def _update_timeseries(timeseries):
+        timenow = CompGCE._get_google_now()
+        for ts in timeseries:
+            ts['point']['start'] = timenow
+            ts['point']['end'] = timenow
+
+    @staticmethod
+    def _timeseries_write(timeseries):
+        try:
+            CompGCE._ts_write(timeseries)
+        except HttpError, err:
+            if err.resp.status == 400:
+                time.sleep(1)
+                CompGCE._update_timeseries(timeseries)
+                CompGCE._ts_write(timeseries)
+            else:
+                raise
 
     @staticmethod
     def publish_stats(stat_name, stat_unit, stat_value):
@@ -184,13 +202,15 @@ class CompGCE(JBPluginCloud):
         timeseries = []
         label = {CompGCE.CUSTOM_METRIC_DOMAIN + 'InstanceID': CompGCE.get_instance_id(),
                  CompGCE.CUSTOM_METRIC_DOMAIN + 'GroupID' : CompGCE.AUTOSCALE_GROUP}
+        timenow = CompGCE._get_google_now()
         for (stat_name, stat_unit, stat_value) in stats:
             CompGCE.SELF_STATS[stat_name] = stat_value
             CompGCE.log_info("CloudMonitoring %s.%s.%s=%r(%s)",
                              CompGCE.INSTALL_ID, CompGCE.get_instance_id(),
                              stat_name, stat_value, stat_unit)
             timeseries.append(CompGCE._get_timeseries_dict(stat_name, label,
-                                                           stat_value, stat_unit))
+                                                           stat_value, stat_unit,
+                                                           timenow))
         CompGCE._timeseries_write(timeseries)
 
     @staticmethod
