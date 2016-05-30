@@ -5,14 +5,14 @@ from juliabox.cloud import JBPluginCloud
 from juliabox.jbox_util import JBoxCfg, retry_on_errors
 from googleapiclient.discovery import build
 from oauth2client.client import GoogleCredentials
+import threading
 
 class JBoxGCD(JBPluginCloud):
     provides = [JBPluginCloud.JBP_DNS, JBPluginCloud.JBP_DNS_GCD]
-
+    threadlocal = threading.local()
     INSTALLID = None
     REGION = None
     DOMAIN = None
-    CONN = None
 
     @staticmethod
     def configure():
@@ -29,11 +29,12 @@ class JBoxGCD(JBPluginCloud):
 
     @staticmethod
     def connect():
-        if JBoxGCD.CONN is None:
+        c = getattr(JBoxGCD.threadlocal, 'conn', None)
+        if c is None:
             JBoxGCD.configure()
             creds = GoogleCredentials.get_application_default()
-            JBoxGCD.CONN = build('dns', 'v1', credentials=creds)
-        return JBoxGCD.CONN
+            JBoxGCD.threadlocal.conn = c = build("dns", "v1", credentials=creds)
+        return c
 
     @staticmethod
     @retry_on_errors(retries=2)
