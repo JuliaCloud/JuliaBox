@@ -8,6 +8,7 @@ import re
 import json
 import socket
 import time
+import threading
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -19,12 +20,9 @@ from juliabox.jbox_util import JBoxCfg, parse_iso_time, retry, retry_on_errors
 
 class CompGCE(JBPluginCloud):
     provides = [JBPluginCloud.JBP_COMPUTE, JBPluginCloud.JBP_COMPUTE_GCE]
-
+    threadlocal = threading.local()
     ZONE = None
     INSTALL_ID = None
-
-    GCE_CONN = None
-    MONITORING_CONN = None
 
     AUTOSCALE_GROUP = None
     SCALE_UP_POLICY = None
@@ -43,7 +41,6 @@ class CompGCE(JBPluginCloud):
 
     GOOGLE_HEADERS = {"Metadata-Flavor": "Google"}    # HTTP header for querying metadata
     THIS_METADATA = None    # Metadata of current instance
-    SERVICE_CREDENTIALS = None    # Google service credentials
     RFC_3339_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
     CUSTOM_METRIC_DOMAIN = "custom.cloudmonitoring.googleapis.com/"
     ALLOWED_CUSTOM_GCE_VALUE_TYPES = ["double", "int64"]
@@ -514,24 +511,22 @@ class CompGCE(JBPluginCloud):
             return 0
 
     @staticmethod
-    def _get_service_credentials():
-        if CompGCE.SERVICE_CREDENTIALS == None:
-            CompGCE.SERVICE_CREDENTIALS = GoogleCredentials.get_application_default()
-        return CompGCE.SERVICE_CREDENTIALS
-
-    @staticmethod
     def _connect_gce():
-        if CompGCE.GCE_CONN is None:
-            CompGCE.GCE_CONN = build("compute", "v1",
-                                     credentials=CompGCE._get_service_credentials())
-        return CompGCE.GCE_CONN
+        c = getattr(CompGCE.threadlocal, 'gce_conn', None)
+        if c is None:
+            creds = GoogleCredentials.get_application_default()
+            CompGCE.threadlocal.gce_conn = c = build("compute", "v1",
+                                                     credentials=creds)
+        return c
 
     @staticmethod
     def _connect_google_monitoring():
-        if CompGCE.MONITORING_CONN is None:
-            CompGCE.MONITORING_CONN = build("cloudmonitoring", "v2beta2",
-                                            credentials=CompGCE._get_service_credentials())
-        return CompGCE.MONITORING_CONN
+        c = getattr(CompGCE.threadlocal, 'cm_conn', None)
+        if c is None:
+            creds = GoogleCredentials.get_application_default()
+            CompGCE.threadlocal.cm_conn = c = build("cloudmonitoring", "v2beta2",
+                                                    credentials=creds)
+        return c
 
     @staticmethod
     @retry_on_errors(retries=2)

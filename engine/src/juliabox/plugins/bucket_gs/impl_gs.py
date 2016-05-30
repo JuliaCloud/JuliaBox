@@ -10,6 +10,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 from googleapiclient.errors import HttpError
 from mimetypes import MimeTypes
+import threading
 
 class KeyStruct:
     def __init__(self, **entries): 
@@ -18,15 +19,17 @@ class KeyStruct:
 
 class JBoxGS(JBPluginCloud):
     provides = [JBPluginCloud.JBP_BUCKETSTORE, JBPluginCloud.JBP_BUCKETSTORE_GS]
-    CONN = None
+    threadlocal = threading.local()
     BUCKETS = dict()
 
     @staticmethod
     def connect():
-        if JBoxGS.CONN is None:
+        c = getattr(JBoxGS.threadlocal, 'conn', None)
+        if c is None:
             creds = GoogleCredentials.get_application_default()
-            JBoxGS.CONN = build("storage", "v1", credentials=creds)
-        return JBoxGS.CONN
+            JBoxGS.threadlocal.conn = c = build("storage", "v1",
+                                                credentials=creds)
+        return c
 
     @staticmethod
     def connect_bucket(bucket):
