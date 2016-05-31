@@ -7,6 +7,7 @@ from boto.dynamodb2.fields import HashKey, RangeKey, AllIndex, IncludeIndex
 from boto.dynamodb2.types import NUMBER, STRING
 
 from juliabox.db import JBPluginDB
+from juliabox.db import JBoxDB
 
 
 class JBoxAccountingV2(JBPluginDB):
@@ -29,6 +30,17 @@ class JBoxAccountingV2(JBPluginDB):
             RangeKey('stop_time', data_type=NUMBER)
         ], includes=['container_id'])
     ]
+
+    KEYS = ['stop_date', 'stop_time']
+    ATTRIBUTES = ['image_id', 'container_id', 'start_date', 'start_time']
+    SQL_INDEXES = [
+        {'name': 'container_id-stop_time-index',
+         'cols': ['container_id', 'stop_time']},
+        {'name': 'image_id-stop_time-index',
+         'cols': ['image_id', 'stop_time']},
+    ]
+    KEYS_TYPES = [JBoxDB.INT, JBoxDB.INT]
+    TYPES = [JBoxDB.VCHAR, JBoxDB.VCHAR, JBoxDB.INT, JBoxDB.INT]
 
     TABLE = None
     _stats_cache = {}
