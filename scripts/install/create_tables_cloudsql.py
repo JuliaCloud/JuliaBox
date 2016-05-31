@@ -12,6 +12,7 @@ from juliabox.jbox_util import JBoxCfg
 
 # import any plugins that contribute tables
 import juliabox.plugins.course_homework
+import juliabox.plugins.usage_accounting
 
 def table_exists(table_name):
     try:
