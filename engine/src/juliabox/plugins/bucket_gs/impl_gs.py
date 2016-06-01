@@ -4,7 +4,7 @@ import os
 import urllib
 import io
 from juliabox.cloud import JBPluginCloud
-from juliabox.jbox_util import JBoxCfg
+from juliabox.jbox_util import JBoxCfg, retry_on_errors
 from oauth2client.client import GoogleCredentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
