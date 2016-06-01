@@ -309,7 +309,7 @@ def retry_on_errors(retries=10, backoff=2, max_sleep_time=32):
                     else:
                         raise
                 except HttpError, e:
-                    if err.resp.status in [500, 502, 503, 504, 404]:
+                    if e.resp.status in [500, 502, 503, 504, 404]:
                         err = e
                     else:
                         raise
@@ -318,7 +318,7 @@ def retry_on_errors(retries=10, backoff=2, max_sleep_time=32):
                         raise err
                     else:
                         sleep_time = min(backoff**nretry, max_sleep_time)
-                        sleep(sleep_time + random())
+                        time.sleep(sleep_time + random())
                 nretry += 1
         return func
     return g
