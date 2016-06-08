@@ -285,7 +285,8 @@ class CompEC2(JBPluginCloud):
             cluster_load[self_instance_id] = self_load
 
         # remove machines with older AMIs
-        cluster_load = {k: v for k, v in cluster_load.iteritems() if CompEC2.get_image_recentness(k) >= 0}
+        cluster_load = {k: v for k, v in cluster_load.iteritems()
+                        if CompEC2.get_image_recentness(k) >= 0 and v is not None}
         CompEC2.log_debug("Cluster load (excluding old amis): %r", cluster_load)
 
         avg_load = CompEC2.get_cluster_average_stats('Load', results=cluster_load)
