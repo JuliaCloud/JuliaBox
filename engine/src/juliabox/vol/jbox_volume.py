@@ -380,11 +380,17 @@ class JBoxVol(LoggerMixin):
         sessname = unique_sessname(self.user_email)
         old_sessname = esc_sessname(self.user_email)
         src = os.path.join(JBoxVol.BACKUP_LOC, sessname + ".tar.gz")
-        k = JBoxVol.pull_from_bucketstore(src)  # download from S3 if exists
+
+        pull_from_bucketstore = JBoxVol.pull_from_bucketstore
+        mig_hndl = JBPluginCloud.jbox_get_plugin(JBPluginCloud.JBP_MIGRATE)
+        if mig_hndl and mig_hndl.should_migrate(self.user_email):
+            pull_from_bucketstore = mig_hndl.pull_from_bucketstore
+
+        k = pull_from_bucketstore(src)  # download from S3 if exists
         if not os.path.exists(src):
             if old_sessname is not None:
                 src = os.path.join(JBoxVol.BACKUP_LOC, old_sessname + ".tar.gz")
-                k = JBoxVol.pull_from_bucketstore(src)  # download from S3 if exists
+                k = pull_from_bucketstore(src)  # download from S3 if exists
 
         if not os.path.exists(src):
             return
