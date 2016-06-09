@@ -27,6 +27,9 @@ RUN mkdir -p /opt/julia-0.5.0-dev && \
     curl -s -L https://status.julialang.org/download/linux-x86_64 | tar -C /opt/julia-0.5.0-dev -x -z --strip-components=1 -f -
 RUN ln -fs /opt/julia-0.5.0-dev /opt/julia-0.5
 
+# Make Julia 0.4 the default
+RUN rm /opt/julia && ln -fs /opt/julia-0.4.5 /opt/julia
+
 USER juser
 ENV HOME /home/juser
 ENV PATH /usr/local/texlive/2014/bin/x86_64-linux:/usr/local/bin:/usr/bin:/bin:/sbin:/usr/sbin:/opt/julia/bin
