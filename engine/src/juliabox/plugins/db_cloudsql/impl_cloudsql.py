@@ -23,9 +23,8 @@ class JBoxMySQLTable(LoggerMixin):
 
     def __init__(self, table_name):
         self.name = table_name
-        c = JBoxCloudSQL.conn().cursor()
         pragma_sql = 'show columns from %s' % (table_name,)
-        c.execute(pragma_sql)
+        c = JBoxCloudSQL.execute(pragma_sql)
         rows = c.fetchall()
         pragma_cols = [spec[0] for spec in c.description]
 
@@ -48,12 +47,11 @@ class JBoxMySQLTable(LoggerMixin):
                                 " values (" + ", ".join(params) + ")"
 
     def insert(self, record_):
-        c = JBoxCloudSQL.conn().cursor()
         record = copy.deepcopy(record_)
         for col in self.columns:
             if col not in record.keys():
                 record[col] = None
-        c.execute(self.insert_statement, record)
+        c = JBoxCloudSQL.execute(self.insert_statement, record)
         c.close()
         self.commit()
 
@@ -100,8 +98,7 @@ class JBoxMySQLTable(LoggerMixin):
         stmt = 'select %s from %s%s%s' % (selattribs, self.name,
                                           use_index_sql, criteria)
         params = dict(zip(colnames, values))
-        c = JBoxCloudSQL.conn().cursor()
-        c.execute(stmt, params)
+        c = JBoxCloudSQL.execute(stmt, params)
         return c
 
     def select(self, **kwargs):
@@ -142,9 +139,8 @@ class JBoxMySQLTable(LoggerMixin):
         criteria = ' where ' + ' and '.join(names)
         stmt = "delete from %s%s" % (self.name, criteria)
 
-        c = JBoxCloudSQL.conn().cursor()
         # self.log_debug("SQL: %s", stmt)
-        c.execute(stmt, dict(zip(colnames, values)))
+        c = JBoxCloudSQL.execute(stmt, dict(zip(colnames, values)))
         c.close()
         self.commit()
 
@@ -177,16 +173,14 @@ class JBoxMySQLTable(LoggerMixin):
 
         stmt = "update %s set %s%s" % (self.name, updatecols, criteria)
 
-        c = JBoxCloudSQL.conn().cursor()
         # self.log_debug("SQL: %s", stmt)
-        c.execute(stmt, dict(zip(names, values)))
+        c = JBoxCloudSQL.execute(stmt, dict(zip(names, values)))
         c.close()
         self.commit()
 
     @staticmethod
     def commit():
         JBoxCloudSQL.conn().commit()
-
 
 class JBoxCloudSQL(JBPluginDB):
     provides = [JBPluginDB.JBP_DB, JBPluginDB.JBP_DB_CLOUDSQL]
@@ -208,26 +202,33 @@ class JBoxCloudSQL(JBPluginDB):
             JBoxCloudSQL.DB = dbconf['db']
 
     @staticmethod
-    def conn():
+    def conn(reconnect=False):
         c = getattr(JBoxCloudSQL.threadlocal, 'cloudsql_conn', None)
-        if c is None:
+        if c is None or reconnect:
             JBoxCloudSQL.log_debug("connecting with %s", JBoxCloudSQL.USER)
             JBoxCloudSQL.threadlocal.cloudsql_conn = c = MySQLdb.connect(
                 user=JBoxCloudSQL.USER, passwd=JBoxCloudSQL.PASSWD,
                 unix_socket=JBoxCloudSQL.UNIX_SOCKET, db=JBoxCloudSQL.DB)
         return c
 
-    # tested
+    @staticmethod
+    def execute(sql, params=None):
+        try:
+            cursor = JBoxCloudSQL.conn().cursor()
+            cursor.execute(sql, params)
+        except (AttributeError, MySQLdb.OperationalError):
+            cursor = JBoxCloudSQL.conn(reconnect=True).cursor()
+            cursor.execute(sql, params)
+        return cursor
+
     @staticmethod
     def table_open(tablename):
         return JBoxMySQLTable(tablename)
 
-    # tested
     @staticmethod
     def record_create(table, data):
         table.insert(data)
 
-    # tested
     @staticmethod
     def record_fetch(table, **kwargs):
         return table.select(**kwargs)

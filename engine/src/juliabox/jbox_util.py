@@ -10,7 +10,7 @@ import logging
 import isodate
 import httplib
 import errno
-
+from random import random
 
 def parse_iso_time(tm):
     if tm is not None:
