@@ -22,14 +22,14 @@ def table_exists(table_name):
     except:
         return False
 
-
-def table_create(table_name, columns, types, keys=None, keys_types=None):
+def table_create(table_name, columns=None, types=None, keys=None, keys_types=None):
     stmt = []
     if keys is not None:
         for k, t in zip(keys, keys_types):
             stmt.append(k + ' ' + t)
-    for col, t in zip(columns, types):
-        stmt.append(col + ' ' + t)
+    if columns is not None:
+        for col, t in zip(columns, types):
+            stmt.append(col + ' ' + t)
     sql = 'create table %s (%s' % (table_name, ', '.join(stmt))
     if keys is not None:
         sql += (', primary key (%s)' % (', '.join(keys),))

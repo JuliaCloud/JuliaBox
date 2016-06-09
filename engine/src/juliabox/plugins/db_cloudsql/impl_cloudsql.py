@@ -53,7 +53,6 @@ class JBoxMySQLTable(LoggerMixin):
                 record[col] = None
         c = JBoxCloudSQL.execute(self.insert_statement, record)
         c.close()
-        self.commit()
 
     @staticmethod
     def _op(name, opstr, value, names, values):
@@ -142,7 +141,6 @@ class JBoxMySQLTable(LoggerMixin):
         # self.log_debug("SQL: %s", stmt)
         c = JBoxCloudSQL.execute(stmt, dict(zip(colnames, values)))
         c.close()
-        self.commit()
 
     def update(self, record):
         keynames = []
@@ -176,11 +174,6 @@ class JBoxMySQLTable(LoggerMixin):
         # self.log_debug("SQL: %s", stmt)
         c = JBoxCloudSQL.execute(stmt, dict(zip(names, values)))
         c.close()
-        self.commit()
-
-    @staticmethod
-    def commit():
-        JBoxCloudSQL.conn().commit()
 
 class JBoxCloudSQL(JBPluginDB):
     provides = [JBPluginDB.JBP_DB, JBPluginDB.JBP_DB_CLOUDSQL]
@@ -209,6 +202,7 @@ class JBoxCloudSQL(JBPluginDB):
             JBoxCloudSQL.threadlocal.cloudsql_conn = c = MySQLdb.connect(
                 user=JBoxCloudSQL.USER, passwd=JBoxCloudSQL.PASSWD,
                 unix_socket=JBoxCloudSQL.UNIX_SOCKET, db=JBoxCloudSQL.DB)
+            c.autocommit(True)
         return c
 
     @staticmethod

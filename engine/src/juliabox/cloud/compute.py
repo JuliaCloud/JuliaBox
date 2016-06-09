@@ -68,6 +68,8 @@ class JBPluginCloud(LoggerMixin):
     JBP_COMPUTE_SINGLENODE = "cloud.compute.singlenode"
     JBP_COMPUTE_GCE = "cloud.compute.gce"
 
+    JBP_MIGRATE = "cloud.migrate"
+
     __metaclass__ = JBoxPluginType
 
 
