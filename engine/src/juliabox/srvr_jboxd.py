@@ -10,7 +10,7 @@ import socket
 from cloud import JBPluginCloud
 from cloud import Compute
 import db
-from db import JBoxUserV2, JBoxDynConfig, is_proposed_cluster_leader
+from db import JBoxUserV2, JBoxDynConfig, JBoxSessionProps, is_proposed_cluster_leader
 from jbox_tasks import JBoxAsyncJob, JBPluginTask
 from jbox_util import LoggerMixin, JBoxCfg, retry
 from juliabox.interactive import SessContainer
@@ -119,6 +119,7 @@ class JBoxd(LoggerMixin):
         cont = SessContainer(dockid)
         cont.stop()
         cont.delete(backup=True)
+        JBoxSessionProps.detach_instance(cont.get_name(), Compute.get_instance_id())
 
     @staticmethod
     def _is_scheduled(cmd, args):
@@ -226,6 +227,13 @@ class JBoxd(LoggerMixin):
         JBoxDynConfig.set_stat_collected_date(Compute.get_install_id())
 
     @staticmethod
+    def publish_sessions():
+        iid = Compute.get_instance_id()
+        for c in SessContainer.session_containers(allcontainers=True):
+            if ('Names' in c) and (c['Names'] is not None):
+                JBoxSessionProps.attach_instance(SessContainer(c['Id']).get_name(), iid, c["Status"])
+
+    @staticmethod
     def publish_perf_counters():
         """ Publish performance counters. Used for status monitoring and auto scaling. """
         VolMgr.refresh_disk_use_status()
@@ -273,6 +281,7 @@ class JBoxd(LoggerMixin):
     @staticmethod
     def schedule_housekeeping(cmd, is_leader):
         JBoxd.publish_perf_counters()
+        JBoxd.publish_sessions()
         features = [JBPluginTask.JBP_NODE]
         if is_leader is True:
             features.append(JBPluginTask.JBP_CLUSTER)

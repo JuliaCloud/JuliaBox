@@ -14,7 +14,7 @@ from juliabox.interactive import SessContainer
 from juliabox.jbox_tasks import JBoxAsyncJob
 from juliabox.jbox_crypto import signstr
 from juliabox.cloud import Compute
-from juliabox.db import is_proposed_cluster_leader, JBoxUserV2, JBoxDynConfig
+from juliabox.db import is_proposed_cluster_leader, JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBoxDBItemNotFound
 from juliabox.jbox_crypto import encrypt, decrypt
 
 
@@ -381,23 +381,16 @@ class JBoxHandler(JBoxCookies):
 
     @staticmethod
     def find_logged_in_instance(user_id):
-        container_id = "/" + unique_sessname(user_id)
-        instances = Compute.get_all_instances()
-
-        for inst in instances:
-            try:
-                sessions = JBoxAsyncJob.sync_session_status(inst)['data']
-                if len(sessions) > 0:
-                    if container_id in sessions:
-                        return inst
-            except:
-                JBoxHandler.log_error("Error receiving sessions list from %r", inst)
-                pass
-        return None
+        sessname = unique_sessname(user_id)
+        try:
+            sess_props = JBoxSessionProps(sessname)
+            return sess_props.get_instance_id()
+        except JBoxDBItemNotFound:
+            return None
 
     def redirect_to_logged_in_instance(self, user_id):
         loggedin_instance = self.find_logged_in_instance(user_id)
-        if loggedin_instance is not None \
+        if loggedin_instance \
                 and loggedin_instance != Compute.get_instance_id() \
                 and loggedin_instance != 'localhost':
             # redirect to the instance that has the user's session
@@ -406,7 +399,7 @@ class JBoxHandler(JBoxCookies):
             self.set_redirect_instance_id(redirect_ip)
             self.redirect('/')
             return True
-        self.log_info("Logged in %s", "nowhere" if loggedin_instance is None else "here already")
+        self.log_info("Logged in %s", "here already" if loggedin_instance else "nowhere")
         return False
 
     def post_auth_launch_container(self, user_id):

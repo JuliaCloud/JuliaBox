@@ -211,21 +211,21 @@ class SessContainer(BaseContainer):
         except:
             return False
 
-    @staticmethod
-    def get_active_sessions():
-        instances = Compute.get_all_instances()
-
-        active_sessions = set()
-        for inst in instances:
-            try:
-                sessions = JBoxAsyncJob.sync_session_status(inst)['data']
-                if len(sessions) > 0:
-                    for sess_id in sessions.keys():
-                        active_sessions.add(sess_id)
-            except:
-                SessContainer.log_error("Error receiving sessions list from %r", inst)
-
-        return active_sessions
+    # @staticmethod
+    # def get_active_sessions():
+    #     instances = Compute.get_all_instances()
+    #
+    #     active_sessions = set()
+    #     for inst in instances:
+    #         try:
+    #             sessions = JBoxAsyncJob.sync_session_status(inst)['data']
+    #             if len(sessions) > 0:
+    #                 for sess_id in sessions.keys():
+    #                     active_sessions.add(sess_id)
+    #         except:
+    #             SessContainer.log_error("Error receiving sessions list from %r", inst)
+    #
+    #     return active_sessions
 
     def backup_and_cleanup(self):
         self.stop()
