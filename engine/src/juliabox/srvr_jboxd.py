@@ -121,6 +121,7 @@ class JBoxd(LoggerMixin):
         cont.delete(backup=True)
         JBoxSessionProps.detach_instance(cont.get_name(), Compute.get_instance_id())
         JBoxd.publish_perf_counters()
+        JBoxd.publish_anticipated_load()
 
     @staticmethod
     def _is_scheduled(cmd, args):
@@ -162,6 +163,7 @@ class JBoxd(LoggerMixin):
     @staticmethod
     @jboxd_method
     def launch_session(name, email, reuse=True):
+        JBoxd.publish_anticipated_load(name)
         JBoxd._wait_for_session_backup(name)
         VolMgr.refresh_disk_use_status()
         JBoxd._launch_session(name, email, reuse)
@@ -226,6 +228,20 @@ class JBoxd(LoggerMixin):
         VolMgr.publish_stats()
         db.publish_stats()
         JBoxDynConfig.set_stat_collected_date(Compute.get_install_id())
+
+    @staticmethod
+    def publish_anticipated_load(session_name=None):
+        iid = Compute.get_instance_id()
+        if session_name is None:
+            nactive = BaseContainer.num_active(BaseContainer.SFX_INT)
+        else:
+            JBoxSessionProps.attach_instance(session_name, iid, "Preparing")
+            nactive = BaseContainer.num_active(BaseContainer.SFX_INT) + 1
+        cont_load_pct = min(100, max(0, nactive * 100 / SessContainer.MAX_CONTAINERS))
+        self_load = max(Compute.get_instance_stats(iid, 'Load'), cont_load_pct)
+        Compute.publish_stats("Load", "Percent", self_load)
+        accept = Compute.should_accept_session(is_proposed_cluster_leader())
+        JBoxInstanceProps.set_props(iid, load=self_load, accept=accept)
 
     @staticmethod
     def publish_sessions():
