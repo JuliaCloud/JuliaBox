@@ -2,6 +2,7 @@ __author__ = 'tan'
 from db_base import JBoxDB, JBPluginDB, JBoxDBItemNotFound
 from user_v2 import JBoxUserV2
 from container import JBoxSessionProps
+from instance import JBoxInstanceProps
 from dynconfig import JBoxDynConfig
 from api_spec import JBoxAPISpec
 from juliabox.cloud import Compute

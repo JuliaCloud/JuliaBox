@@ -4,6 +4,7 @@ from handler_base import JBoxHandler
 from juliabox.jbox_util import JBoxCfg
 from juliabox.jbox_crypto import signstr
 from juliabox.api import APIContainer
+from juliabox.db import JBoxInstanceProps
 
 
 class APIInfoHandler(JBoxHandler):
@@ -22,7 +23,7 @@ class APIInfoHandler(JBoxHandler):
             self.send_error()
             return
 
-        api_status = APIContainer.get_cluster_api_status()
+        api_status = JBoxInstanceProps.get_instance_status()
         self.log_info("cluster api status: %r", api_status)
 
         # filter out instances that should not accept more load

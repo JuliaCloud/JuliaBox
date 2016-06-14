@@ -269,20 +269,20 @@ class APIContainer(BaseContainer):
         APIContainer.API_CONTAINERS[api_name] = clist
         APIContainer.log_info("Deregistered " + cname)
 
-    @staticmethod
-    def get_cluster_api_status():
-        result = dict()
-        for inst in Compute.get_all_instances():
-            try:
-                api_status = JBoxAsyncJob.sync_api_status(inst)
-                if api_status['code'] == 0:
-                    result[inst] = api_status['data']
-                else:
-                    APIContainer.log_error("error fetching api status from %s", inst)
-            except:
-                APIContainer.log_error("exception fetching api status from %s", inst)
-        APIContainer.log_debug("api status: %r", result)
-        return result
+    # @staticmethod
+    # def get_cluster_api_status():
+    #     result = dict()
+    #     for inst in Compute.get_all_instances():
+    #         try:
+    #             api_status = JBoxAsyncJob.sync_api_status(inst)
+    #             if api_status['code'] == 0:
+    #                 result[inst] = api_status['data']
+    #             else:
+    #                 APIContainer.log_error("error fetching api status from %s", inst)
+    #         except:
+    #             APIContainer.log_error("exception fetching api status from %s", inst)
+    #     APIContainer.log_debug("api status: %r", result)
+    #     return result
 
     def on_start(self):
         APIContainer.register_api_container(self.get_api_name(), self.get_name())

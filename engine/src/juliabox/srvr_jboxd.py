@@ -10,7 +10,7 @@ import socket
 from cloud import JBPluginCloud
 from cloud import Compute
 import db
-from db import JBoxUserV2, JBoxDynConfig, JBoxSessionProps, is_proposed_cluster_leader
+from db import JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBoxInstanceProps, is_proposed_cluster_leader
 from jbox_tasks import JBoxAsyncJob, JBPluginTask
 from jbox_util import LoggerMixin, JBoxCfg, retry
 from juliabox.interactive import SessContainer
@@ -120,6 +120,7 @@ class JBoxd(LoggerMixin):
         cont.stop()
         cont.delete(backup=True)
         JBoxSessionProps.detach_instance(cont.get_name(), Compute.get_instance_id())
+        JBoxd.publish_perf_counters()
 
     @staticmethod
     def _is_scheduled(cmd, args):
@@ -234,6 +235,22 @@ class JBoxd(LoggerMixin):
                 JBoxSessionProps.attach_instance(SessContainer(c['Id']).get_name(), iid, c["Status"])
 
     @staticmethod
+    def publish_instance_state():
+        iid = Compute.get_instance_id()
+        api_status = dict()
+        for c in BaseContainer.api_containers(allcontainers=True):
+            name = c["Names"][0] if (("Names" in c) and (c["Names"] is not None)) else c["Id"][0:12]
+            api_name = APIContainer.get_api_name_from_container_name(name)
+            if api_name is None:
+                continue
+            cnt = api_status.get(api_name, 0)
+            api_status[api_name] = cnt + 1
+        self_load = Compute.get_instance_stats(iid, 'Load')
+        accept = Compute.should_accept_session(is_proposed_cluster_leader())
+
+        JBoxInstanceProps.set_props(iid, load=self_load, accept=accept, api_status=api_status)
+
+    @staticmethod
     def publish_perf_counters():
         """ Publish performance counters. Used for status monitoring and auto scaling. """
         VolMgr.refresh_disk_use_status()
@@ -282,8 +299,10 @@ class JBoxd(LoggerMixin):
     def schedule_housekeeping(cmd, is_leader):
         JBoxd.publish_perf_counters()
         JBoxd.publish_sessions()
+        JBoxd.publish_instance_state()
         features = [JBPluginTask.JBP_NODE]
         if is_leader is True:
+            JBoxInstanceProps.purge_stale_instances()
             features.append(JBPluginTask.JBP_CLUSTER)
 
         for feature in features:
@@ -407,6 +426,8 @@ class JBoxd(LoggerMixin):
         Compute.deregister_instance_dns()
         Compute.register_instance_dns()
         JBoxd.publish_perf_counters()
+        JBoxd.publish_instance_state()
+        JBoxd.publish_sessions()
 
         JBoxd.log_debug("Setting up signal handlers")
         signal.signal(signal.SIGINT, JBoxd.signal_handler)

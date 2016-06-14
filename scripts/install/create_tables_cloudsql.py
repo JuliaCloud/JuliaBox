@@ -7,7 +7,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "engine", "s
 import MySQLdb
 import time
 
-from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBPluginDB, JBoxAPISpec
+from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBoxInstanceProps, JBPluginDB, JBoxAPISpec
 from juliabox.jbox_util import JBoxCfg
 
 # import any plugins that contribute tables
@@ -37,6 +37,7 @@ def table_create(table_name, columns=None, types=None, keys=None, keys_types=Non
     c.execute(sql)
     conn.commit()
 
+
 def indexes_create(table_name, indexes):
     if indexes == None:
         return
@@ -46,6 +47,7 @@ def indexes_create(table_name, indexes):
         sql = "CREATE INDEX `%s` ON %s(%s)" % (name, table_name, cols)
         c.execute(sql)
         conn.commit()
+
 
 def get_connection():
     # Copy from /jboxengine/conf/jbox.user
@@ -62,7 +64,7 @@ def get_connection():
 conn = get_connection()
 c = conn.cursor()
 
-tables = [JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBoxAPISpec]
+tables = [JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBoxInstanceProps, JBoxAPISpec]
 for plugin in JBPluginDB.jbox_get_plugins(JBPluginDB.JBP_TABLE_DYNAMODB):
     tables.append(plugin)
 
