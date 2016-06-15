@@ -40,7 +40,10 @@ def is_cluster_leader():
     # if none set, or set instance is dead elect self as leader, but wait till next cycle to prevent conflicts
     if (leader is None) or (leader not in instances) and (img_recentness >= 0):
         JBoxDB.log_info("setting self (%s) as cluster leader", self_id)
-        JBoxDynConfig.set_cluster_leader(cluster, self_id)
+        try:
+            JBoxDynConfig.set_cluster_leader(cluster, self_id)
+        except:
+            JBoxDB.log_info("error setting self (%s) as cluster leader, will retry", self_id)
         return False
 
     is_leader = (leader == self_id)

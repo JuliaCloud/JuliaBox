@@ -170,6 +170,11 @@ class SessContainer(BaseContainer):
                 SessContainer.log_warn("Inactive beyond allowed time %s. Scheduling cleanup.", cont.debug_str())
                 SessContainer.invalidate_container(cont.get_name())
                 JBoxAsyncJob.async_backup_and_cleanup(cont.dockid)
+            elif not c_is_active and ((tnow-cont.time_finished()).total_seconds() > (10*60)):
+                SessContainer.log_warn("Dead container %s. Deleting.", cont.debug_str())
+                cont.delete(backup=False)
+                del all_cnames[cname]
+                container_id_list.remove(cid)
 
         # delete ping entries for non exixtent containers
         for cname in SessContainer.PINGS.keys():
