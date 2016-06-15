@@ -5,6 +5,7 @@ import signal
 # import os
 import sys
 import psutil
+import socket
 
 from cloud import JBPluginCloud
 from cloud import Compute
@@ -94,6 +95,25 @@ class JBoxd(LoggerMixin):
         JBoxd.log_debug("finished " + sign)
 
     @staticmethod
+    @retry(7, 1, backoff=1.1)
+    def _wait_for_container_start(cont):
+        return cont.is_running()
+
+    @staticmethod
+    @retry(7, 1, backoff=1.1)
+    def _wait_for_port(port):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            result = sock.connect_ex(('127.0.0.1', int(port)))
+            if result == 0:
+                return True
+        except:
+            JBoxd.log_exception("exception while checking port")
+        finally:
+            sock.close()
+        return False
+
+    @staticmethod
     @jboxd_method
     def backup_and_cleanup(dockid):
         cont = SessContainer(dockid)
@@ -118,12 +138,32 @@ class JBoxd(LoggerMixin):
         return True
 
     @staticmethod
+    @retry(2, 1, backoff=1.1)
+    def _launch_session(name, email, reuse):
+        cont = SessContainer.launch_by_name(name, email, reuse=reuse)
+        JBoxd.publish_perf_counters()
+        JBoxSessionProps.attach_instance(name, Compute.get_instance_id(), 'Launched')
+        if not JBoxd._wait_for_container_start(cont):
+            JBoxd.log_error("did not start: %s", cont.debug_str())
+            BaseContainer.DCKR.kill(cont.dockid)
+            return False
+        # wait for services to start
+        for port in cont.get_host_ports():
+            if not JBoxd._wait_for_port(port):
+                JBoxd.log_error("port %s did not start: %s", port, cont.debug_str())
+                BaseContainer.DCKR.kill(cont.dockid)
+                return False
+            else:
+                JBoxd.log_debug("port %s active: %s", port, cont.debug_str())
+        JBoxd.log_info("passed connectivity check: %s", cont.debug_str())
+        return True
+
+    @staticmethod
     @jboxd_method
     def launch_session(name, email, reuse=True):
         JBoxd._wait_for_session_backup(name)
         VolMgr.refresh_disk_use_status()
-        SessContainer.launch_by_name(name, email, reuse=reuse)
-        JBoxd.publish_perf_counters()
+        JBoxd._launch_session(name, email, reuse)
 
     @staticmethod
     @jboxd_method
