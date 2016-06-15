@@ -58,6 +58,10 @@ class JBoxDefaultPackagesVol(JBoxVol):
     @staticmethod
     def get_disk_for_user(user_email):
         JBoxDefaultPackagesVol.log_debug("creating default packages mounted disk for %s", user_email)
+        if JBoxDefaultPackagesVol.FS_LOC is None:
+            JBoxDefaultPackagesVol.configure()
+        if JBoxDefaultPackagesVol.CURRENT_BUNDLE is None:
+            JBoxDefaultPackagesVol.refresh_user_home_image()
         disk_path = os.path.join(JBoxDefaultPackagesVol.FS_LOC, JBoxDefaultPackagesVol.CURRENT_BUNDLE)
         pkgvol = JBoxDefaultPackagesVol(disk_path, user_email=user_email)
         return pkgvol
