@@ -142,7 +142,6 @@ class JBoxd(LoggerMixin):
     def _launch_session(name, email, reuse):
         cont = SessContainer.launch_by_name(name, email, reuse=reuse)
         JBoxd.publish_perf_counters()
-        JBoxSessionProps.attach_instance(name, Compute.get_instance_id(), 'Launched')
         if not JBoxd._wait_for_container_start(cont):
             JBoxd.log_error("did not start: %s", cont.debug_str())
             BaseContainer.DCKR.kill(cont.dockid)
