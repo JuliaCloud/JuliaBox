@@ -14,10 +14,6 @@ function include_packages {
         echo ""
         echo "$METHOD package $PKG to Julia $JULIA_VER ..."
         /opt/julia-${JULIA_VER}/bin/julia -e "Pkg.${METHOD}(\"$PKG\")"
-        if [ ${METHOD} == "add" ]
-        then
-            /opt/julia-${JULIA_VER}/bin/julia -e "Pkg.build(\"$PKG\")"
-        fi
     done
 }
 
@@ -28,35 +24,16 @@ function list_packages {
     /opt/julia-${JULIA_VER}/bin/julia -e 'println("JULIA_HOME: $JULIA_HOME\n"); versioninfo(); println(""); Pkg.status()' > /opt/julia_packages/julia-${JULIA_VER}.packages.txt
 }
 
-# Install packages for Julia 0.3
-DEFAULT_PACKAGES="IJulia \
-Gadfly PyPlot SIUnits DataStructures HDF5 MAT \
-Iterators NumericExtensions SymPy Interact Roots \
-DataFrames RDatasets Distributions SVM Clustering GLM \
-Optim JuMP GLPKMathProgInterface Clp NLopt Ipopt \
-Cairo GraphViz \
-Images ImageView WAV ODE Sundials LinearLeastSquares \
-BayesNets PGFPlots GraphLayout \
-Stan Patchwork Quandl Lazy QuantEcon MixedModels Escher JuliaWebAPI"
-
-INTERNAL_PACKAGES="https://github.com/tanmaykm/JuliaBoxUtils.jl.git \
-https://github.com/shashi/Homework.jl.git"
-
-init_packages "0.3"
-include_packages "0.3" "$DEFAULT_PACKAGES" "add"
-include_packages "0.3" "$INTERNAL_PACKAGES" "clone"
-list_packages "0.3"
-
 # Install packages for Julia 0.4 and 0.5
-DEFAULT_PACKAGES="IJulia"
+DEFAULT_PACKAGES="IJulia PyPlot Interact Colors SymPy PyCall"
+INTERNAL_PACKAGES="https://github.com/tanmaykm/JuliaBoxUtils.jl.git"
+BUILD_PACKAGES="JuliaBoxUtils IJulia PyPlot"
 
-INTERNAL_PACKAGES="https://github.com/tanmaykm/JuliaBoxUtils.jl.git \
-https://github.com/shashi/Homework.jl.git"
-
-for ver in 0.4 0.5
+for ver in 0.3 0.4 0.5
 do
     init_packages "$ver"
     include_packages "$ver" "$DEFAULT_PACKAGES" "add"
     include_packages "$ver" "$INTERNAL_PACKAGES" "clone"
+    include_packages "$ver" "$BUILD_PACKAGES" "build"
     list_packages "$ver"
 done
