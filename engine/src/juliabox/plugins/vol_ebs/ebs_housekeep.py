@@ -1,4 +1,3 @@
-__author__ = 'tan'
 import pytz
 import os
 import datetime
@@ -9,8 +8,10 @@ from juliabox.plugins.compute_ec2 import EBSVol
 from juliabox.jbox_util import unique_sessname
 from juliabox.srvr_jboxd import jboxd_method
 from juliabox.interactive import SessContainer
+from juliabox.cloud import Compute
 from disk_state_tbl import JBoxDiskState
 from ebs import JBoxEBSVol
+__author__ = 'tan'
 
 
 class JBoxEBSHousekeep(JBPluginTask):
@@ -51,7 +52,7 @@ class JBoxEBSHousekeep(JBPluginTask):
         for disk_key in detached_disks:
             disk_info = JBoxDiskState(disk_key=disk_key)
             user_id = disk_info.get_user_id()
-            sess_props = JBoxSessionProps(unique_sessname(user_id))
+            sess_props = JBoxSessionProps(Compute.get_install_id(), unique_sessname(user_id))
             incomplete_snapshots = []
             modified = False
             for snap_id in disk_info.get_snapshot_ids():

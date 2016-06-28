@@ -29,21 +29,22 @@ class JBoxSessionProps(JBoxDB):
     # TODO: make configurable
     SESS_UPDATE_INTERVAL = (5 * 1.5) * 60
 
-    def __init__(self, session_id, create=False, user_id=None):
+    def __init__(self, cluster, session_id, create=False, user_id=None):
+        if session_id.startswith("/"):
+            session_id = session_id[1:]
+        qsession_id = JBoxDB.qual(cluster, session_id)
         try:
-            if session_id.startswith("/"):
-                session_id = session_id[1:]
-            self.item = self.fetch(session_id=session_id)
+            self.item = self.fetch(session_id=qsession_id)
             self.is_new = False
         except JBoxDBItemNotFound:
             if create:
                 data = {
-                    'session_id': session_id
+                    'session_id': qsession_id
                 }
                 if user_id is not None:
                     data['user_id'] = user_id
                 self.create(data)
-                self.item = self.fetch(session_id=session_id)
+                self.item = self.fetch(session_id=qsession_id)
                 self.is_new = True
             else:
                 raise
@@ -83,16 +84,16 @@ class JBoxSessionProps(JBoxDB):
         self.get_attrib('container_state', '')
 
     @staticmethod
-    def attach_instance(session_id, instance_id, container_state=None):
-        sessprops = JBoxSessionProps(session_id, create=True)
+    def attach_instance(cluster, session_id, instance_id, container_state=None):
+        sessprops = JBoxSessionProps(cluster, session_id, create=True)
         sessprops.set_instance_id(instance_id)
         if container_state:
             sessprops.set_container_state(container_state)
         sessprops.save()
 
     @staticmethod
-    def detach_instance(session_id, instance_id):
-        sessprops = JBoxSessionProps(session_id, create=True)
+    def detach_instance(cluster, session_id, instance_id):
+        sessprops = JBoxSessionProps(cluster, session_id, create=True)
         sessprops.unset_instance_id(instance_id)
         sessprops.set_container_state('')
         sessprops.save()
@@ -111,12 +112,13 @@ class JBoxSessionProps(JBoxDB):
         self.set_attrib('message', json.dumps(msg))
 
     @staticmethod
-    def get_active_sessions():
+    def get_active_sessions(cluster):
         now = datetime.datetime.now(pytz.utc)
         nowsecs = JBoxSessionProps.datetime_to_epoch_secs(now)
         valid_time = nowsecs - JBoxSessionProps.SESS_UPDATE_INTERVAL
         result = dict()
-        for record in JBoxSessionProps.scan(attach_time__gte=valid_time, instance_id__gt=" "):
+        for record in JBoxSessionProps.scan(session_id__beginswith=cluster, attach_time__gte=valid_time,
+                                            instance_id__gt=" "):
             instance_id = record.get('instance_id', None)
             if instance_id:
                 sessions = result.get(instance_id, dict())

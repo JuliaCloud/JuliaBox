@@ -113,8 +113,8 @@ class JBox(LoggerMixin):
 
     @staticmethod
     def update_juliabox_status():
-        in_error = len(JBoxInstanceProps.get_stale_instances())
-        instance_status = JBoxInstanceProps.get_instance_status()
+        in_error = len(JBoxInstanceProps.get_stale_instances(Compute.get_install_id()))
+        instance_status = JBoxInstanceProps.get_instance_status(Compute.get_install_id())
 
         HTML = "<html><body><center><pre>\nJuliaBox is Up.\n\nLast updated: " + datetime.datetime.now().isoformat() + " UTC\n\nLoads: "
         for iid in instance_status:

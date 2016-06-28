@@ -383,7 +383,7 @@ class JBoxHandler(JBoxCookies):
     def find_logged_in_instance(user_id):
         sessname = unique_sessname(user_id)
         try:
-            sess_props = JBoxSessionProps(sessname)
+            sess_props = JBoxSessionProps(Compute.get_install_id(), sessname)
             return sess_props.get_instance_id()
         except JBoxDBItemNotFound:
             return None

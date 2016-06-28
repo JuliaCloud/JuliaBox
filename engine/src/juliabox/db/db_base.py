@@ -88,6 +88,10 @@ class JBoxDB(LoggerMixin):
         epoch = datetime.datetime.fromtimestamp(0, pytz.utc)
         return epoch + datetime.timedelta(seconds=secs)
 
+    @staticmethod
+    def qual(cluster, name):
+        return '.'.join([cluster, name])
+
 
 class JBPluginDB(JBoxDB):
     """ Provide database access and database table definitions.

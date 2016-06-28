@@ -1,5 +1,3 @@
-__author__ = 'tan'
-
 import datetime
 import random
 import sys
@@ -10,9 +8,12 @@ import boto.ec2
 import boto.ec2.cloudwatch
 import boto.ec2.autoscale
 
-from juliabox.cloud import JBPluginCloud
+from juliabox.cloud import JBPluginCloud, Compute
 from juliabox.jbox_util import JBoxCfg, parse_iso_time, retry
 from juliabox.db import JBoxInstanceProps
+
+__author__ = 'tan'
+
 
 class CompEC2(JBPluginCloud):
     provides = [JBPluginCloud.JBP_COMPUTE, JBPluginCloud.JBP_COMPUTE_EC2]
@@ -253,7 +254,7 @@ class CompEC2(JBPluginCloud):
     def get_redirect_instance_id():
         if not CompEC2.SCALE:
             CompEC2.log_debug("cluster size is fixed")
-            available_nodes = JBoxInstanceProps.get_available_instances()
+            available_nodes = JBoxInstanceProps.get_available_instances(Compute.get_install_id())
             if len(available_nodes) > 0:
                 return random.choice(available_nodes)
             else:

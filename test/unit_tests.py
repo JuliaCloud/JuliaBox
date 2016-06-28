@@ -25,7 +25,7 @@ TESTCLSTR = 'testcluster'
 class TestDBTables(LoggerMixin):
     @staticmethod
     def test():
-        sprops = JBoxSessionProps(unique_sessname('tanmaykm@gmail.com'))
+        sprops = JBoxSessionProps(TESTCLSTR, unique_sessname('tanmaykm@gmail.com'))
         TestDBTables.log_debug("JBoxSessionProps. user_id: %s, snapshot_id: %s, message: %s",
                                sprops.get_user_id(),
                                sprops.get_snapshot_id(),

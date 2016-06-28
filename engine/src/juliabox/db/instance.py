@@ -29,17 +29,18 @@ class JBoxInstanceProps(JBoxDB):
     # TODO: make configurable
     SESS_UPDATE_INTERVAL = (5 * 1.5) * 60
 
-    def __init__(self, instance_id, create=False):
+    def __init__(self, cluster, instance_id, create=False):
+        qinstance_id = JBoxDB.qual(cluster, instance_id)
         try:
-            self.item = self.fetch(instance_id=instance_id)
+            self.item = self.fetch(instance_id=qinstance_id)
             self.is_new = False
         except JBoxDBItemNotFound:
             if create:
                 data = {
-                    'instance_id': instance_id
+                    'instance_id': qinstance_id
                 }
                 self.create(data)
-                self.item = self.fetch(instance_id=instance_id)
+                self.item = self.fetch(instance_id=qinstance_id)
                 self.is_new = True
             else:
                 raise
@@ -74,8 +75,8 @@ class JBoxInstanceProps(JBoxDB):
         return int(self.get_attrib('publish_time', JBoxInstanceProps.datetime_to_epoch_secs(now)))
 
     @staticmethod
-    def set_props(instance_id, load=None, accept=None, api_status=None):
-        instance_props = JBoxInstanceProps(instance_id, create=True)
+    def set_props(cluster, instance_id, load=None, accept=None, api_status=None):
+        instance_props = JBoxInstanceProps(cluster, instance_id, create=True)
         if load is not None:
             instance_props.set_load(load)
         if accept is not None:
@@ -86,28 +87,28 @@ class JBoxInstanceProps(JBoxDB):
         instance_props.save()
 
     @staticmethod
-    def purge_stale_instances():
-        for iid in JBoxInstanceProps.get_stale_instances():
-            instance = JBoxInstanceProps(iid)
+    def purge_stale_instances(cluster):
+        for iid in JBoxInstanceProps.get_stale_instances(cluster):
+            instance = JBoxInstanceProps(cluster, iid)
             instance.delete()
 
     @staticmethod
-    def get_stale_instances():
+    def get_stale_instances(cluster):
         now = datetime.datetime.now(pytz.utc)
         nowsecs = JBoxInstanceProps.datetime_to_epoch_secs(now)
         valid_time = nowsecs - JBoxInstanceProps.SESS_UPDATE_INTERVAL
         stale = []
-        for record in JBoxInstanceProps.scan(publish_time__lt=valid_time):
+        for record in JBoxInstanceProps.scan(instance_id__beginswith=cluster, publish_time__lt=valid_time):
             stale.append(record.get('instance_id'))
         return stale
 
     @staticmethod
-    def get_instance_status():
+    def get_instance_status(cluster):
         now = datetime.datetime.now(pytz.utc)
         nowsecs = JBoxInstanceProps.datetime_to_epoch_secs(now)
         valid_time = nowsecs - JBoxInstanceProps.SESS_UPDATE_INTERVAL
         result = dict()
-        for record in JBoxInstanceProps.scan(publish_time__gte=valid_time):
+        for record in JBoxInstanceProps.scan(instance_id__beginswith=cluster, publish_time__gte=valid_time):
             iid = record.get('instance_id')
             props = {
                 'load': float(record.get('load', '0.0')),
@@ -118,11 +119,12 @@ class JBoxInstanceProps(JBoxDB):
         return result
 
     @staticmethod
-    def get_available_instances():
+    def get_available_instances(cluster):
         now = datetime.datetime.now(pytz.utc)
         nowsecs = JBoxInstanceProps.datetime_to_epoch_secs(now)
         valid_time = nowsecs - JBoxInstanceProps.SESS_UPDATE_INTERVAL
         result = list()
-        for record in JBoxInstanceProps.scan(publish_time__gte=valid_time, accept__eq=1):
+        for record in JBoxInstanceProps.scan(instance_id__beginswith=cluster, publish_time__gte=valid_time,
+                                             accept__eq=1):
             result.append(record.get('instance_id'))
         return result

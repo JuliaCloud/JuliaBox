@@ -1,10 +1,10 @@
-__author__ = 'tan'
-
 from handler_base import JBoxHandler
 from juliabox.jbox_util import JBoxCfg
 from juliabox.jbox_crypto import signstr
-from juliabox.api import APIContainer
+from juliabox.cloud import Compute
 from juliabox.db import JBoxInstanceProps
+
+__author__ = 'tan'
 
 
 class APIInfoHandler(JBoxHandler):
@@ -23,7 +23,7 @@ class APIInfoHandler(JBoxHandler):
             self.send_error()
             return
 
-        api_status = JBoxInstanceProps.get_instance_status()
+        api_status = JBoxInstanceProps.get_instance_status(Compute.get_install_id())
         self.log_info("cluster api status: %r", api_status)
 
         # filter out instances that should not accept more load

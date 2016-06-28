@@ -119,7 +119,7 @@ class JBoxd(LoggerMixin):
         cont = SessContainer(dockid)
         cont.stop()
         cont.delete(backup=True)
-        JBoxSessionProps.detach_instance(cont.get_name(), Compute.get_instance_id())
+        JBoxSessionProps.detach_instance(Compute.get_install_id(), cont.get_name(), Compute.get_instance_id())
         JBoxd.publish_perf_counters()
         JBoxd.publish_anticipated_load()
 
@@ -235,20 +235,21 @@ class JBoxd(LoggerMixin):
         if session_name is None:
             nactive = BaseContainer.num_active(BaseContainer.SFX_INT)
         else:
-            JBoxSessionProps.attach_instance(session_name, iid, "Preparing")
+            JBoxSessionProps.attach_instance(Compute.get_install_id(), session_name, iid, "Preparing")
             nactive = BaseContainer.num_active(BaseContainer.SFX_INT) + 1
         cont_load_pct = min(100, max(0, nactive * 100 / SessContainer.MAX_CONTAINERS))
         self_load = max(Compute.get_instance_stats(iid, 'Load'), cont_load_pct)
         Compute.publish_stats("Load", "Percent", self_load)
         accept = Compute.should_accept_session(is_proposed_cluster_leader())
-        JBoxInstanceProps.set_props(iid, load=self_load, accept=accept)
+        JBoxInstanceProps.set_props(Compute.get_install_id(), iid, load=self_load, accept=accept)
 
     @staticmethod
     def publish_sessions():
         iid = Compute.get_instance_id()
         for c in SessContainer.session_containers(allcontainers=True):
             if ('Names' in c) and (c['Names'] is not None):
-                JBoxSessionProps.attach_instance(SessContainer(c['Id']).get_name(), iid, c["Status"])
+                JBoxSessionProps.attach_instance(Compute.get_install_id(), SessContainer(c['Id']).get_name(), iid,
+                                                 c["Status"])
 
     @staticmethod
     def publish_instance_state():
@@ -264,7 +265,7 @@ class JBoxd(LoggerMixin):
         self_load = Compute.get_instance_stats(iid, 'Load')
         accept = Compute.should_accept_session(is_proposed_cluster_leader())
 
-        JBoxInstanceProps.set_props(iid, load=self_load, accept=accept, api_status=api_status)
+        JBoxInstanceProps.set_props(Compute.get_install_id(), iid, load=self_load, accept=accept, api_status=api_status)
 
     @staticmethod
     def publish_perf_counters():
@@ -318,7 +319,7 @@ class JBoxd(LoggerMixin):
         JBoxd.publish_instance_state()
         features = [JBPluginTask.JBP_NODE]
         if is_leader is True:
-            JBoxInstanceProps.purge_stale_instances()
+            JBoxInstanceProps.purge_stale_instances(Compute.get_install_id())
             features.append(JBPluginTask.JBP_CLUSTER)
 
         for feature in features:

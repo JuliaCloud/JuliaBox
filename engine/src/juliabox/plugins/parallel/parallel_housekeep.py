@@ -1,10 +1,11 @@
-__author__ = 'tan'
 from juliabox.jbox_tasks import JBPluginTask
-from juliabox.interactive import SessContainer
 from juliabox.srvr_jboxd import jboxd_method
 from juliabox.db import JBoxSessionProps, JBoxDBItemNotFound
+from juliabox.cloud import Compute
 
 from user_cluster import UserCluster
+
+__author__ = 'tan'
 
 
 class ParallelHousekeep(JBPluginTask):
@@ -25,7 +26,7 @@ class ParallelHousekeep(JBPluginTask):
         for cluster_id in active_clusters:
             sessname = UserCluster.sessname_for_cluster(cluster_id)
             try:
-                sess_props = JBoxSessionProps(sessname)
+                sess_props = JBoxSessionProps(Compute.get_install_id(), sessname)
                 if not sess_props.get_instance_id():
                     ParallelHousekeep.log_info(
                         "Session (%s) corresponding to cluster (%s) not found. Terminating cluster.",

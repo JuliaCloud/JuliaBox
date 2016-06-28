@@ -131,7 +131,7 @@ class AdminHandler(JBoxHandler):
                 elif stats == 'sessions':
                     result = JBoxSessionProps.get_active_sessions()
                 elif stats == 'apis':
-                    result = JBoxInstanceProps.get_instance_status()
+                    result = JBoxInstanceProps.get_instance_status(Compute.get_install_id())
                 else:
                     raise Exception("unknown command %s" % (stats,))
 
