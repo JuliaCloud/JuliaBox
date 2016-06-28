@@ -8,7 +8,7 @@ from juliabox.jbox_util import JBoxCfg
 from handler_base import JBoxHandler
 from juliabox.interactive import SessContainer
 from juliabox.jbox_tasks import JBoxAsyncJob
-from juliabox.db import JBoxUserV2, JBoxDynConfig, JBPluginDB
+from juliabox.db import JBoxUserV2, JBoxDynConfig, JBPluginDB, JBoxSessionProps, JBoxInstanceProps
 from juliabox.api import APIContainer
 
 
@@ -121,25 +121,17 @@ class AdminHandler(JBoxHandler):
                     result = {}
                     # get cluster loads
                     average_load = Compute.get_cluster_average_stats('Load')
-                    if None != average_load:
+                    if average_load is not None:
                         result['Average Load'] = average_load
 
                     machine_loads = Compute.get_cluster_stats('Load')
-                    if None != machine_loads:
+                    if machine_loads is not None:
                         for n, v in machine_loads.iteritems():
                             result['Instance ' + n] = v
                 elif stats == 'sessions':
-                    result = dict()
-                    instances = Compute.get_all_instances()
-
-                    for idx in range(0, len(instances)):
-                        try:
-                            inst = instances[idx]
-                            result[inst] = JBoxAsyncJob.sync_session_status(inst)['data']
-                        except:
-                            JBoxHandler.log_error("Error receiving sessions list from %r", inst)
+                    result = JBoxSessionProps.get_active_sessions()
                 elif stats == 'apis':
-                    result = APIContainer.get_cluster_api_status()
+                    result = JBoxInstanceProps.get_instance_status(Compute.get_install_id())
                 else:
                     raise Exception("unknown command %s" % (stats,))
 

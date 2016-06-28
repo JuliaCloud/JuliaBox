@@ -1,6 +1,5 @@
-__author__ = 'tan'
-
 import datetime
+import random
 import sys
 import pytz
 import boto
@@ -9,8 +8,11 @@ import boto.ec2
 import boto.ec2.cloudwatch
 import boto.ec2.autoscale
 
-from juliabox.cloud import JBPluginCloud
+from juliabox.cloud import JBPluginCloud, Compute
 from juliabox.jbox_util import JBoxCfg, parse_iso_time, retry
+from juliabox.db import JBoxInstanceProps
+
+__author__ = 'tan'
 
 
 class CompEC2(JBPluginCloud):
@@ -28,6 +30,7 @@ class CompEC2(JBPluginCloud):
     SCALE_UP_POLICY = None
     SCALE_UP_AT_LOAD = 80
     LAST_SCALE_UP_TIME = None
+    SCALE = False
 
     INSTANCE_ID = None
     INSTANCE_IMAGE_VERS = {}
@@ -44,6 +47,7 @@ class CompEC2(JBPluginCloud):
         CompEC2.SCALE_UP_AT_LOAD = JBoxCfg.get('cloud_host.scale_up_at_load', 80)
         CompEC2.SCALE_UP_POLICY = JBoxCfg.get('cloud_host.scale_up_policy', None)
         CompEC2.AUTOSCALE_GROUP = JBoxCfg.get('cloud_host.autoscale_group', None)
+        CompEC2.SCALE = JBoxCfg.get('cloud_host.scale_down')
 
         CompEC2.INSTALL_ID = JBoxCfg.get('cloud_host.install_id', 'JuliaBox')
         CompEC2.REGION = JBoxCfg.get('cloud_host.region', 'us-east-1')
@@ -212,6 +216,10 @@ class CompEC2(JBPluginCloud):
 
     @staticmethod
     def can_terminate(is_leader):
+        if not CompEC2.SCALE:
+            CompEC2.log_debug("not terminating as cluster size is fixed")
+            return False
+
         uptime = CompEC2._uptime_minutes()
 
         # if uptime less than hour return false
@@ -244,6 +252,14 @@ class CompEC2(JBPluginCloud):
 
     @staticmethod
     def get_redirect_instance_id():
+        if not CompEC2.SCALE:
+            CompEC2.log_debug("cluster size is fixed")
+            available_nodes = JBoxInstanceProps.get_available_instances(Compute.get_install_id())
+            if len(available_nodes) > 0:
+                return random.choice(available_nodes)
+            else:
+                return None
+
         cluster_load = CompEC2.get_cluster_stats('Load')
         cluster_load = {k: v for k, v in cluster_load.iteritems() if CompEC2.get_image_recentness(k) >= 0}
         avg_load = CompEC2.get_cluster_average_stats('Load', results=cluster_load)
@@ -276,6 +292,11 @@ class CompEC2(JBPluginCloud):
         self_instance_id = CompEC2.get_instance_id()
         self_load = CompEC2.get_instance_stats(self_instance_id, 'Load')
         CompEC2.log_debug("Self load: %r", self_load)
+
+        if not CompEC2.SCALE:
+            accept = self_load < 100
+            CompEC2.log_debug("cluster size is fixed. accept: %r", accept)
+            return accept
 
         cluster_load = CompEC2.get_cluster_stats('Load')
         CompEC2.log_debug("Cluster load: %r", cluster_load)
@@ -444,6 +465,10 @@ class CompEC2(JBPluginCloud):
 
     @staticmethod
     def get_image_recentness(instance=None):
+        if not CompEC2.SCALE:
+            CompEC2.log_debug("ignoring image recentness as cluster size is fixed")
+            return 0
+
         instances = CompEC2.get_all_instances()
         if instances is None:
             return 0

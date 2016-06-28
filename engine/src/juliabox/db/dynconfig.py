@@ -46,10 +46,6 @@ class JBoxDynConfig(JBoxDB):
             else:
                 raise
 
-    @staticmethod
-    def _n(cluster, name):
-        return '.'.join([cluster, name])
-
     def set_value(self, value):
         self.set_attrib('value', value)
 
@@ -59,14 +55,14 @@ class JBoxDynConfig(JBoxDB):
     @staticmethod
     def unset_cluster_leader(cluster):
         try:
-            record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'leader'))
+            record = JBoxDynConfig(JBoxDB.qual(cluster, 'leader'))
             record.delete()
         except JBoxDBItemNotFound:
             return
 
     @staticmethod
     def set_cluster_leader(cluster, instance):
-        record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'leader'), create=True, value=instance)
+        record = JBoxDynConfig(JBoxDB.qual(cluster, 'leader'), create=True, value=instance)
         if not record.is_new:
             record.set_value(instance)
             record.save()
@@ -74,13 +70,13 @@ class JBoxDynConfig(JBoxDB):
     @staticmethod
     def get_cluster_leader(cluster):
         try:
-            return JBoxDynConfig(JBoxDynConfig._n(cluster, 'leader')).get_value()
+            return JBoxDynConfig(JBoxDB.qual(cluster, 'leader')).get_value()
         except JBoxDBItemNotFound:
             return None
 
     @staticmethod
     def set_allow_registration(cluster, allow):
-        record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'allow_registration'), create=True, value=str(allow))
+        record = JBoxDynConfig(JBoxDB.qual(cluster, 'allow_registration'), create=True, value=str(allow))
         if not record.is_new:
             record.set_value(str(allow))
             record.save()
@@ -88,7 +84,7 @@ class JBoxDynConfig(JBoxDB):
     @staticmethod
     def get_allow_registration(cluster):
         try:
-            record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'allow_registration'))
+            record = JBoxDynConfig(JBoxDB.qual(cluster, 'allow_registration'))
         except JBoxDBItemNotFound:
             return True
 
@@ -97,13 +93,13 @@ class JBoxDynConfig(JBoxDB):
     @staticmethod
     def get_registration_hourly_rate(cluster):
         try:
-            return int(JBoxDynConfig(JBoxDynConfig._n(cluster, 'registrations_hourly_rate')).get_value())
+            return int(JBoxDynConfig(JBoxDB.qual(cluster, 'registrations_hourly_rate')).get_value())
         except JBoxDBItemNotFound:
             return JBoxDynConfig.DEFAULT_REGISTRATION_RATE
 
     @staticmethod
     def set_registration_hourly_rate(cluster, rate):
-        record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'registrations_hourly_rate'), create=True, value=str(rate))
+        record = JBoxDynConfig(JBoxDB.qual(cluster, 'registrations_hourly_rate'), create=True, value=str(rate))
         if not record.is_new:
             record.set_value(str(rate))
             record.save()
@@ -118,7 +114,7 @@ class JBoxDynConfig(JBoxDB):
             'valid_till': isodate.datetime_isoformat(tvalid)
         }
         msg = json.dumps(msg)
-        record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'message'), create=True, value=msg)
+        record = JBoxDynConfig(JBoxDB.qual(cluster, 'message'), create=True, value=msg)
         if not record.is_new:
             record.set_value(msg)
             record.save()
@@ -126,7 +122,7 @@ class JBoxDynConfig(JBoxDB):
     @staticmethod
     def get_message(cluster, del_expired=True):
         try:
-            record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'message'))
+            record = JBoxDynConfig(JBoxDB.qual(cluster, 'message'))
         except JBoxDBItemNotFound:
             return None
 
@@ -150,7 +146,7 @@ class JBoxDynConfig(JBoxDB):
     @staticmethod
     def get_user_home_image(cluster):
         try:
-            record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'user_home_image'))
+            record = JBoxDynConfig(JBoxDB.qual(cluster, 'user_home_image'))
         except JBoxDBItemNotFound:
             return None, None, None
         img = json.loads(record.get_value())
@@ -166,7 +162,7 @@ class JBoxDynConfig(JBoxDB):
             'home_file': home_file
         }
         img = json.dumps(img)
-        record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'user_home_image'), create=True, value=img)
+        record = JBoxDynConfig(JBoxDB.qual(cluster, 'user_home_image'), create=True, value=img)
         if not record.is_new:
             record.set_value(img)
             record.save()
@@ -174,7 +170,7 @@ class JBoxDynConfig(JBoxDB):
     @staticmethod
     def set_stat_collected_date(cluster):
         dt = datetime.datetime.now(pytz.utc).isoformat()
-        record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'stat_date'), create=True, value=dt)
+        record = JBoxDynConfig(JBoxDB.qual(cluster, 'stat_date'), create=True, value=dt)
         if not record.is_new:
             record.set_value(dt)
             record.save()
@@ -182,7 +178,7 @@ class JBoxDynConfig(JBoxDB):
     @staticmethod
     def get_stat_collected_date(cluster):
         try:
-            record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'stat_date'))
+            record = JBoxDynConfig(JBoxDB.qual(cluster, 'stat_date'))
         except JBoxDBItemNotFound:
             return None
         return parse_iso_time(record.get_value())
@@ -198,7 +194,7 @@ class JBoxDynConfig(JBoxDB):
     @staticmethod
     def set_stat(cluster, stat_name, stat):
         val = json.dumps(stat)
-        record = JBoxDynConfig(JBoxDynConfig._n(cluster, stat_name), create=True, value=val)
+        record = JBoxDynConfig(JBoxDB.qual(cluster, stat_name), create=True, value=val)
         if not record.is_new:
             record.set_value(val)
             record.save()
@@ -206,7 +202,7 @@ class JBoxDynConfig(JBoxDB):
     @staticmethod
     def get_stat(cluster, stat_name):
         try:
-            record = JBoxDynConfig(JBoxDynConfig._n(cluster, stat_name))
+            record = JBoxDynConfig(JBoxDB.qual(cluster, stat_name))
         except JBoxDBItemNotFound:
             return None
         return json.loads(record.get_value())
@@ -215,7 +211,7 @@ class JBoxDynConfig(JBoxDB):
     def get_course(cluster, course_id):
         try:
             course_key = '|'.join(['course', course_id])
-            record = JBoxDynConfig(JBoxDynConfig._n(cluster, course_key))
+            record = JBoxDynConfig(JBoxDB.qual(cluster, course_key))
         except JBoxDBItemNotFound:
             return None
         return json.loads(record.get_value())
@@ -224,7 +220,7 @@ class JBoxDynConfig(JBoxDB):
     def set_course(cluster, course_id, course_details):
         val = json.dumps(course_details)
         course_key = '|'.join(['course', course_id])
-        record = JBoxDynConfig(JBoxDynConfig._n(cluster, course_key), create=True, value=val)
+        record = JBoxDynConfig(JBoxDB.qual(cluster, course_key), create=True, value=val)
         if not record.is_new:
             record.set_value(val)
             record.save()
@@ -232,7 +228,7 @@ class JBoxDynConfig(JBoxDB):
     @staticmethod
     def get_user_cluster_config(cluster):
         try:
-            record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'user_cluster'))
+            record = JBoxDynConfig(JBoxDB.qual(cluster, 'user_cluster'))
         except JBoxDBItemNotFound:
             return None
         return json.loads(record.get_value())
@@ -240,7 +236,7 @@ class JBoxDynConfig(JBoxDB):
     @staticmethod
     def set_user_cluster_config(cluster, cfg):
         val = json.dumps(cfg)
-        record = JBoxDynConfig(JBoxDynConfig._n(cluster, 'user_cluster'), create=True, value=val)
+        record = JBoxDynConfig(JBoxDB.qual(cluster, 'user_cluster'), create=True, value=val)
         if not record.is_new:
             record.set_value(val)
             record.save()

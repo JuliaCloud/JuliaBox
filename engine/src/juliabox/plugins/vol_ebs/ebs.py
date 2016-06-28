@@ -7,6 +7,7 @@ from juliabox.plugins.compute_ec2 import EBSVol, CompEC2
 from juliabox.db import JBoxSessionProps
 from juliabox.jbox_util import unique_sessname, JBoxCfg
 from juliabox.vol import JBoxVol
+from juliabox.cloud import Compute
 from disk_state_tbl import JBoxDiskState
 
 
@@ -75,7 +76,7 @@ class JBoxEBSVol(JBoxVol):
     def get_mapped_volumes():
         allmaps = EBSVol.get_mapped_volumes()
         JBoxEBSVol.log_debug("Devices mapped: %r", allmaps)
-        return dict((d,v) for d, v in allmaps.iteritems() if os.path.basename(d) in JBoxEBSVol.DEVICES)
+        return dict((d, v) for d, v in allmaps.iteritems() if os.path.basename(d) in JBoxEBSVol.DEVICES)
 
     @staticmethod
     def _get_unused_disk_id():
@@ -137,7 +138,7 @@ class JBoxEBSVol(JBoxVol):
 
         if existing_disk is None:
             sess_id = unique_sessname(user_email)
-            sess_props = JBoxSessionProps(sess_id, create=True, user_id=user_email)
+            sess_props = JBoxSessionProps(Compute.get_install_id(), sess_id, create=True, user_id=user_email)
             if sess_props.is_new:
                 sess_props.save()
             snap_id = sess_props.get_snapshot_id()
@@ -174,14 +175,14 @@ class JBoxEBSVol(JBoxVol):
         return None
 
     def _backup(self, clear_volume=False):
-        sess_props = JBoxSessionProps(self.sessname)
+        sess_props = JBoxSessionProps(Compute.get_install_id(), self.sessname)
         desc = sess_props.get_user_id() + " JuliaBox Backup"
         disk_id = self.disk_path.split('/')[-1]
         snap_id = EBSVol.snapshot_volume(dev_id=disk_id, tag=self.sessname, description=desc, wait_till_complete=False)
         return snap_id
 
     def release(self, backup=False):
-        sess_props = JBoxSessionProps(self.sessname)
+        sess_props = JBoxSessionProps(Compute.get_install_id(), self.sessname)
         existing_disk = JBoxDiskState(cluster_id=CompEC2.INSTALL_ID, region_id=CompEC2.REGION,
                                       user_id=sess_props.get_user_id())
         existing_disk.set_state(JBoxDiskState.STATE_DETACHING)

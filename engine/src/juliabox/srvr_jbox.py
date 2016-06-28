@@ -10,7 +10,7 @@ from tornado.httpclient import AsyncHTTPClient
 
 from cloud import Compute, JBPluginCloud
 import db
-from db import JBoxDynConfig, JBoxUserV2, is_cluster_leader, JBPluginDB
+from db import JBoxDynConfig, JBoxUserV2, JBoxInstanceProps, is_cluster_leader, JBPluginDB
 from jbox_tasks import JBoxAsyncJob
 from jbox_util import LoggerMixin, JBoxCfg
 from jbox_tasks import JBPluginTask
@@ -113,18 +113,12 @@ class JBox(LoggerMixin):
 
     @staticmethod
     def update_juliabox_status():
-        instances = Compute.get_all_instances()
+        in_error = len(JBoxInstanceProps.get_stale_instances(Compute.get_install_id()))
+        instance_status = JBoxInstanceProps.get_instance_status(Compute.get_install_id())
 
-        in_error = 0
         HTML = "<html><body><center><pre>\nJuliaBox is Up.\n\nLast updated: " + datetime.datetime.now().isoformat() + " UTC\n\nLoads: "
-
-        for inst in instances:
-            try:
-                status = JBoxAsyncJob.sync_api_status(inst)['data']
-                HTML += (str(status['load']) + '% ')
-            except:
-                in_error += 1
-                pass
+        for iid in instance_status:
+            HTML += (str(instance_status[iid]['load']) + '% ')
 
         HTML += ("\n\nErrors: " + str(in_error) + "\n\nAWS Status: <a href='http://status.aws.amazon.com/'>status.aws.amazon.com</a></pre></center></body></html>")
 

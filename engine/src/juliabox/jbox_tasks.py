@@ -185,10 +185,10 @@ class JBoxAsyncJob(LoggerMixin):
         JBoxAsyncJob.log_info("scheduling cleanup for %s", dockid)
         JBoxAsyncJob.get().send(JBoxAsyncJob.CMD_BACKUP_CLEANUP, dockid)
 
-    @staticmethod
-    def sync_session_status(instance_id):
-        JBoxAsyncJob.log_debug("fetching session status from %r", instance_id)
-        return JBoxAsyncJob.get().sendrecv(JBoxAsyncJob.CMD_SESSION_STATUS, {}, dest=instance_id)
+    # @staticmethod
+    # def sync_session_status(instance_id):
+    #     JBoxAsyncJob.log_debug("fetching session status from %r", instance_id)
+    #     return JBoxAsyncJob.get().sendrecv(JBoxAsyncJob.CMD_SESSION_STATUS, {}, dest=instance_id)
 
     @staticmethod
     def sync_api_status(instance_id):
