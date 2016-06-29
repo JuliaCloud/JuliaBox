@@ -22,8 +22,8 @@ class JBoxMySQLTable(LoggerMixin):
     }
 
     def __init__(self, table_name):
-        self.name = table_name
-        pragma_sql = 'show columns from %s' % (table_name,)
+        self.name = '`' + table_name + '`'
+        pragma_sql = 'show columns from %s' % (self.name,)
         c = JBoxCloudSQL.execute(pragma_sql)
         rows = c.fetchall()
         pragma_cols = [spec[0] for spec in c.description]
@@ -40,10 +40,12 @@ class JBoxMySQLTable(LoggerMixin):
         self.columns = columns
         self.pk = pk
         params = []
+        qcols = []
         for col in columns:
+            qcols.append('`' + col +'`')
             params.append('%('+ col +')s')
-        self.insert_statement = "insert into " + table_name + \
-                                " (" + ", ".join(self.columns) + ")" + \
+        self.insert_statement = "insert into " + self.name + \
+                                " (" + ", ".join(qcols) + ")" + \
                                 " values (" + ", ".join(params) + ")"
 
     def insert(self, record_):
@@ -59,9 +61,10 @@ class JBoxMySQLTable(LoggerMixin):
         namestr, valsf = JBoxMySQLTable.OP[opstr]
         vals = valsf(value)
         if opstr == 'between':
-            names.append(name + (namestr % (name + 'L', name + 'R') ))
+            names.append('`' + name + '`' +
+                         (namestr % (name + 'L', name + 'R') ))
         else:
-            names.append(name + (namestr % name))
+            names.append('`' + name + '`' + (namestr % name))
         if isinstance(vals, (list, tuple)):
             values.extend(vals)
         else:
@@ -129,7 +132,7 @@ class JBoxMySQLTable(LoggerMixin):
             keyval = record.get(keyname, None)
             if keyval is None:
                 continue
-            names.append("%s = %%(%s)s" % (keyname, keyname))
+            names.append("`%s` = %%(%s)s" % (keyname, keyname))
             values.append(keyval)
             colnames.append(keyname)
 
@@ -152,7 +155,7 @@ class JBoxMySQLTable(LoggerMixin):
             if keyname in self.pk:
                 continue
             keyval = record.get(keyname, None)
-            updates.append("%s = %%(%s)s" % (keyname, keyname))
+            updates.append("`%s` = %%(%s)s" % (keyname, keyname))
             values.append(keyval)
             names.append(keyname)
         updatecols = ', '.join(updates)
@@ -161,7 +164,7 @@ class JBoxMySQLTable(LoggerMixin):
             keyval = record.get(keyname, None)
             if keyval is None:
                 continue
-            keynames.append("%s = %%(%s)s" % (keyname, keyname))
+            keynames.append("`%s` = %%(%s)s" % (keyname, keyname))
             values.append(keyval)
             names.append(keyname)
 
