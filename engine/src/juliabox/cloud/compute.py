@@ -3,7 +3,9 @@ __author__ = 'tan'
 import socket
 import fcntl
 import struct
-from juliabox.jbox_util import LoggerMixin, JBoxPluginType
+from juliabox.jbox_util import LoggerMixin, JBoxPluginType, JBoxCfg
+from juliabox.db import JBoxInstanceProps
+import random
 
 
 class JBPluginCloud(LoggerMixin):
@@ -75,6 +77,7 @@ class JBPluginCloud(LoggerMixin):
 
 class Compute(LoggerMixin):
     impl = None
+    SCALE = False
 
     @staticmethod
     def configure():
@@ -85,6 +88,7 @@ class Compute(LoggerMixin):
 
         plugin.configure()
         Compute.impl = plugin
+        Compute.SCALE = JBoxCfg.get('cloud_host.scale_down')
 
     @staticmethod
     def get_install_id():
@@ -156,18 +160,37 @@ class Compute(LoggerMixin):
 
     @staticmethod
     def can_terminate(is_leader):
+        if not Compute.SCALE:
+            Compute.log_debug("not terminating as cluster size is fixed")
+            return False
         return Compute.impl.can_terminate(is_leader)
 
     @staticmethod
     def get_redirect_instance_id():
+        if not Compute.SCALE:
+            Compute.log_debug("cluster size is fixed")
+            available_nodes = JBoxInstanceProps.get_available_instances(Compute.get_install_id())
+            if len(available_nodes) > 0:
+                return random.choice(available_nodes)
+            else:
+                return None
         return Compute.impl.get_redirect_instance_id()
 
     @staticmethod
     def should_accept_session(is_leader):
+        self_instance_id = Compute.get_instance_id()
+        self_load = Compute.get_instance_stats(self_instance_id, 'Load')
+        if not Compute.SCALE:
+            accept = self_load < 100
+            Compute.log_debug("cluster size is fixed. accept: %r", accept)
+            return accept
         return Compute.impl.should_accept_session(is_leader)
 
     @staticmethod
     def get_image_recentness(instance=None):
+        if not Compute.SCALE:
+            Compute.log_debug("ignoring image recentness as cluster size is fixed")
+            return 0
         return Compute.impl.get_image_recentness(instance)
 
     @staticmethod
