@@ -26,11 +26,11 @@ def table_create(table_name, columns=None, types=None, keys=None, keys_types=Non
     stmt = []
     if keys is not None:
         for k, t in zip(keys, keys_types):
-            stmt.append(k + ' ' + t)
+            stmt.append('`' + k + '` ' + t)
     if columns is not None:
         for col, t in zip(columns, types):
-            stmt.append(col + ' ' + t)
-    sql = 'create table %s (%s' % (table_name, ', '.join(stmt))
+            stmt.append('`' + col + '` ' + t)
+    sql = 'create table `%s` (%s' % (table_name, ', '.join(stmt))
     if keys is not None:
         sql += (', primary key (%s)' % (', '.join(keys),))
     sql += ')'
@@ -43,8 +43,8 @@ def indexes_create(table_name, indexes):
         return
     for idx in indexes:
         name = idx['name']
-        cols = ', '.join(idx['cols'])
-        sql = "CREATE INDEX `%s` ON %s(%s)" % (name, table_name, cols)
+        cols = ', '.join('`' + idx['cols'] + '`')
+        sql = "CREATE INDEX `%s` ON `%s`(%s)" % (name, table_name, cols)
         c.execute(sql)
         conn.commit()
 
