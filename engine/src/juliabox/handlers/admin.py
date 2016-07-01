@@ -55,6 +55,7 @@ class AdminHandler(JBoxHandler):
             mem=cont.get_memory_allocated(),
             cpu=cont.get_cpu_allocated(),
             disk=cont.get_disk_allocated(),
+            usage=cont.get_disk_space_used(),
             expire=expire,
             juliaboxver=juliaboxver
         )

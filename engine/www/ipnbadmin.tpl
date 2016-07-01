@@ -144,8 +144,8 @@
 	    	$('#disp_date_allowed_till').html((new Date('{{d["allowed_till"]}}')).toLocaleString());
 	    	
 	    	$('#disp_mem').html(size_with_suffix({{d["mem"]}}));
-	    	$('#disp_disk').html(size_with_suffix({{d["disk"]}}));
-	    	
+                $('#disp_disk').html(size_with_suffix({{d["disk"]}}));
+                $('#disp_usage').html("{{d['usage']}}");
 	    	show_time_remaining();
 	    	disp_timer = setInterval(show_time_remaining, 60000);
 	    });
@@ -161,6 +161,7 @@
 	<tr><td>Session allowed till:</td><td><span id='disp_date_allowed_till'></span></td></tr>
 	<tr><td>Time remaining:</td><td><span id='disp_time_remaining'> of {{d["expire"]}} secs</span></td></tr>	
 	<tr><td>File Backup Quota:</td><td><span id='disp_disk'></span></td></tr>
+	<tr><td>Disk usage:</td><td><span id='disp_usage'></span></td></tr>
 	<tr><td>Allocated Memory:</td><td><span id='disp_mem'></span></td></tr>
 	<tr><td>Allocated CPUs:</td><td>{{d["cpu"]}}</td></tr>
 	<tr><td>SSH Public Key:</td><td><a href="#" id="showsshkey">View</a></td></tr>
