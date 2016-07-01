@@ -15,6 +15,7 @@ import httplib
 from socket import gethostname
 from oauth2client.client import GoogleCredentials
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 import errno
 import json
 import requests
@@ -59,7 +60,11 @@ def cloud_log(data_list):
     body = {
         'entries': data_list,
     }
-    ent.write(body=body).execute()
+    try:
+        ent.write(body=body).execute()
+    except HttpError, e:
+        if e.resp.status != 400:
+            raise
 
 def get_log_data(line, source, sev=None):
     if not sev:
