@@ -17,6 +17,7 @@ from oauth2client.client import GoogleCredentials
 from juliabox.cloud import JBPluginCloud
 from juliabox.db import JBPluginDB
 from juliabox.jbox_util import JBoxCfg, parse_iso_time, retry, retry_on_errors
+from juliabox.db import JBoxInstanceProps
 
 class CompGCE(JBPluginCloud):
     provides = [JBPluginCloud.JBP_COMPUTE, JBPluginCloud.JBP_COMPUTE_GCE]
@@ -685,3 +686,7 @@ class CompGCE(JBPluginCloud):
     @retry(15, 0.5, backoff=1.5)
     def _wait_for_status_extended(resource, state):
         return CompGCE._state_check(resource, state)
+
+    @staticmethod
+    def get_available_instances():
+        JBoxInstanceProps.get_available_instances(CompGCE.get_install_id())

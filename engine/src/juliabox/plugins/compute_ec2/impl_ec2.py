@@ -9,6 +9,7 @@ import boto.ec2.autoscale
 
 from juliabox.cloud import JBPluginCloud, Compute
 from juliabox.jbox_util import JBoxCfg, parse_iso_time, retry
+from juliabox.db import JBoxInstanceProps
 
 __author__ = 'tan'
 
@@ -486,3 +487,7 @@ class CompEC2(JBPluginCloud):
     @retry(15, 0.5, backoff=1.5)
     def _wait_for_status_extended(resource, state):
         return CompEC2._state_check(resource, state)
+
+    @staticmethod
+    def get_available_instances():
+        JBoxInstanceProps.get_available_instances(CompEC2.get_install_id())

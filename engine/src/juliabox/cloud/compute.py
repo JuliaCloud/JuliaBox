@@ -4,7 +4,6 @@ import socket
 import fcntl
 import struct
 from juliabox.jbox_util import LoggerMixin, JBoxPluginType, JBoxCfg
-from juliabox.db import JBoxInstanceProps
 import random
 
 
@@ -51,6 +50,7 @@ class JBPluginCloud(LoggerMixin):
         - `should_accept_session(is_leader)`: Whether the instance can accept more load.
         - `get_redirect_instance_id()`: If the current instance is not ready to accept further load, a suggestion on which instance to load instead.
         - `get_image_recentness(instance=None)`: Whether the application image running on the instance is the latest.
+        - `get_available_instances()`: Returns a list of instance props when using fixed size cluster.
     """
 
     JBP_BUCKETSTORE = "cloud.bucketstore"
@@ -166,10 +166,14 @@ class Compute(LoggerMixin):
         return Compute.impl.can_terminate(is_leader)
 
     @staticmethod
+    def get_available_instances()
+        return Compute.impl.get_available_instances()
+
+    @staticmethod
     def get_redirect_instance_id():
         if not Compute.SCALE:
             Compute.log_debug("cluster size is fixed")
-            available_nodes = JBoxInstanceProps.get_available_instances(Compute.get_install_id())
+            available_nodes = Compute.get_available_instances()
             if len(available_nodes) > 0:
                 return random.choice(available_nodes)
             else:

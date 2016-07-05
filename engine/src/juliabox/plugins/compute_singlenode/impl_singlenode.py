@@ -4,6 +4,7 @@ import socket
 
 from juliabox.cloud import JBPluginCloud
 from juliabox.jbox_util import JBoxCfg
+from juliabox.db import JBoxInstanceProps
 
 
 class CompSingleNode(JBPluginCloud):
@@ -135,3 +136,7 @@ class CompSingleNode(JBPluginCloud):
     @staticmethod
     def get_image_recentness(instance=None):
         return 0
+
+    @staticmethod
+    def get_available_instances():
+        JBoxInstanceProps.get_available_instances(CompSingleNode.get_install_id())
