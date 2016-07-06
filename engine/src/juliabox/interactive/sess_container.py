@@ -39,6 +39,12 @@ class SessContainer(BaseContainer):
             return disk.get_disk_allocated_size()
         return 0
 
+    def get_disk_space_used(self):
+        disk = VolMgr.get_disk_from_container(self.dockid, JBoxVol.JBP_USERHOME)
+        if disk is not None:
+            return disk.get_disk_space_used()
+        return 0
+
     @staticmethod
     def configure():
         BaseContainer.DCKR = JBoxCfg.dckr

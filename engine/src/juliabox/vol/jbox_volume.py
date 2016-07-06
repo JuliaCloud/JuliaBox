@@ -6,6 +6,7 @@ import datetime
 import errno
 import json
 import pytz
+import subprocess
 
 from juliabox.cloud import JBPluginCloud, Compute
 from juliabox.jbox_util import unique_sessname, ensure_delete, esc_sessname, get_user_name, parse_iso_time
@@ -435,3 +436,10 @@ class JBoxVol(LoggerMixin):
         # delete local copy of backup if we have it on bucketstore
         if k is not None:
             os.remove(src)
+
+    def get_disk_space_used(self):
+        sub = subprocess.Popen(['df', '-h', self.disk_path],
+                               stdout=subprocess.PIPE)
+        op = sub.stdout.read().split('\n')[1].split()
+        disk_used = op[2] + ' / ' + op[1]
+        return disk_used
