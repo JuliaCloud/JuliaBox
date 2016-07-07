@@ -8,14 +8,15 @@
         <script type="text/javascript" src="//use.typekit.net/cpz5ogz.js"></script>
         <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
         <script language="javascript" type="text/javascript">
-            var wsUriList = [
-                {
-                    'uri': "ws://echo.websocket.org/",
-                    'name': "websocket (port 80)"
-                },
+            var issecure = (window.location.protocol == "https:") ? true : false;
+            var wsUriList = [issecure ?
                 {
                     'uri': "wss://echo.websocket.org/",
                     'name': "secure websocket (port 443)"
+                } :
+                {
+                    'uri': "ws://echo.websocket.org/",
+                    'name': "websocket (port 80)"
                 }
             ];
             var output;
