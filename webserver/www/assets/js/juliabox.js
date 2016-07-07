@@ -293,6 +293,9 @@ var JuliaBox = (function($, _, undefined){
 				else if(res.code == 1) {
 					self.inpage_alert('warning', 'Repository added successfully. Pushing changes to remote repository not supported with HTTP URLs.');
 				}
+				else if(res.code == -2) {
+					self.inpage_alert('danger', 'Error adding repository. Destination path already exists and is not empty.');
+				}
 				else {
 					self.inpage_alert('danger', 'Error adding repository');
 				}
