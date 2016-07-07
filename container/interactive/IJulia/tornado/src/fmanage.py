@@ -235,11 +235,14 @@ class SyncHandler(tornado.web.RequestHandler):
             if len(loc) == 0:
                 loc = git_url[(git_url.rindex('/') + 1):git_url.rindex('.')]
             loc = os.path.join(os.path.expanduser(SyncHandler.LOC), loc)
-            gs = GitSync.clone(git_url, loc, True)
-            gs.checkout(git_branch, from_remote=True)
-
-            if git_url.startswith('https://'):
-                retcode = 1
+            empty = (not os.path.exists(loc)) or (os.path.isdir(loc) and not os.listdir(loc))
+            if empty:
+                gs = GitSync.clone(git_url, loc, True)
+                gs.checkout(git_branch, from_remote=True)
+                if git_url.startswith('https://'):
+                    retcode = 1
+            else:
+                retcode = -2
         return retcode
 
     @staticmethod
