@@ -166,7 +166,7 @@ class Compute(LoggerMixin):
         return Compute.impl.can_terminate(is_leader)
 
     @staticmethod
-    def get_available_instances()
+    def get_available_instances():
         return Compute.impl.get_available_instances()
 
     @staticmethod
