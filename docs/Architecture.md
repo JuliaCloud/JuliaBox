@@ -199,6 +199,7 @@ Interfaces with cloud service providers or provides similar services locally.
     - `should_accept_session(is_leader)`: Whether the instance can accept more load.
     - `get_redirect_instance_id()`: If the current instance is not ready to accept further load, a suggestion on which instance to load instead.
     - `get_image_recentness(instance=None)`: Whether the application image running on the instance is the latest.
+    - `get_available_instances()`: Returns a list of instance props when using fixed size cluster.
 
 ### Container manager tasks (JBPluginTask)
 Provide tasks that help with container management. They run in privileged mode and can interact with the host system if required.
