@@ -98,8 +98,9 @@ class JBoxInstanceProps(JBoxDB):
         nowsecs = JBoxInstanceProps.datetime_to_epoch_secs(now)
         valid_time = nowsecs - JBoxInstanceProps.SESS_UPDATE_INTERVAL
         stale = []
-        for record in JBoxInstanceProps.scan(instance_id__beginswith=cluster, publish_time__lt=valid_time):
-            stale.append(record.get('instance_id'))
+        for record in JBoxInstanceProps.scan(instance_id__beginswith=JBoxDB.qual(cluster, ''),
+                                             publish_time__lt=valid_time):
+            stale.append(record.get('instance_id').split('.', 1)[1])
         return stale
 
     @staticmethod
@@ -108,8 +109,9 @@ class JBoxInstanceProps(JBoxDB):
         nowsecs = JBoxInstanceProps.datetime_to_epoch_secs(now)
         valid_time = nowsecs - JBoxInstanceProps.SESS_UPDATE_INTERVAL
         result = dict()
-        for record in JBoxInstanceProps.scan(instance_id__beginswith=cluster, publish_time__gte=valid_time):
-            iid = record.get('instance_id')
+        for record in JBoxInstanceProps.scan(instance_id__beginswith=JBoxDB.qual(cluster, ''),
+                                             publish_time__gte=valid_time):
+            iid = record.get('instance_id').split('.', 1)[1]
             props = {
                 'load': float(record.get('load', '0.0')),
                 'accept': bool(record.get('accept', 0)),
@@ -124,7 +126,8 @@ class JBoxInstanceProps(JBoxDB):
         nowsecs = JBoxInstanceProps.datetime_to_epoch_secs(now)
         valid_time = nowsecs - JBoxInstanceProps.SESS_UPDATE_INTERVAL
         result = list()
-        for record in JBoxInstanceProps.scan(instance_id__beginswith=cluster, publish_time__gte=valid_time,
+        for record in JBoxInstanceProps.scan(instance_id__beginswith=JBoxDB.qual(cluster, ''),
+                                             publish_time__gte=valid_time,
                                              accept__eq=1):
-            result.append(record.get('instance_id'))
+            result.append(record.get('instance_id').split('.', 1)[1])
         return result
