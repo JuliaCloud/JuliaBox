@@ -55,7 +55,7 @@ class JBoxHostDiskVol(JBoxVol):
         if not os.path.exists(disk_path):
             os.mkdir(disk_path)
         hostvol = JBoxHostDiskVol(disk_path, user_email=user_email)
-        hostvol.refresh_disk(mark_refreshed=False)
+        hostvol.refresh_disk()
 
         if JBoxVol.BACKUP_LOC is not None:
             JBoxHostDiskVol.log_debug("restoring data for %s", user_email)
@@ -87,19 +87,10 @@ class JBoxHostDiskVol(JBoxVol):
         if JBoxVol.BACKUP_LOC is not None:
             super(JBoxHostDiskVol, self)._backup(clear_volume=clear_volume)
 
-    def refresh_disk(self, mark_refreshed=True):
-        if JBoxVol.BACKUP_LOC is None:
-            self.log_debug("restoring common data on disk at %s", self.disk_path)
-            self.restore_user_home(False)
-        else:
+    def refresh_disk(self):
+        if JBoxVol.BACKUP_LOC is not None:
             self.log_debug("blanking out disk at %s", self.disk_path)
             ensure_delete(self.disk_path)
-            self.log_debug("restoring common data on disk at %s", self.disk_path)
-            self.restore_user_home(True)
-
-        self.setup_instance_config()
-        if mark_refreshed:
-            self.mark_refreshed()
         self.log_debug("refreshed disk at %s", self.disk_path)
 
     def release(self, backup=False):
