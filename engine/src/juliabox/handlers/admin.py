@@ -130,7 +130,7 @@ class AdminHandler(JBoxHandler):
                         for n, v in machine_loads.iteritems():
                             result['Instance ' + n] = v
                 elif stats == 'sessions':
-                    result = JBoxSessionProps.get_active_sessions()
+                    result = JBoxSessionProps.get_active_sessions(Compute.get_install_id())
                 elif stats == 'apis':
                     result = JBoxInstanceProps.get_instance_status(Compute.get_install_id())
                 else:
