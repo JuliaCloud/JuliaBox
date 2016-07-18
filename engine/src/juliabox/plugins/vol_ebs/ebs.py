@@ -132,7 +132,7 @@ class JBoxEBSVol(JBoxVol):
         try:
             existing_disk = JBoxDiskState(cluster_id=CompEC2.INSTALL_ID, region_id=CompEC2.REGION,
                                           user_id=user_email)
-        except Exception, ex:
+        except Exception as ex:
             JBoxEBSVol.log_debug("No existing disk for %s. Exception %r", user_email, ex)
             existing_disk = None
 

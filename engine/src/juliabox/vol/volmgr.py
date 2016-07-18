@@ -80,6 +80,8 @@ class VolMgr(LoggerMixin):
             plugin.refresh_user_home_image()
         for plugin in JBoxVol.jbox_get_plugins(JBoxVol.JBP_PKGBUNDLE):
             plugin.refresh_user_home_image()
+        for plugin in JBoxVol.jbox_get_plugins(JBoxVol.JBP_CONFIG):
+            plugin.refresh_user_home_image()
 
     @staticmethod
     def get_disk_from_container(cid, disktype=None):
@@ -133,14 +135,16 @@ class VolMgr(LoggerMixin):
         return disk
 
     @staticmethod
+    def get_cfg_mount_for_user(email):
+        plugin = JBoxVol.jbox_get_plugin(JBoxVol.JBP_CONFIG)
+        if plugin is None:
+            raise Exception("No plugin found for %s" % (JBoxVol.JBP_CONFIG,))
+        disk = plugin.get_disk_for_user(email)
+        return disk
+
+    @staticmethod
     def get_disk_for_user(email):
         VolMgr.log_debug("restoring disk for %s", email)
-        # user = JBoxUserV2(email)
-
-        custom_jimg = None
-        # TODO: image path should be picked up from config
-        # if user.has_resource_profile(JBoxUserV2.RES_PROF_JULIA_PKG_PRECOMP):
-        #     custom_jimg = '/opt/julia_packages/jimg/stable/sys.ji'
 
         plugin = JBoxVol.jbox_get_plugin(JBoxVol.JBP_USERHOME)
         if plugin is None:
@@ -149,11 +153,10 @@ class VolMgr(LoggerMixin):
         disk = plugin.get_disk_for_user(email)
 
         try:
-            disk.setup_julia_image(custom_jimg)
             disk.setup_tutorial_link()
             disk.gen_ssh_key()
             disk.gen_gitconfig()
-        except IOError, ioe:
+        except IOError as ioe:
             if ioe.errno == errno.ENOSPC:
                 # continue login on ENOSPC to allow user to delete files
                 JBoxVol.log_exception("No space left to configure JuliaBox for %s", email)

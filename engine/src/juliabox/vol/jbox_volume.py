@@ -24,6 +24,8 @@ class JBoxVol(LoggerMixin):
         User home folders are overlaid with some configuration files required for working of JuliaBox.
     - `JBoxVol.JBP_DATA`, `JBoxVol.JBP_DATA_EBS`:
         Provide larger volumes for storing data.
+    - `JBoxVol.JBP_CONFIG`:
+        Provide read-write volumes that contain JuliaBox configuration and log files and are mounted on to containers.
     - `JBoxVol.JBP_PKGBUNDLE`:
         Provide read-only volumes that contain Julia packages and can be mounted on to containers.
 
@@ -40,6 +42,7 @@ class JBoxVol(LoggerMixin):
 
     __metaclass__ = JBoxPluginType
     JBP_USERHOME = 'vol.userhome'
+    JBP_CONFIG = 'vol.config'
     JBP_DATA = 'vol.data'
     JBP_PKGBUNDLE = 'vol.pkgbundle'
     JBP_USERHOME_EBS = 'vol.userhome.ebs'
@@ -59,6 +62,7 @@ class JBoxVol(LoggerMixin):
     PKG_MOUNT_POINT = '/opt/julia_packages'
     # mount point for data disk on the container
     DATA_MOUNT_POINT = '/mnt/data'
+    CONFIG_MOUNT_POINT = '/opt/juliabox'
 
     # files that must be restored from user home for proper functioning of JuliaBox
     USER_HOME_ESSENTIALS = ['.juliabox', '.ipython/README', '.ipython/kernels',
@@ -216,29 +220,6 @@ class JBoxVol(LoggerMixin):
             datetime.timedelta(seconds=JBoxVol.LOCAL_TZ_OFFSET)
         return user_home_mtime
 
-    def mark_refreshed(self):
-        marker = os.path.join(self.disk_path, '.juliabox/.refreshed')
-        with open(marker, 'w') as mfile:
-            mfile.write(self._get_user_home_timestamp().isoformat())
-
-    def is_refreshed(self):
-        marker = os.path.join(self.disk_path, '.juliabox/.refreshed')
-        if not os.path.exists(marker):
-            return False
-        try:
-            with open(marker, 'r') as mfile:
-                dt = parse_iso_time(mfile.read())
-            self.log_info("disk refreshed date: %r. user home timestamp: %r", dt, self._get_user_home_timestamp())
-            return dt >= self._get_user_home_timestamp()
-        except:
-            self.log_error("Error reading refreshed marker from disk %s", self.disk_path)
-            return False
-
-    def unmark_refreshed(self):
-        marker = os.path.join(self.disk_path, '.juliabox/.refreshed')
-        if os.path.exists(marker):
-            os.remove(marker)
-
     @staticmethod
     def _is_path_user_home_essential(chk_path):
         chk_path = os.path.normpath(chk_path)
@@ -287,30 +268,12 @@ class JBoxVol(LoggerMixin):
                 fout.write(replacement)
         os.remove(filepath_temp)
 
-    def setup_julia_image(self, custom_jimg):
-        # # switch profile in kernel.json
-        # # this hack should not be required once we move completely to Julia 0.4
-        # kernel_path = os.path.join(self.disk_path, ".ipython", "kernels", "julia-0.3", "kernel.json")
-        # kernel_cfg = {
-        #     "argv": ["/usr/bin/julia"],
-        #     "display_name": "Julia 0.3.11",
-        #     "language": "julia"
-        # }
-        #
-        # if custom_jimg is not None:
-        #     kernel_cfg['argv'].extend(["-J", custom_jimg])
-        # kernel_cfg['argv'].extend(["-i", "-F", "/opt/julia_packages/.julia/v0.3/IJulia/src/kernel.jl", "{connection_file}"])
-        # with open(kernel_path, 'w') as kout:
-        #     kout.write(json.dumps(kernel_cfg, indent=4))
-
-        # add/remove alias in .bashrc
-        bashrc_path = os.path.join(self.disk_path, ".bashrc")
-        new_alias = None if custom_jimg is None else ("alias julia=\"julia -J " + custom_jimg + "\"\n")
-        JBoxVol.replace_in_file(bashrc_path, "alias julia", new_alias)
-
     def setup_tutorial_link(self):
         tut_link = os.path.join(self.disk_path, "tutorial")
-        tut_path = os.path.join("/home", "juser", ".juliabox", "tutorial")
+        tut_path = os.path.join("/opt", "juliabox", ".juliabox", "tutorial")
+        old_tut_path = os.path.join("/home", "juser", ".juliabox", "tutorial")
+        if os.path.lexists(tut_link) and os.path.realpath(tut_link) == old_tut_path:
+            os.remove(tut_link)
         if not (os.path.exists(tut_link) or os.path.lexists(tut_link)):
             os.symlink(tut_path, tut_link)
 
@@ -425,7 +388,7 @@ class JBoxVol(LoggerMixin):
                 for extracted_path, perm in perms.iteritems():
                     os.chmod(extracted_path, perm)
             JBoxVol.log_info("Restored backup at " + self.disk_path)
-        except IOError, ioe:
+        except IOError as ioe:
             if ioe.errno == errno.ENOSPC:
                 # continue login on ENOSPC to allow user to delete files
                 JBoxVol.log_exception("No space left to restore backup for %s", sessname)

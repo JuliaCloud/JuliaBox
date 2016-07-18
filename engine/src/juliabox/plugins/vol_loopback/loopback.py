@@ -120,13 +120,7 @@ class JBoxLoopbackVol(JBoxVol):
             raise Exception("No free disk available")
         disk_path = os.path.join(JBoxLoopbackVol.FS_LOC, str(disk_id))
         loopvol = JBoxLoopbackVol(disk_path, user_email=user_email)
-
-        if not loopvol.is_refreshed():
-            loopvol.refresh_disk(mark_refreshed=False)
-        else:
-            JBoxLoopbackVol.log_debug("disk already refreshed for %s", user_email)
-            loopvol.unmark_refreshed()
-
+        loopvol.refresh_disk()
         JBoxLoopbackVol.log_debug("restoring data for %s", user_email)
         loopvol.restore()
         return loopvol
@@ -149,29 +143,14 @@ class JBoxLoopbackVol(JBoxVol):
 
     @staticmethod
     def refresh_user_home_image():
-        disk_id = 0
-        while disk_id < JBoxLoopbackVol.MAX_DISKS:
-            disk_id = JBoxLoopbackVol._reserve_disk_id(begin_idx=disk_id)
-            if disk_id < 0:
-                break
-
-            disk_path = os.path.join(JBoxLoopbackVol.FS_LOC, str(disk_id))
-            loopvol = JBoxLoopbackVol(disk_path)
-            loopvol.refresh_disk()
-            JBoxLoopbackVol._unreserve_disk_id(disk_id)
-            disk_id += 1
+        pass
 
     def _backup(self, clear_volume=True):
         super(JBoxLoopbackVol, self)._backup(clear_volume=clear_volume)
 
-    def refresh_disk(self, mark_refreshed=True):
+    def refresh_disk(self):
         self.log_debug("blanking out disk at %s", self.disk_path)
         ensure_delete(self.disk_path)
-        self.log_debug("restoring common data on disk at %s", self.disk_path)
-        self.restore_user_home(True)
-        self.setup_instance_config()
-        if mark_refreshed:
-            self.mark_refreshed()
         self.log_debug("refreshed disk at %s", self.disk_path)
 
     def release(self, backup=False):

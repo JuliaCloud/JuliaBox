@@ -45,6 +45,7 @@ RUN echo 'push!(LOAD_PATH, "/opt/julia_packages/.julia/v0.3/"); try using JuliaB
 
 # Data volumes shall be mounted at /mnt/data
 RUN mkdir /mnt/data
+RUN mkdir /opt/juliabox
 
 RUN echo "ulimit -u 2048 -n 256" >> /etc/bash.bashrc
 
@@ -59,4 +60,4 @@ WORKDIR /home/juser
 # 8050-8052: user specified applications
 EXPOSE  4200 8000 8998 8050 8051 8052
 
-ENTRYPOINT ["/usr/bin/supervisord", "-n", "-c", "/home/juser/.juliabox/supervisord.conf", "-l", "/home/juser/.juliabox/supervisord.log", "-j", "/home/juser/.juliabox/supervisord.pid", "-q", "/home/juser/.juliabox"]
+ENTRYPOINT ["/usr/bin/supervisord", "-n", "-c", "/opt/juliabox/.juliabox/supervisord.conf", "-l", "/opt/juliabox/.juliabox/supervisord.log", "-j", "/opt/juliabox/.juliabox/supervisord.pid", "-q", "/opt/juliabox/.juliabox"]

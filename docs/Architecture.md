@@ -143,6 +143,8 @@ Provides storage volumes that are mounted on to containers. All volume providers
     User home folders are overlaid with some configuration files required for working of JuliaBox.
 - `JBoxVol.JBP_DATA`, `JBoxVol.JBP_DATA_EBS`:
     Provide larger volumes for storing data.
+- `JBoxVol.JBP_CONFIG`:
+    Provide read-write volumes that contain JuliaBox configuration and log files and are mounted on to containers.    
 - `JBoxVol.JBP_PKGBUNDLE`:
     Provide read-only volumes that contain Julia packages and can be mounted on to containers.
 
