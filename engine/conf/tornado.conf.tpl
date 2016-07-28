@@ -64,7 +64,13 @@
         "key": "",
         "secret": ""
     },
-    
+
+    # if using GitHub auth, the API key and secret to use
+    "github_oauth": {
+        "key": "",
+        "secret": ""
+    },
+
     "cloud_host": {
     	"install_id": "JuliaBox",
     	"region": "us-east-1",
