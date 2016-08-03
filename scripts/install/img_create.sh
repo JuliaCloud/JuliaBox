@@ -39,7 +39,7 @@ function build_containers {
         echo "Building container ${IMGTAG}:${IMGVER} from ${DOCKERDIR} ..."
         echo "======================================================"
         docker build -t ${IMGTAG}:${IMGVER} -f ${DOCKERDIR}/Dockerfile ${DOCKERDIR}
-        docker tag -f ${IMGTAG}:${IMGVER} ${IMGTAG}:latest
+        docker tag ${IMGTAG}:${IMGVER} ${IMGTAG}:latest
     done
 }
 
@@ -57,8 +57,8 @@ function pull_containers {
         echo "Pulling container ${IMGTAG}:${IMGVER}..."
         echo "======================================================"
         docker pull -t ${PULLIMGTAG}:${IMGVER}
-        docker tag -f ${PULLIMGTAG}:${IMGVER} ${IMGTAG}:${IMGVER}
-        docker tag -f ${IMGTAG}:${IMGVER} ${IMGTAG}:latest
+        docker tag ${PULLIMGTAG}:${IMGVER} ${IMGTAG}:${IMGVER}
+        docker tag ${IMGTAG}:${IMGVER} ${IMGTAG}:latest
     done
 }
 
