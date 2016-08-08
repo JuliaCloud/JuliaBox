@@ -92,6 +92,7 @@ class APIContainer(BaseContainer):
         container_name = APIContainer.unique_container_name(api_name)
         queue = APIQueue.get_queue(api_name)
         env = {
+            "JBAPI_LOGLEVEL": "1",
             "JBAPI_NAME": api_name,
             "JBAPI_QUEUE": queue.get_endpoint_out(),
             "JBAPI_CMD": queue.get_command(),

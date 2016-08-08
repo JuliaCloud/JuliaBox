@@ -129,6 +129,12 @@ Welcome to JuliaBox. We hope you will like it and also share with your friends.
         # }
     },
 
+    "site_redirect": {
+        "url": "https://juliabox.com",
+        "user_type": "new",
+        "msg": "We are in the process of transitioning from juliabox.org to juliabox.com.<br/>We are not accepting any new user accounts on juliabox.org.<br/><br/>You will be taken to <a href=\"https://juliabox.com/\" alt=\"juliabox.com\">juliabox.com</a> in 10 seconds."
+    },
+
     "plugins": [
         "juliabox.plugins.compute_ec2",
         "juliabox.plugins.vol_loopback",

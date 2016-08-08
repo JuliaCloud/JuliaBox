@@ -35,8 +35,8 @@ ENV HOME /home/juser
 ENV PATH /usr/local/texlive/2014/bin/x86_64-linux:/usr/local/bin:/usr/bin:/bin:/sbin:/usr/sbin:/opt/julia/bin
 WORKDIR /home/juser
 
-RUN /opt/julia-0.3/bin/julia  -e "try; Pkg.installed(\"JuliaWebAPI\"); catch; Pkg.clone(\"https://github.com/tanmaykm/JuliaWebAPI.jl\"); end"
-RUN /opt/julia-0.4/bin/julia  -e "try; Pkg.installed(\"JuliaWebAPI\"); catch; Pkg.clone(\"https://github.com/tanmaykm/JuliaWebAPI.jl\"); end"
-RUN /opt/julia-0.5/bin/julia  -e "try; Pkg.installed(\"JuliaWebAPI\"); catch; Pkg.clone(\"https://github.com/tanmaykm/JuliaWebAPI.jl\"); end"
+RUN /opt/julia-0.3/bin/julia -e "(Pkg.installed(\"JuliaWebAPI\") == nothing) && Pkg.add(\"JuliaWebAPI\")"
+RUN /opt/julia-0.4/bin/julia -e "(Pkg.installed(\"JuliaWebAPI\") == nothing) && Pkg.add(\"JuliaWebAPI\")"
+RUN /opt/julia-0.5/bin/julia -e "(Pkg.installed(\"JuliaWebAPI\") == nothing) && Pkg.add(\"JuliaWebAPI\")"
 
 ENTRYPOINT ["julia", "-e", "using JuliaWebAPI; using Compat; process();"]
