@@ -497,6 +497,7 @@ class JBPluginHandler(JBoxHandler):
     JBP_HANDLER_AUTH_ZERO = 'handler.auth.zero'
     JBP_HANDLER_AUTH_GOOGLE = 'handler.auth.google'
     JBP_HANDLER_AUTH_GITHUB = 'handler.auth.github'
+    JBP_HANDLER_AUTH_LINKEDIN = 'handler.auth.linkedin'
     JBP_JS_TOP = 'handler.js.top'
 
     JBP_HANDLER_POST_AUTH = 'handler.post_auth'

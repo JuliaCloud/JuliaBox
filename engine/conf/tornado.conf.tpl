@@ -71,6 +71,12 @@
         "secret": ""
     },
 
+    # if using LinkedIn auth, the API key and secret to use
+    "linkedin_oauth": {
+        "key": "",
+        "secret": ""
+    },
+
     "cloud_host": {
     	"install_id": "JuliaBox",
     	"region": "us-east-1",
