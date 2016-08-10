@@ -72,7 +72,7 @@ class JBoxUserV2(JBoxDB):
     TYPES = [JBoxDB.INT, JBoxDB.INT, JBoxDB.INT, JBoxDB.INT,
              JBoxDB.INT, JBoxDB.VCHAR, JBoxDB.INT,
              JBoxDB.INT, JBoxDB.VCHAR,
-             JBoxDB.VCHAR, JBoxDB.VCHAR, JBoxDB.INT, JBoxDB.INT]
+             JBoxDB.TEXT, JBoxDB.VCHAR, JBoxDB.INT, JBoxDB.INT]
 
     STATUS_ACTIVE = 0
     STATUS_INACTIVE = 1
