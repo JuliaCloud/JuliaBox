@@ -401,7 +401,7 @@ class JBoxVol(LoggerMixin):
             os.remove(src)
 
     def get_disk_space_used(self):
-        sub = subprocess.Popen(['df', '-h', self.disk_path],
+        sub = subprocess.Popen(['df', '-H', self.disk_path],
                                stdout=subprocess.PIPE)
         op = sub.stdout.read().split('\n')[1].split()
         disk_used = op[2] + ' / ' + op[1]
