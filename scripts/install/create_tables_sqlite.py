@@ -6,7 +6,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "engine", "s
 
 import sqlite3
 
-from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBoxInstanceProps, JBPluginDB, JBoxAPISpec
+from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBoxInstanceProps, JBPluginDB,\
+    JBoxAPISpec, JBoxUserProfile
 
 # import any plugins that contribute tables
 import juliabox.plugins.course_homework
@@ -34,7 +35,7 @@ print("connecting to %s" % (sys.argv[1],))
 conn = sqlite3.connect(sys.argv[1])
 c = conn.cursor()
 
-tables = [JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBoxInstanceProps, JBoxAPISpec]
+tables = [JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBoxInstanceProps, JBoxAPISpec, JBoxUserProfile]
 for plugin in JBPluginDB.jbox_get_plugins(JBPluginDB.JBP_TABLE_RDBMS):
     tables.append(plugin)
 

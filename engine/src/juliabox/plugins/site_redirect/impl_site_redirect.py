@@ -29,6 +29,7 @@ class SiteRedirectHandler(JBPluginHandler):
 
             SiteRedirectHandler.log_info("Configured to redirect %s users to %s",
                                          rtype, SiteRedirectHandler.REDIRECT_URL)
+            SiteRedirectHandler.CONFIGURED = True
 
     @staticmethod
     def process_user_id(handler, user_id):

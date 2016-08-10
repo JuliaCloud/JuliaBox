@@ -7,7 +7,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "engine", "s
 import MySQLdb
 import time
 
-from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBoxInstanceProps, JBPluginDB, JBoxAPISpec
+from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBoxInstanceProps, JBPluginDB, JBoxAPISpec, JBoxUserProfile
 from juliabox.jbox_util import JBoxCfg
 
 # import any plugins that contribute tables
@@ -64,7 +64,7 @@ def get_connection():
 conn = get_connection()
 c = conn.cursor()
 
-tables = [JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBoxInstanceProps, JBoxAPISpec]
+tables = [JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBoxInstanceProps, JBoxAPISpec, JBoxUserProfile]
 for plugin in JBPluginDB.jbox_get_plugins(JBPluginDB.JBP_TABLE_DYNAMODB):
     tables.append(plugin)
 

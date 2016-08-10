@@ -1,4 +1,3 @@
-__author__ = 'tan'
 import datetime
 import json
 import os
@@ -15,7 +14,9 @@ from oauth2client.client import OAuth2Credentials, _extract_id_token
 
 from juliabox.jbox_util import JBoxCfg
 from juliabox.handlers import JBPluginHandler, JBPluginUI
-from juliabox.db import JBoxUserV2
+from juliabox.db import JBoxUserV2, JBoxUserProfile
+
+__author__ = 'tan'
 
 
 class GoogleAuthUIHandler(JBPluginUI):
@@ -87,7 +88,7 @@ class GoogleAuthHandler(JBPluginHandler, GoogleOAuth2Mixin):
             response = yield http.fetch('https://www.googleapis.com/userinfo/v2/me',
                                         headers={"Authorization": auth_string})
             user_info = json.loads(response.body)
-
+            self.update_user_profile(user_info)
             user_id = user_info['email']
 
             if state == 'store_creds':
@@ -115,6 +116,9 @@ class GoogleAuthHandler(JBPluginHandler, GoogleOAuth2Mixin):
                                           response_type='code',
                                           extra_params=extra_params)
 
+    def update_profile(self, user_info):
+        pass
+
     def make_credentials(self, user):
         # return AccessTokenCredentials(user['access_token'], "juliabox")
         token_expiry = datetime.datetime.utcnow() + datetime.timedelta(seconds=int(user['expires_in']))
@@ -131,3 +135,26 @@ class GoogleAuthHandler(JBPluginHandler, GoogleOAuth2Mixin):
             id_token=id_token,
             token_response=user)
         return credential
+
+    def update_user_profile(self, user_info):
+        user_id = user_info['email']
+        profile = JBoxUserProfile(user_id, create=True)
+        updated = False
+
+        if 'given_name' in user_info:
+            val = user_info['given_name']
+            if profile.can_set(JBoxUserProfile.ATTR_FIRST_NAME, val):
+                updated |= profile.set_profile(JBoxUserProfile.ATTR_FIRST_NAME, val, 'google')
+
+        if 'family_name' in user_info:
+            val = user_info['family_name']
+            if profile.can_set(JBoxUserProfile.ATTR_LAST_NAME, val):
+                updated |= profile.set_profile(JBoxUserProfile.ATTR_LAST_NAME, val, 'google')
+
+        client_ip = self.get_client_ip()
+        if profile.can_set(JBoxUserProfile.ATTR_IP, client_ip):
+            updated |= profile.set_profile(JBoxUserProfile.ATTR_IP, client_ip, 'http')
+
+        if updated:
+            GoogleAuthHandler.log_debug("updating ip=%r and profile=%r", client_ip, user_info)
+            profile.save()
