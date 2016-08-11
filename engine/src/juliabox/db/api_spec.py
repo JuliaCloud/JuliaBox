@@ -15,7 +15,8 @@ class JBoxAPISpec(JBoxDB):
         HashKey('api_name', data_type=STRING)
     ]
 
-    INDEXES = [
+    INDEXES = None
+    GLOBAL_INDEXES = [
         GlobalKeysOnlyIndex('publisher-api_name-index', parts=[
             HashKey('publisher', data_type=STRING),
             RangeKey('api_name', data_type=STRING)

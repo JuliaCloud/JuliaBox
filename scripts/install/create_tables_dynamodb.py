@@ -31,7 +31,7 @@ for cls in tables:
     if table_exists(cls.NAME):
         print("\texists already!")
     else:
-        Table.create(cls.NAME, schema=cls.SCHEMA, indexes=cls.INDEXES, throughput={
+        Table.create(cls.NAME, schema=cls.SCHEMA, indexes=cls.INDEXES, global_indexes=cls.GLOBAL_INDEXES, throughput={
             'read': 1,
             'write': 1
         })

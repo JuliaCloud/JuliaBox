@@ -16,6 +16,7 @@ class JBoxSessionProps(JBoxDB):
     ]
 
     INDEXES = None
+    GLOBAL_INDEXES = None
 
     TABLE = None
 

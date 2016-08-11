@@ -15,7 +15,8 @@ class JBoxUserProfile(JBoxDB):
         HashKey('user_id', data_type=STRING)
     ]
 
-    INDEXES = [
+    INDEXES = None
+    GLOBAL_INDEXES = [
         GlobalKeysOnlyIndex('create_month-create_time-index', parts=[
             HashKey('create_month', data_type=NUMBER),
             RangeKey('create_time', data_type=NUMBER)
