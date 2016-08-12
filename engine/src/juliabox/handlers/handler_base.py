@@ -442,6 +442,10 @@ class JBoxHandler(JBoxCookies):
         self.redirect('/')
         return
 
+    def get_client_ip(self):
+        x_real_ip = self.request.headers.get("X-Real-IP")
+        return x_real_ip or self.request.remote_ip
+
 
 class JBPluginUI(LoggerMixin):
     """ Provide UI widgets/sections in a JuliaBox session.

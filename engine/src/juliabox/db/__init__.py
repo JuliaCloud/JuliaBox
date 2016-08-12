@@ -1,12 +1,14 @@
-__author__ = 'tan'
 from db_base import JBoxDB, JBPluginDB, JBoxDBItemNotFound
 from user_v2 import JBoxUserV2
+from user_profile import JBoxUserProfile
 from container import JBoxSessionProps
 from instance import JBoxInstanceProps
 from dynconfig import JBoxDynConfig
 from api_spec import JBoxAPISpec
 from juliabox.cloud import Compute
 from juliabox.jbox_util import JBoxCfg
+
+__author__ = 'tan'
 
 
 def configure():

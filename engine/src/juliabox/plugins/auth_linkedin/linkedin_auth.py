@@ -13,6 +13,7 @@ from tornado.auth import OAuth2Mixin, _auth_return_future, AuthError
 
 from juliabox.jbox_util import JBoxCfg
 from juliabox.handlers import JBPluginHandler, JBPluginUI
+from juliabox.db import JBoxUserProfile
 
 __author__ = 'tan'
 
@@ -68,7 +69,7 @@ class LinkedInAuthHandler(JBPluginHandler, OAuth2Mixin):
         if code is not False:
             user = yield self.get_authenticated_user(redirect_uri=self_redirect_uri, code=code)
             user_info = yield self.get_user_info(user)
-            LinkedInAuthHandler.log_debug("logging in user info=%r", user_info)
+            self.update_user_profile(user_info)
             user_id = user_info['emailAddress']
             LinkedInAuthHandler.log_debug("logging in user_id=%r", user_id)
             self.post_auth_launch_container(user_id)
@@ -112,8 +113,6 @@ class LinkedInAuthHandler(JBPluginHandler, OAuth2Mixin):
             "client_secret": self.settings[self._OAUTH_SETTINGS_KEY]['secret']
         })
 
-        LinkedInAuthHandler.log_debug("sending body=%r", body)
-
         http.fetch(self._OAUTH_ACCESS_TOKEN_URL,
                    functools.partial(self._on_access_token, callback),
                    method="POST", headers={'Content-Type': 'application/x-www-form-urlencoded'}, body=body)
@@ -131,7 +130,6 @@ class LinkedInAuthHandler(JBPluginHandler, OAuth2Mixin):
             future.set_exception(AuthError('LinkedIn auth error: %s' % str(response)))
             return
         args = json.loads(response.body)
-        LinkedInAuthHandler.log_debug("args=%r", args)
         future.set_result(args)
 
     def get_auth_http_client(self):
@@ -141,3 +139,44 @@ class LinkedInAuthHandler(JBPluginHandler, OAuth2Mixin):
         the default.
         """
         return tornado.httpclient.AsyncHTTPClient()
+
+    def update_user_profile(self, user_info):
+        user_id = user_info['emailAddress']
+        profile = JBoxUserProfile(user_id, create=True)
+        updated = False
+
+        if 'firstName' in user_info:
+            val = user_info['firstName']
+            if profile.can_set(JBoxUserProfile.ATTR_FIRST_NAME, val):
+                updated |= profile.set_profile(JBoxUserProfile.ATTR_FIRST_NAME, val, 'linkedin')
+
+        if 'lastName' in user_info:
+            val = user_info['lastName']
+            if profile.can_set(JBoxUserProfile.ATTR_LAST_NAME, val):
+                updated |= profile.set_profile(JBoxUserProfile.ATTR_LAST_NAME, val, 'linkedin')
+
+        if 'industry' in user_info:
+            val = user_info['industry']
+            if profile.can_set(JBoxUserProfile.ATTR_INDUSTRY, val):
+                updated |= profile.set_profile(JBoxUserProfile.ATTR_INDUSTRY, val, 'linkedin')
+
+        if 'location' in user_info:
+            loc = user_info['location']
+            if 'name' in loc:
+                val = loc['name']
+                if profile.can_set(JBoxUserProfile.ATTR_LOCATION, val):
+                    updated |= profile.set_profile(JBoxUserProfile.ATTR_LOCATION, val, 'linkedin')
+            if 'country' in loc:
+                country = loc['country']
+                if 'code' in country:
+                    val = country['code'].lower()
+                    if profile.can_set(JBoxUserProfile.ATTR_COUNTRY, val):
+                        updated |= profile.set_profile(JBoxUserProfile.ATTR_COUNTRY, val, 'linkedin')
+
+        client_ip = self.get_client_ip()
+        if profile.can_set(JBoxUserProfile.ATTR_IP, client_ip):
+            updated |= profile.set_profile(JBoxUserProfile.ATTR_IP, client_ip, 'http')
+
+        if updated:
+            LinkedInAuthHandler.log_debug("updating ip=%r and profile=%r", client_ip, user_info)
+            profile.save()

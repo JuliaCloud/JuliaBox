@@ -18,6 +18,7 @@ class JBoxDynConfig(JBoxDB):
     ]
 
     INDEXES = None
+    GLOBAL_INDEXES = None
 
     TABLE = None
 

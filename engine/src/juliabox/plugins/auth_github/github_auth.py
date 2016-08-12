@@ -13,6 +13,7 @@ from tornado.auth import OAuth2Mixin, _auth_return_future, AuthError
 
 from juliabox.jbox_util import JBoxCfg
 from juliabox.handlers import JBPluginHandler, JBPluginUI
+from juliabox.db import JBoxUserProfile
 
 __author__ = 'tan'
 
@@ -57,6 +58,7 @@ class GitHubAuthHandler(JBPluginHandler, OAuth2Mixin):
         if code is not False:
             user = yield self.get_authenticated_user(redirect_uri=self_redirect_uri, code=code)
             user_info = yield self.get_user_info(user)
+            self.update_user_profile(user_info)
             user_id = user_info['email']
             GitHubAuthHandler.log_debug("logging in user_id=%r", user_id)
             self.post_auth_launch_container(user_id)
@@ -121,3 +123,37 @@ class GitHubAuthHandler(JBPluginHandler, OAuth2Mixin):
         the default.
         """
         return tornado.httpclient.AsyncHTTPClient()
+
+    def update_user_profile(self, user_info):
+        user_id = user_info['email']
+        profile = JBoxUserProfile(user_id, create=True)
+        updated = False
+
+        if 'location' in user_info:
+            val = user_info['location']
+            if profile.can_set(JBoxUserProfile.ATTR_LOCATION, val):
+                updated |= profile.set_profile(JBoxUserProfile.ATTR_LOCATION, val, 'github')
+
+        if 'company' in user_info:
+            val = user_info['company']
+            if profile.can_set(JBoxUserProfile.ATTR_ORGANIZATION, val):
+                updated |= profile.set_profile(JBoxUserProfile.ATTR_ORGANIZATION, val, 'github')
+
+        if 'name' in user_info:
+            val = user_info['name'].split(' ', 1)
+            firstname = val[0]
+            lastname = val[1] if len(val) > 1 else ''
+
+            if profile.can_set(JBoxUserProfile.ATTR_FIRST_NAME, firstname):
+                updated |= profile.set_profile(JBoxUserProfile.ATTR_FIRST_NAME, firstname, 'github')
+
+            if profile.can_set(JBoxUserProfile.ATTR_LAST_NAME, lastname):
+                updated |= profile.set_profile(JBoxUserProfile.ATTR_LAST_NAME, lastname, 'github')
+
+        client_ip = self.get_client_ip()
+        if profile.can_set(JBoxUserProfile.ATTR_IP, client_ip):
+            updated |= profile.set_profile(JBoxUserProfile.ATTR_IP, client_ip, 'http')
+
+        if updated:
+            GitHubAuthHandler.log_debug("updating ip=%r and profile=%r", client_ip, user_info)
+            profile.save()
