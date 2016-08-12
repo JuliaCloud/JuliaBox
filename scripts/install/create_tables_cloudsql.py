@@ -39,7 +39,7 @@ def table_create(table_name, columns=None, types=None, keys=None, keys_types=Non
 
 def index_exists(tname, iname):
     f = c.execute("show index from `%s` where Key_name=\"%s\"" % (tname, iname))
-    return f is not 0
+    return f != 0
 
 def indexes_create(table_name, indexes):
     if indexes == None:
@@ -54,7 +54,7 @@ def indexes_create(table_name, indexes):
             sql = "CREATE INDEX `%s` ON `%s`(%s)" % (name, table_name, cols)
             c.execute(sql)
             conn.commit()
-            print("Created index %s" & name)
+            print("Created index %s" % name)
 
 def get_connection():
     # Copy from /jboxengine/conf/jbox.user
