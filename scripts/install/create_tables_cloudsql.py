@@ -37,17 +37,24 @@ def table_create(table_name, columns=None, types=None, keys=None, keys_types=Non
     c.execute(sql)
     conn.commit()
 
+def index_exists(tname, iname):
+    f = c.execute("show index from `%s` where Key_name=\"%s\"" % (tname, iname))
+    return f is not 0
 
 def indexes_create(table_name, indexes):
     if indexes == None:
+        print("No indexes to create")
         return
     for idx in indexes:
         name = idx['name']
-        cols = ', '.join('`' + idx['cols'] + '`')
-        sql = "CREATE INDEX `%s` ON `%s`(%s)" % (name, table_name, cols)
-        c.execute(sql)
-        conn.commit()
-
+        if index_exists(table_name, name):
+            print("Index %s already exists" % name)
+        else:
+            cols = ', '.join('`' + col + '`' for col in idx['cols'])
+            sql = "CREATE INDEX `%s` ON `%s`(%s)" % (name, table_name, cols)
+            c.execute(sql)
+            conn.commit()
+            print("Created index %s" & name)
 
 def get_connection():
     # Copy from /jboxengine/conf/jbox.user
@@ -74,8 +81,11 @@ for cls in tables:
         print("\texists already!")
     else:
         table_create(cls.NAME, cls.ATTRIBUTES, cls.TYPES, cls.KEYS, cls.KEYS_TYPES)
-        indexes_create(cls.NAME, cls.SQL_INDEXES)
         print("\tcreated.")
+
+for cls in tables:
+    print("Creating indexes for %s..." % (cls.NAME))
+    indexes_create(cls.NAME, cls.SQL_INDEXES)
 
 print('Creating scale_up_time')
 if table_exists('scale_up_time'):
