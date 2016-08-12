@@ -51,8 +51,6 @@ class JBoxUserProfile(JBoxDB):
          'cols': ['create_month', 'create_time']},
         {'name': 'update_month-update_time-index',
          'cols': ['update_month', 'update_time']},
-        {'name': 'activation_code-activation_status-index',
-         'cols': ['activation_code', 'activation_status']},
     ]
     KEYS_TYPES = [JBoxDB.VCHAR]
     TYPES = [JBoxDB.INT, JBoxDB.INT, JBoxDB.INT, JBoxDB.INT,
