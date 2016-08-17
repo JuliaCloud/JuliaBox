@@ -46,6 +46,13 @@ class GitHubAuthHandler(JBPluginHandler, OAuth2Mixin):
         app.add_handlers(".*$", [(r"/jboxauth/github/", GitHubAuthHandler)])
         app.settings["github_oauth"] = JBoxCfg.get('github_oauth')
 
+    @staticmethod
+    def state(**kwargs):
+        s = dict(error="", success="", info="",
+                 pending_activation=False, user_id="")
+        s.update(**kwargs)
+        return s
+
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self):
@@ -58,8 +65,12 @@ class GitHubAuthHandler(JBPluginHandler, OAuth2Mixin):
         if code is not False:
             user = yield self.get_authenticated_user(redirect_uri=self_redirect_uri, code=code)
             user_info = yield self.get_user_info(user)
-            self.update_user_profile(user_info)
+            if not user_info.get('email'):
+                self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
+                    error="Please make your email public in your GitHub profile if you wish to sign in with GitHub", success="")
+                return
             user_id = user_info['email']
+            self.update_user_profile(user_info)
             GitHubAuthHandler.log_debug("logging in user_id=%r", user_id)
             self.post_auth_launch_container(user_id)
             return
