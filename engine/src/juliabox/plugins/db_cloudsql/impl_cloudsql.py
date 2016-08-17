@@ -206,6 +206,11 @@ class JBoxCloudSQL(JBPluginDB):
                 user=JBoxCloudSQL.USER, passwd=JBoxCloudSQL.PASSWD,
                 unix_socket=JBoxCloudSQL.UNIX_SOCKET, db=JBoxCloudSQL.DB)
             c.autocommit(True)
+            c.set_character_set('utf8')
+            cur = c.cursor()
+            cur.execute('SET NAMES utf8;')
+            cur.execute('SET CHARACTER SET utf8;')
+            cur.execute('SET character_set_connection=utf8;')
         return c
 
     @staticmethod

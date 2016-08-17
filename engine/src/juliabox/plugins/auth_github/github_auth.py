@@ -67,7 +67,7 @@ class GitHubAuthHandler(JBPluginHandler, OAuth2Mixin):
             user_info = yield self.get_user_info(user)
             if not user_info.get('email'):
                 self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
-                    error="Please make your email public in your GitHub profile if you wish to sign in with GitHub", success="")
+                    error="Please make your email public in your GitHub profile if you wish to sign in with GitHub", success=""))
                 return
             user_id = user_info['email']
             self.update_user_profile(user_info)
