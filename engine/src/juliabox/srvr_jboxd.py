@@ -248,8 +248,10 @@ class JBoxd(LoggerMixin):
         iid = Compute.get_instance_id()
         for c in SessContainer.session_containers(allcontainers=True):
             if ('Names' in c) and (c['Names'] is not None):
-                JBoxSessionProps.attach_instance(Compute.get_install_id(), SessContainer(c['Id']).get_name(), iid,
-                                                 c["Status"])
+                sessname = SessContainer(c['Id']).get_name()
+                if sessname:
+                    JBoxSessionProps.attach_instance(Compute.get_install_id(),
+                                                     sessname, iid, c["Status"])
 
     @staticmethod
     def publish_instance_state():
