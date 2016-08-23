@@ -2,7 +2,7 @@ import json
 import os
 import urllib
 import functools
-
+import traceback
 import tornado
 import tornado.web
 import tornado.gen
@@ -69,7 +69,11 @@ class LinkedInAuthHandler(JBPluginHandler, OAuth2Mixin):
         if code is not False:
             user = yield self.get_authenticated_user(redirect_uri=self_redirect_uri, code=code)
             user_info = yield self.get_user_info(user)
-            self.update_user_profile(user_info)
+            try:
+                self.update_user_profile(user_info)
+            except:
+                self.log_error("exception while capturing user profile")
+                traceback.print_exc()
             user_id = user_info['emailAddress']
             LinkedInAuthHandler.log_debug("logging in user_id=%r", user_id)
             self.post_auth_launch_container(user_id)
