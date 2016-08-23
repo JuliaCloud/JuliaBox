@@ -2,7 +2,7 @@ import json
 import os
 import urllib
 import functools
-
+import traceback
 import tornado
 import tornado.web
 import tornado.gen
@@ -70,7 +70,11 @@ class GitHubAuthHandler(JBPluginHandler, OAuth2Mixin):
                     error="Please make your email public in your GitHub profile if you wish to sign in with GitHub", success=""))
                 return
             user_id = user_info['email']
-            self.update_user_profile(user_info)
+            try:
+                self.update_user_profile(user_info)
+            except:
+                self.log_error("exception while capturing user profile")
+                traceback.print_exc()
             GitHubAuthHandler.log_debug("logging in user_id=%r", user_id)
             self.post_auth_launch_container(user_id)
             return

@@ -3,6 +3,7 @@ import json
 import os
 import base64
 import httplib2
+import traceback
 
 import tornado
 import tornado.web
@@ -88,7 +89,11 @@ class GoogleAuthHandler(JBPluginHandler, GoogleOAuth2Mixin):
             response = yield http.fetch('https://www.googleapis.com/userinfo/v2/me',
                                         headers={"Authorization": auth_string})
             user_info = json.loads(response.body)
-            self.update_user_profile(user_info)
+            try:
+                self.update_user_profile(user_info)
+            except:
+                self.log_error("exception while capturing user profile")
+                traceback.print_exc()
             user_id = user_info['email']
 
             if state == 'store_creds':
