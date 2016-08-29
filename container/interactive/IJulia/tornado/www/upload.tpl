@@ -70,7 +70,7 @@ font-size: 2em;
         var jDropzone = new Dropzone("#juliadropzone", { 
                             url: "file-upload",
                             init: function() {
-                                this.on("complete", function(file) { 
+                                this.on("queuecomplete", function(file) { 
                                             window.setTimeout(function() {
                                                     location.reload(); 
                                                 }, 3000);
