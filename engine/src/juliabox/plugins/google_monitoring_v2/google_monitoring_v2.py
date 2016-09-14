@@ -50,8 +50,6 @@ class GoogleMonitoringV2(JBPluginCloud):
     @staticmethod
     def _get_timeseries_dict(metric_name, labels, value, value_type, timenow):
         value_type = GoogleMonitoringV2._process_value_type(value_type)
-        if value_type == "double":
-            value = value / 100.0
         timedesc = {
             "metric": GoogleMonitoringV2.CUSTOM_METRIC_DOMAIN + metric_name,
             "labels": labels
