@@ -4,12 +4,14 @@ import os
 import base64
 import httplib2
 import traceback
+import functools
+import urllib
 
 import tornado
 import tornado.web
 import tornado.gen
 import tornado.httpclient
-from tornado.auth import GoogleOAuth2Mixin
+from tornado.auth import OAuth2Mixin, _auth_return_future, AuthError
 from oauth2client import GOOGLE_REVOKE_URI, GOOGLE_TOKEN_URI
 from oauth2client.client import OAuth2Credentials, _extract_id_token
 
@@ -57,16 +59,28 @@ class GoogleAuthUIHandler(JBPluginUI):
         return creds
 
 
-class GoogleAuthHandler(JBPluginHandler, GoogleOAuth2Mixin):
+class GoogleAuthHandler(JBPluginHandler, OAuth2Mixin):
     provides = [JBPluginHandler.JBP_HANDLER,
                 JBPluginHandler.JBP_HANDLER_AUTH,
                 JBPluginHandler.JBP_HANDLER_AUTH_GOOGLE]
+
+    _OAUTH_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+    _OAUTH_ACCESS_TOKEN_URL = "https://www.googleapis.com/oauth2/v4/token"
+    _OAUTH_NO_CALLBACKS = False
+    _OAUTH_SETTINGS_KEY = 'google_oauth'
 
     @staticmethod
     def register(app):
         app.add_handlers(".*$", [(r"/jboxauth/google/", GoogleAuthHandler)])
         app.settings["google_oauth"] = JBoxCfg.get('google_oauth')
         # GoogleAuthHandler.log_debug("setting google_oauth: %r", app.settings["google_oauth"])
+
+    @staticmethod
+    def state(**kwargs):
+        s = dict(error="", success="", info="",
+                 pending_activation=False, user_id="")
+        s.update(**kwargs)
+        return s
 
     @tornado.web.asynchronous
     @tornado.gen.coroutine
@@ -82,13 +96,12 @@ class GoogleAuthHandler(JBPluginHandler, GoogleOAuth2Mixin):
         code = self.get_argument('code', False)
         if code is not False:
             user = yield self.get_authenticated_user(redirect_uri=self_redirect_uri, code=code)
-
-            # get user info
-            http = tornado.httpclient.AsyncHTTPClient()
-            auth_string = "%s %s" % (user['token_type'], user['access_token'])
-            response = yield http.fetch('https://www.googleapis.com/userinfo/v2/me',
-                                        headers={"Authorization": auth_string})
-            user_info = json.loads(response.body)
+            if not user:
+                self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
+                    error="Google authentication failed due to unexpected error.  Please try again.",
+                    success=""))
+                return
+            user_info = yield self.get_user_info(user)
             try:
                 self.update_user_profile(user_info)
             except:
@@ -108,7 +121,7 @@ class GoogleAuthHandler(JBPluginHandler, GoogleOAuth2Mixin):
             if state == 'ask_gdrive':
                 user_id = self.get_user_id()
                 scope = ['https://www.googleapis.com/auth/drive']
-                extra_params = {'approval_prompt': 'force', 'access_type': 'offline',
+                extra_params = {'access_type': 'offline', 'prompt': 'consent',
                                 'login_hint': user_id, 'include_granted_scopes': 'true',
                                 'state': 'store_creds'}
             else:
@@ -116,13 +129,68 @@ class GoogleAuthHandler(JBPluginHandler, GoogleOAuth2Mixin):
                 extra_params = {'approval_prompt': 'auto'}
 
             yield self.authorize_redirect(redirect_uri=self_redirect_uri,
-                                          client_id=self.settings['google_oauth']['key'],
+                                          client_id=self.settings[self._OAUTH_SETTINGS_KEY]['key'],
                                           scope=scope,
                                           response_type='code',
                                           extra_params=extra_params)
 
-    def update_profile(self, user_info):
-        pass
+    @_auth_return_future
+    def get_user_info(self, user, callback):
+        http = self.get_auth_http_client()
+        auth_string = "%s %s" % (user['token_type'], user['access_token'])
+        headers = {
+            "Authorization": auth_string
+        }
+        http.fetch('https://www.googleapis.com/userinfo/v2/me',
+                   functools.partial(self._on_user_info, callback),
+                   headers=headers)
+
+    @_auth_return_future
+    def get_authenticated_user(self, redirect_uri, code, callback):
+        """Handles Google login, returning a user object.
+        """
+        http = self.get_auth_http_client()
+        body = urllib.urlencode({
+            "redirect_uri": redirect_uri,
+            "code": code,
+            "client_id": self.settings[self._OAUTH_SETTINGS_KEY]['key'],
+            "client_secret": self.settings[self._OAUTH_SETTINGS_KEY]['secret'],
+            "grant_type": "authorization_code"
+        })
+
+        http.fetch(self._OAUTH_ACCESS_TOKEN_URL,
+                   functools.partial(self._on_access_token, callback),
+                   method="POST", headers={'Content-Type': 'application/x-www-form-urlencoded'}, body=body)
+
+    def _on_user_info(self, future, response):
+        if response.error:
+            future.set_exception(AuthError('Google auth error: %s [%s]' %
+                                           (str(response), response.body)))
+            return
+        user_info = json.loads(response.body)
+        future.set_result(user_info)
+
+    def _on_access_token(self, future, response):
+        """Callback function for the exchange to the access token."""
+        if response.error:
+            future.set_exception(AuthError('Google auth error: %s [%s]' %
+                                           (str(response), response.body)))
+            return
+        args = json.loads(response.body)
+        if not args.has_key('access_token'):
+            GoogleAuthHandler.log_error('Google auth error: Key `access_token` not found in response: %r\nResponse body: %r\nResponse headers: %r',
+                                        args, response.body, list(response.headers.get_all()))
+            future.set_result(None)
+            return
+        future.set_result(args)
+
+    def get_auth_http_client(self):
+        """Returns the `.AsyncHTTPClient` instance to be used for auth requests.
+
+        May be overridden by subclasses to use an HTTP client other than
+        the default.
+        """
+        return tornado.httpclient.AsyncHTTPClient()
 
     def make_credentials(self, user):
         # return AccessTokenCredentials(user['access_token'], "juliabox")
@@ -130,8 +198,8 @@ class GoogleAuthHandler(JBPluginHandler, GoogleOAuth2Mixin):
         id_token = _extract_id_token(user['id_token'])
         credential = OAuth2Credentials(
             access_token=user['access_token'],
-            client_id=self.settings['google_oauth']['key'],
-            client_secret=self.settings['google_oauth']['secret'],
+            client_id=self.settings[self._OAUTH_SETTINGS_KEY]['key'],
+            client_secret=self.settings[self._OAUTH_SETTINGS_KEY]['secret'],
             refresh_token=user['refresh_token'],
             token_expiry=token_expiry,
             token_uri=GOOGLE_TOKEN_URI,

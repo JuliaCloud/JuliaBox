@@ -133,8 +133,8 @@ class GitHubAuthHandler(JBPluginHandler, OAuth2Mixin):
         args = dict()
         tornado.httputil.parse_body_arguments(response.headers.get("Content-Type"), response.body, args, None)
         if not args.has_key('access_token'):
-            GitHubAuthHandler.log_error('Key `access_token` not found in response: %r\nResponse body: %r\nResponse headers: %r',
-                                        args, response.body, response.headers)
+            GitHubAuthHandler.log_error('GitHub auth error: Key `access_token` not found in response: %r\nResponse body: %r\nResponse headers: %r',
+                                        args, response.body, list(response.headers.get_all()))
             future.set_result(None)
             return
         args['access_token'] = args['access_token'][0]
