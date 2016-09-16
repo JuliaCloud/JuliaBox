@@ -70,13 +70,22 @@ class GitHubAuthHandler(JBPluginHandler, OAuth2Mixin):
                     success=""))
                 return
             user_info = yield self.get_user_info(user)
-            if not user_info.get('email'):
-                self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
-                    error="Please make your email public in your GitHub profile if you wish to sign in with GitHub", success=""))
-                return
-            user_id = user_info['email']
+            user_id = user_info.get('email')
+
+            if not user_id:
+                user_emails = yield self.get_user_emails(user)
+                for email in user_emails:
+                    if email['primary'] and email['verified']:
+                        user_id = email['email']
+                        break
+                if not user_id:
+                    self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
+                        error="Unable to get verified email address, login failed.",
+                        success=""))
+                    return
+
             try:
-                self.update_user_profile(user_info)
+                self.update_user_profile(user_id, user_info)
             except:
                 self.log_error("exception while capturing user profile")
                 traceback.print_exc()
@@ -90,17 +99,23 @@ class GitHubAuthHandler(JBPluginHandler, OAuth2Mixin):
                                           response_type='code',
                                           extra_params=self.EXTRA_PARAMS)
 
-    @_auth_return_future
-    def get_user_info(self, user, callback):
+    def _api_call(self, uri, user, callback):
         http = self.get_auth_http_client()
         auth_string = "%s %s" % (user['token_type'], user['access_token'])
         headers = {
             "Authorization": auth_string,
             "User-Agent": "JuliaBox Tornado Python client"
         }
-        http.fetch('https://api.github.com/user',
-                   functools.partial(self._on_user_info, callback),
+        http.fetch(uri, functools.partial(self._on_response, callback),
                    headers=headers)
+
+    @_auth_return_future
+    def get_user_info(self, user, callback):
+        self._api_call('https://api.github.com/user', user, callback)
+
+    @_auth_return_future
+    def get_user_emails(self, user, callback):
+        self._api_call('https://api.github.com/user/emails', user, callback)
 
     @_auth_return_future
     def get_authenticated_user(self, redirect_uri, code, callback):
@@ -118,12 +133,12 @@ class GitHubAuthHandler(JBPluginHandler, OAuth2Mixin):
                    functools.partial(self._on_access_token, callback),
                    method="POST", headers={'Content-Type': 'application/x-www-form-urlencoded'}, body=body)
 
-    def _on_user_info(self, future, response):
+    def _on_response(self, future, response):
         if response.error:
             future.set_exception(AuthError('GitHub auth error: %s [%s]' % (str(response), response.body)))
             return
-        user_info = json.loads(response.body)
-        future.set_result(user_info)
+        data = json.loads(response.body)
+        future.set_result(data)
 
     def _on_access_token(self, future, response):
         """Callback function for the exchange to the access token."""
@@ -149,8 +164,7 @@ class GitHubAuthHandler(JBPluginHandler, OAuth2Mixin):
         """
         return tornado.httpclient.AsyncHTTPClient()
 
-    def update_user_profile(self, user_info):
-        user_id = user_info['email']
+    def update_user_profile(self, user_id, user_info):
         profile = JBoxUserProfile(user_id, create=True)
         updated = False
 
