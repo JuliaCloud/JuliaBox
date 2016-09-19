@@ -45,7 +45,7 @@ class MainHandler(JBoxHandler):
         cont = SessContainer.get_by_name(sessname)
         if (cont is None) or (not cont.is_running()):
             loading_step = int(self.get_loading_state(), 0)
-            if loading_step > 60:
+            if loading_step > 90:
                 self.log_error("Could not start instance. Session [%s] for user [%s] didn't load.", sessname, user_id)
                 self.write({'code': -1})
                 return
@@ -62,7 +62,7 @@ class MainHandler(JBoxHandler):
         cont = SessContainer.get_by_name(sessname)
         if (cont is None) or (not cont.is_running()):
             loading_step = int(self.get_loading_state(), 0)
-            if loading_step > 30:
+            if loading_step > 90:
                 self.log_error("Could not start instance. Session [%s] for user [%s] didn't load.", sessname, user_id)
                 self.clear_container()
                 self.rendertpl("index.tpl", cfg=JBoxCfg.nv,
