@@ -225,7 +225,7 @@ function M.check_forward_addr(outgoing, replacement)
 end
 
 function M.delay_till_available(outgoing, path)
-    M.wait_till_accessible(outgoing .. path, 60)
+    M.wait_till_accessible(outgoing .. path, 90)
     return
 end
 
