@@ -6,6 +6,7 @@ import httplib2
 import traceback
 import functools
 import urllib
+import time
 
 import tornado
 import tornado.web
@@ -101,7 +102,12 @@ class GoogleAuthHandler(JBPluginHandler, OAuth2Mixin):
                     error="Google authentication failed due to unexpected error.  Please try again.",
                     success=""))
                 return
-            user_info = yield self.get_user_info(user)
+            user_info = self.get_user_info(user)
+            if not user_info:
+                self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
+                    error="Google authentication failed due to unexpected error.  Please try again.",
+                    success=""))
+                return
             try:
                 self.update_user_profile(user_info)
             except:
@@ -134,8 +140,24 @@ class GoogleAuthHandler(JBPluginHandler, OAuth2Mixin):
                                           response_type='code',
                                           extra_params=extra_params)
 
+    def get_user_info(self, user):
+        user_info = None
+        tries = 0
+        while True:
+            try:
+                user_info = yield self._get_user_info(user)
+                break
+            except AuthError, e:
+                if e.args[2]["error"]["code"] != 500:
+                    raise
+                if tries >= 2:
+                    break
+                time.sleep(2 ** tries)
+                tries += 1
+        return user_info
+
     @_auth_return_future
-    def get_user_info(self, user, callback):
+    def _get_user_info(self, user, callback):
         http = self.get_auth_http_client()
         auth_string = "%s %s" % (user['token_type'], user['access_token'])
         headers = {
@@ -165,7 +187,7 @@ class GoogleAuthHandler(JBPluginHandler, OAuth2Mixin):
     def _on_user_info(self, future, response):
         if response.error:
             future.set_exception(AuthError('Google auth error: %s [%s]' %
-                                           (str(response), response.body)))
+                                           (str(response), response.body)), response)
             return
         user_info = json.loads(response.body)
         future.set_result(user_info)
@@ -174,7 +196,7 @@ class GoogleAuthHandler(JBPluginHandler, OAuth2Mixin):
         """Callback function for the exchange to the access token."""
         if response.error:
             future.set_exception(AuthError('Google auth error: %s [%s]' %
-                                           (str(response), response.body)))
+                                           (str(response), response.body)), response)
             return
         args = json.loads(response.body)
         if not args.has_key('access_token'):
