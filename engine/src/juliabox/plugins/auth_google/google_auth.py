@@ -148,7 +148,7 @@ class GoogleAuthHandler(JBPluginHandler, OAuth2Mixin):
                 user_info = yield self._get_user_info(user)
                 break
             except AuthError, e:
-                if e.args[2]["error"]["code"] != 500:
+                if e.args[1]["error"]["code"] != 500:
                     raise
                 if tries >= 2:
                     break
