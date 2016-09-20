@@ -102,7 +102,22 @@ class GoogleAuthHandler(JBPluginHandler, OAuth2Mixin):
                     error="Google authentication failed due to unexpected error.  Please try again.",
                     success=""))
                 return
-            user_info = self.get_user_info(user)
+
+            user_info = None
+            tries = 0
+            while True:
+                try:
+                    user_info = yield self.get_user_info(user)
+                    break
+                except AuthError, e:
+                    if e.args[1]["error"]["code"] != 500:
+                        raise
+                    if tries >= 2:
+                        traceback.print_exc()
+                        break
+                    time.sleep(2 ** tries)
+                    tries += 1
+
             if not user_info:
                 self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
                     error="Google authentication failed due to unexpected error.  Please try again.",
@@ -140,24 +155,8 @@ class GoogleAuthHandler(JBPluginHandler, OAuth2Mixin):
                                           response_type='code',
                                           extra_params=extra_params)
 
-    def get_user_info(self, user):
-        user_info = None
-        tries = 0
-        while True:
-            try:
-                user_info = yield self._get_user_info(user)
-                break
-            except AuthError, e:
-                if e.args[1]["error"]["code"] != 500:
-                    raise
-                if tries >= 2:
-                    break
-                time.sleep(2 ** tries)
-                tries += 1
-        return user_info
-
     @_auth_return_future
-    def _get_user_info(self, user, callback):
+    def get_user_info(self, user, callback):
         http = self.get_auth_http_client()
         auth_string = "%s %s" % (user['token_type'], user['access_token'])
         headers = {
