@@ -6,6 +6,7 @@ import httplib2
 import traceback
 import functools
 import urllib
+import time
 
 import tornado
 import tornado.web
@@ -101,7 +102,27 @@ class GoogleAuthHandler(JBPluginHandler, OAuth2Mixin):
                     error="Google authentication failed due to unexpected error.  Please try again.",
                     success=""))
                 return
-            user_info = yield self.get_user_info(user)
+
+            user_info = None
+            tries = 0
+            while True:
+                try:
+                    user_info = yield self.get_user_info(user)
+                    break
+                except AuthError, e:
+                    if e.args[1]["error"]["code"] != 500:
+                        raise
+                    if tries >= 2:
+                        traceback.print_exc()
+                        break
+                    time.sleep(2 ** tries)
+                    tries += 1
+
+            if not user_info:
+                self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
+                    error="Google authentication failed due to unexpected error.  Please try again.",
+                    success=""))
+                return
             try:
                 self.update_user_profile(user_info)
             except:
@@ -165,7 +186,7 @@ class GoogleAuthHandler(JBPluginHandler, OAuth2Mixin):
     def _on_user_info(self, future, response):
         if response.error:
             future.set_exception(AuthError('Google auth error: %s [%s]' %
-                                           (str(response), response.body)))
+                                           (str(response), response.body)), response)
             return
         user_info = json.loads(response.body)
         future.set_result(user_info)
@@ -174,7 +195,7 @@ class GoogleAuthHandler(JBPluginHandler, OAuth2Mixin):
         """Callback function for the exchange to the access token."""
         if response.error:
             future.set_exception(AuthError('Google auth error: %s [%s]' %
-                                           (str(response), response.body)))
+                                           (str(response), response.body)), response)
             return
         args = json.loads(response.body)
         if not args.has_key('access_token'):
