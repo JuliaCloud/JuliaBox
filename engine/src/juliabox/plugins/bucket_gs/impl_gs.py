@@ -28,10 +28,12 @@ class JBoxGS(JBPluginCloud):
     MAX_BACKOFF = 32
     BACKOFF_FACTOR = 2
     SLEEP_TIME = 3
+    CHUNK_SIZE = 64
 
     @staticmethod
     def configure():
-        JBoxGS.MAX_RETRIES = JBoxCfg.get('bucket_gs.max_retries', 10)
+        JBoxGS.MAX_RETRIES = JBoxCfg.get('bucket_gs.max_retries', JBoxGS.MAX_RETRIES)
+        JBoxGS.CHUNK_SIZE = JBoxCfg.get('bucket_gs.chunk_size', JBoxGS.CHUNK_SIZE)
 
     @staticmethod
     def connect():
@@ -62,7 +64,7 @@ class JBoxGS(JBPluginCloud):
         objconn = JBoxGS.connect().objects()
         fh = open(local_file, "rb")
         media = MediaIoBaseUpload(fh, JBoxGS._get_mime_type(local_file),
-                                  resumable=True, chunksize=4*1024*1024)
+                                  resumable=True, chunksize=JBoxGS.CHUNK_SIZE*1024*1024)
         uploader = None
         if metadata:
             uploader = objconn.insert(bucket=bucket, media_body=media,
@@ -113,7 +115,7 @@ class JBoxGS(JBPluginCloud):
             req = JBoxGS.connect().objects().get_media(bucket=bucket,
                                                        object=objname)
             fh = open(local_file, "wb")
-            downloader = MediaIoBaseDownload(fh, req, chunksize=4*1024*1024)
+            downloader = MediaIoBaseDownload(fh, req, chunksize=JBoxGS.CHUNK_SIZE*1024*1024)
             done = False
             num_retries = 0
             while not done:
