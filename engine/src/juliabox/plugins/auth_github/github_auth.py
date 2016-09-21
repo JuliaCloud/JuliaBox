@@ -11,7 +11,7 @@ import tornado.escape
 import tornado.httputil
 from tornado.auth import OAuth2Mixin, _auth_return_future, AuthError
 
-from juliabox.jbox_util import JBoxCfg
+from juliabox.jbox_util import JBoxCfg, gen_random_secret
 from juliabox.handlers import JBPluginHandler, JBPluginUI
 from juliabox.db import JBoxUserProfile
 
@@ -39,7 +39,6 @@ class GitHubAuthHandler(JBPluginHandler, OAuth2Mixin):
     _OAUTH_SETTINGS_KEY = 'github_oauth'
 
     SCOPES = ['user:email']
-    EXTRA_PARAMS = {'allow_signup': 'true'}
 
     @staticmethod
     def register(app):
@@ -62,7 +61,15 @@ class GitHubAuthHandler(JBPluginHandler, OAuth2Mixin):
         self_redirect_uri = self_redirect_uri[0:(idx + len("jboxauth/github/"))]
 
         code = self.get_argument('code', False)
+
         if code is not False:
+            state = self.get_argument('state', None)
+            secret = self.get_state_cookie()
+            if not state or not secret or state != secret:
+                self.log_warn("GitHub auth:  Invalid login attempt")
+                self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
+                    error="Invalid login request", success=""))
+                return
             user = yield self.get_authenticated_user(redirect_uri=self_redirect_uri, code=code)
             if not user:
                 self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
@@ -93,11 +100,14 @@ class GitHubAuthHandler(JBPluginHandler, OAuth2Mixin):
             self.post_auth_launch_container(user_id)
             return
         else:
+            state = gen_random_secret()
+            self.set_state_cookie(state)
             yield self.authorize_redirect(redirect_uri=self_redirect_uri,
                                           client_id=self.settings[self._OAUTH_SETTINGS_KEY]['key'],
                                           scope=self.SCOPES,
                                           response_type='code',
-                                          extra_params=self.EXTRA_PARAMS)
+                                          extra_params={'allow_signup': 'true',
+                                                        'state': state})
 
     def _api_call(self, uri, user, callback):
         http = self.get_auth_http_client()

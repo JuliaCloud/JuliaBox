@@ -26,6 +26,7 @@ class JBoxCookies(RequestHandler, LoggerMixin):
     COOKIE_SESS = 'jb_sess'
     COOKIE_INSTANCEID = 'jb_iid'
     COOKIE_LOADING = 'jb_loading'
+    COOKIE_STATE = 'jb_state'
 
     COOKIE_PFX_PORT = 'jp_'
     COOKIE_PORT_SHELL = 'shell'
@@ -41,6 +42,18 @@ class JBoxCookies(RequestHandler, LoggerMixin):
         self._loading_state = None
         self._valid_user = None
         self._valid_session = None
+
+    def set_state_cookie(self, state):
+        jbox_cookie = {'state': state}
+        coded = base64.b64encode(json.dumps(jbox_cookie))
+        self.set_cookie(JBoxCookies.COOKIE_STATE, coded)
+
+    def get_state_cookie(self):
+        jbox_cookie = self.get_cookie(JBoxCookies.COOKIE_STATE)
+        if jbox_cookie is None:
+            return None
+        jbox_cookie = json.loads(base64.b64decode(jbox_cookie))
+        return jbox_cookie['state']
 
     def set_authenticated(self, user_id):
         """ Marks user_id as authenticated with a cookie named COOKIE_AUTH (juliabox).

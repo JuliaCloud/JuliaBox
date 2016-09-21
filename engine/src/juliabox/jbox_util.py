@@ -6,11 +6,12 @@ import errno
 import hashlib
 import math
 import logging
+import string
 
 import isodate
 import httplib
 import errno
-from random import random
+import random
 
 def parse_iso_time(tm):
     if tm is not None:
@@ -318,7 +319,12 @@ def retry_on_errors(retries=10, backoff=2, max_sleep_time=32):
                         raise err
                     else:
                         sleep_time = min(backoff**nretry, max_sleep_time)
-                        time.sleep(sleep_time + random())
+                        time.sleep(sleep_time + random.random())
                 nretry += 1
         return func
     return g
+
+def gen_random_secret():
+    jb_secret = JBoxCfg.get('jbox_secret', '')
+    random_secret = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(10))
+    return hashlib.sha1(jb_secret + random_secret).hexdigest()
