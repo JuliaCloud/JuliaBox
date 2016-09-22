@@ -507,9 +507,9 @@ class CompGCE(JBPluginCloud):
     def get_instance_stats(instance, stat_name, namespace=None):
         if namespace == None:
             namespace = CompGCE.get_install_id()
-        CompGCE.get_monitoring_plugin().get_instance_stats(instance, stat_name,
-                                                           CompGCE.get_instance_id(),
-                                                           namespace, CompGCE.AUTOSCALE_GROUP)
+        return CompGCE.get_monitoring_plugin().get_instance_stats(instance, stat_name,
+                                                                  CompGCE.get_instance_id(),
+                                                                  namespace, CompGCE.AUTOSCALE_GROUP)
 
     @staticmethod
     def get_cluster_stats(stat_name, namespace=None):

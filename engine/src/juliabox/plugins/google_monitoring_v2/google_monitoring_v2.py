@@ -142,9 +142,9 @@ class GoogleMonitoringV2(JBPluginCloud):
         return retlist
 
     @staticmethod
-    def get_instance_stats(instance, stat_name, current_instance_id, install_id,
+    def get_instance_stats(instance, stat_name, this_id, install_id,
                            autoscale_group):
-        if (instance == current_instance_id) and (stat_name in GoogleMonitoringV2.SELF_STATS):
+        if (instance == this_id) and (stat_name in GoogleMonitoringV2.SELF_STATS):
             GoogleMonitoringV2.log_debug("Using cached self_stats. %s=%r",
                                          stat_name, GoogleMonitoringV2.SELF_STATS[stat_name])
             return GoogleMonitoringV2.SELF_STATS[stat_name]
