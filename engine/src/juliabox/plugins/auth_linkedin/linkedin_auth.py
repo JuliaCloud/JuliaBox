@@ -11,7 +11,7 @@ import tornado.escape
 import tornado.httputil
 from tornado.auth import OAuth2Mixin, _auth_return_future, AuthError
 
-from juliabox.jbox_util import JBoxCfg
+from juliabox.jbox_util import JBoxCfg, gen_random_secret
 from juliabox.handlers import JBPluginHandler, JBPluginUI
 from juliabox.db import JBoxUserProfile
 
@@ -50,7 +50,6 @@ class LinkedInAuthHandler(JBPluginHandler, OAuth2Mixin):
                   '?format=json'
 
     SCOPES = ['r_basicprofile r_emailaddress']
-    EXTRA_PARAMS = {}
 
     @staticmethod
     def register(app):
@@ -67,6 +66,13 @@ class LinkedInAuthHandler(JBPluginHandler, OAuth2Mixin):
 
         code = self.get_argument('code', False)
         if code is not False:
+            state = self.get_argument('state', None)
+            secret = self.get_state_cookie()
+            if not state or not secret or state != secret:
+                self.log_warn("LinkedIn auth:  Invalid login attempt")
+                self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
+                    error="Invalid login request", success=""))
+                return
             user = yield self.get_authenticated_user(redirect_uri=self_redirect_uri, code=code)
             user_info = yield self.get_user_info(user)
             try:
@@ -86,11 +92,13 @@ class LinkedInAuthHandler(JBPluginHandler, OAuth2Mixin):
                 self.redirect(self_redirect_uri[0:idx])
                 return
             else:
+                state = gen_random_secret()
+                self.set_state_cookie(state)
                 yield self.authorize_redirect(redirect_uri=self_redirect_uri,
                                               client_id=self.settings[self._OAUTH_SETTINGS_KEY]['key'],
                                               scope=self.SCOPES,
                                               response_type='code',
-                                              extra_params=self.EXTRA_PARAMS)
+                                              extra_params={'state': state})
 
     @_auth_return_future
     def get_user_info(self, user, callback):
