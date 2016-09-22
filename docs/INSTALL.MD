@@ -107,6 +107,7 @@ The following procedure will configure a system without authentication, designed
             "juliabox.plugins.compute_singlenode",
             "juliabox.plugins.vol_hostdisk",
             "juliabox.plugins.vol_defpkg",
+            "juliabox.plugins.vol_defcfg",
             "juliabox.plugins.auth_zero",
             "juliabox.plugins.db_sqlite3"
         ]
@@ -163,6 +164,7 @@ The following procedure will configure a system without authentication, designed
             "juliabox.plugins.compute_singlenode",
             "juliabox.plugins.vol_loopback",
             "juliabox.plugins.vol_defpkg",
+            "juliabox.plugins.vol_defcfg",
             "juliabox.plugins.auth_google",
             "juliabox.plugins.db_sqlite3"
         ],
