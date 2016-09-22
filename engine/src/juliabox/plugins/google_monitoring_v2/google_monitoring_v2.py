@@ -91,14 +91,16 @@ class GoogleMonitoringV2(JBPluginCloud):
                 raise
 
     @staticmethod
-    def publish_stats_multi(stats, instance_id, install_id,
-                            autoscale_group, zone):
+    def publish_stats_multi(stats, instance_id, this_id, install_id,
+                            autoscale_group):
         timeseries = []
         label = {GoogleMonitoringV2.CUSTOM_METRIC_DOMAIN + 'InstanceID': instance_id,
                  GoogleMonitoringV2.CUSTOM_METRIC_DOMAIN + 'GroupID' : autoscale_group}
         timenow = GoogleMonitoringV2._get_google_now()
+        should_cache = this_id == instance_id
         for (stat_name, stat_unit, stat_value) in stats:
-            GoogleMonitoringV2.SELF_STATS[stat_name] = stat_value
+            if should_cache:
+                GoogleMonitoringV2.SELF_STATS[stat_name] = stat_value
             GoogleMonitoringV2.log_info("CloudMonitoring %s.%s.%s=%r(%s)",
                                         install_id, instance_id, stat_name,
                                         stat_value, stat_unit)

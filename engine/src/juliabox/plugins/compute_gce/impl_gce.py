@@ -499,6 +499,7 @@ class CompGCE(JBPluginCloud):
     @staticmethod
     def publish_stats_multi(stats):
         CompGCE.get_monitoring_plugin().publish_stats_multi(stats, CompGCE.get_instance_id(),
+                                                            CompGCE.get_instance_id(),
                                                             CompGCE.get_install_id(),
                                                             CompGCE.AUTOSCALE_GROUP)
 
