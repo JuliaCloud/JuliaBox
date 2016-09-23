@@ -71,10 +71,8 @@ class GitHubAuthHandler(JBPluginHandler, OAuth2Mixin):
                     error="Invalid login request", success=""))
                 return
             user = yield self.get_authenticated_user(redirect_uri=self_redirect_uri, code=code)
-            if not user:
-                self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
-                    error="GitHub authentication failed due to unexpected error.  Please try again.",
-                    success=""))
+            if not user:    # Invalid code, get new code.
+                self.redirect(self_redirect_uri)
                 return
             user_info = yield self.get_user_info(user)
             user_id = user_info.get('email')
