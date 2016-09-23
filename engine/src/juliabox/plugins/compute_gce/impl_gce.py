@@ -11,7 +11,6 @@ import time
 import threading
 
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 from oauth2client.client import GoogleCredentials
 
 from juliabox.cloud import JBPluginCloud
@@ -38,16 +37,11 @@ class CompGCE(JBPluginCloud):
     LOCAL_IP = None
     PUBLIC_IP = None
 
-    SELF_STATS = dict()
-
     GOOGLE_HEADERS = {"Metadata-Flavor": "Google"}    # HTTP header for querying metadata
     THIS_METADATA = None    # Metadata of current instance
-    RFC_3339_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
-    CUSTOM_METRIC_DOMAIN = "custom.cloudmonitoring.googleapis.com/"
-    ALLOWED_CUSTOM_GCE_VALUE_TYPES = ["double", "int64"]
-    ALLOWED_EC2_VALUE_TYPES = ["Percent", "Count"]
 
     MIN_UPTIME = 50
+    MONITORING_PLUGIN = None
 
     @staticmethod
     def configure():
@@ -75,6 +69,12 @@ class CompGCE(JBPluginCloud):
         if CompGCE.INSTANCE_ID is None:
             CompGCE.INSTANCE_ID = socket.gethostname()
         return CompGCE.INSTANCE_ID
+
+    @staticmethod
+    def get_monitoring_plugin():
+        if CompGCE.MONITORING_PLUGIN == None:
+            CompGCE.MONITORING_PLUGIN = JBPluginCloud.jbox_get_plugin(JBPluginCloud.JBP_MONITORING_GOOGLE)
+        return CompGCE.MONITORING_PLUGIN
 
     @staticmethod
     def _make_alias_hostname(instance_id=None):
@@ -136,203 +136,12 @@ class CompGCE(JBPluginCloud):
             return attrs['networkInterfaces'][0]['networkIP']
 
     @staticmethod
-    def _get_google_now():
-        return datetime.datetime.utcnow().strftime(CompGCE.RFC_3339_FORMAT)
-
-    @staticmethod
-    def _process_value_type(value_type):
-        if value_type in CompGCE.ALLOWED_EC2_VALUE_TYPES:
-            if value_type == "Count":
-                return "int64"
-            return "double"
-        elif value_type in CompGCE.ALLOWED_CUSTOM_GCE_VALUE_TYPES:
-            return value_type
-        else:
-            raise Exception("Invalid value_type argument.")
-
-    @staticmethod
-    def _get_timeseries_dict(metric_name, labels, value, value_type, timenow):
-        value_type = CompGCE._process_value_type(value_type)
-        timedesc = {
-            "metric": CompGCE.CUSTOM_METRIC_DOMAIN + metric_name,
-            "labels": labels
-        }
-        timeseries = {
-            "timeseriesDesc": timedesc,
-            "point": {
-                "start": timenow,
-                "end": timenow,
-                value_type + "Value": value
-            }
-        }
-        return timeseries
-
-    @staticmethod
-    @retry_on_errors(retries=2)
-    def _ts_write(timeseries):
-        ts = CompGCE._connect_google_monitoring().timeseries()
-        ts.write(project=CompGCE.INSTALL_ID,
-                 body={"timeseries": timeseries}).execute()
-
-    @staticmethod
-    def _update_timeseries(timeseries):
-        timenow = CompGCE._get_google_now()
-        for ts in timeseries:
-            ts['point']['start'] = timenow
-            ts['point']['end'] = timenow
-
-    @staticmethod
-    def _timeseries_write(timeseries):
-        try:
-            CompGCE._ts_write(timeseries)
-        except HttpError, err:
-            if err.resp.status == 400:
-                time.sleep(1)
-                CompGCE._update_timeseries(timeseries)
-                CompGCE._ts_write(timeseries)
-            else:
-                raise
-
-    @staticmethod
-    def publish_stats(stat_name, stat_unit, stat_value):
-        """ Publish custom cloudwatch statistics. Used for status monitoring and auto scaling. """
-        CompGCE.publish_stats_multi([(stat_name, stat_unit, stat_value)])
-
-    @staticmethod
-    def publish_stats_multi(stats):
-        timeseries = []
-        label = {CompGCE.CUSTOM_METRIC_DOMAIN + 'InstanceID': CompGCE.get_instance_id(),
-                 CompGCE.CUSTOM_METRIC_DOMAIN + 'GroupID' : CompGCE.AUTOSCALE_GROUP}
-        timenow = CompGCE._get_google_now()
-        for (stat_name, stat_unit, stat_value) in stats:
-            CompGCE.SELF_STATS[stat_name] = stat_value
-            CompGCE.log_info("CloudMonitoring %s.%s.%s=%r(%s)",
-                             CompGCE.INSTALL_ID, CompGCE.get_instance_id(),
-                             stat_name, stat_value, stat_unit)
-            timeseries.append(CompGCE._get_timeseries_dict(stat_name, label,
-                                                           stat_value, stat_unit,
-                                                           timenow))
-        CompGCE._timeseries_write(timeseries)
-
-    @staticmethod
-    def _list_metric(project, metric_name, labels, timespan, window, aggregator):
-        ts = CompGCE._connect_google_monitoring().timeseries()
-        nowtime = CompGCE._get_google_now()
-        retlist = []
-        nextpage = None
-        labels = [CompGCE.CUSTOM_METRIC_DOMAIN + label for label in labels]
-        while True:
-            start = time.time()
-            resp = None
-            while True:
-                try:
-                    resp = ts.list(project=project, pageToken=nextpage,
-                                   metric=CompGCE.CUSTOM_METRIC_DOMAIN + metric_name,
-                                   youngest=nowtime, timespan=timespan, labels=labels,
-                                   window=window, aggregator=aggregator).execute()
-                    break
-                except:
-                    if time.time() < start + 20:
-                        time.sleep(3)
-                    else:
-                        raise
-            series = resp.get("timeseries")
-            if series == None:
-                break
-            retlist.extend(series[0]['points'])
-            nextpage = resp.get("nextPageToken")
-            if nextpage == None:
-                break
-        return retlist
-        
-    @staticmethod
-    def get_instance_stats(instance, stat_name, namespace=None):
-        if (instance == CompGCE.get_instance_id()) and (stat_name in CompGCE.SELF_STATS):
-            CompGCE.log_debug("Using cached self_stats. %s=%r", stat_name, CompGCE.SELF_STATS[stat_name])
-            return CompGCE.SELF_STATS[stat_name]
-
-        if namespace is None:
-            namespace = CompGCE.INSTALL_ID
-        res = None
-        labels = ['InstanceID=='+instance, 'GroupID=='+CompGCE.AUTOSCALE_GROUP]
-        results = CompGCE._list_metric(project=namespace, metric_name=stat_name,
-                                       labels=labels, timespan="30m", window="1m",
-                                       aggregator="mean")
-        for _res in results:
-            if (res is None) or (res['start'] < _res['start']):
-                res = _res
-        if res:
-            valuekey = [name for name in res.keys() if name not in ["start", "end"]][0]
-            return res[valuekey]
-        return None
-
-    GET_METRIC_DIMENSIONS_TIMESPAN = "30m"
-
-    @staticmethod
-    def _get_metric_dimensions(metric_name, metric_namespace=None):
-        if metric_namespace is None:
-            metric_namespace = CompGCE.INSTALL_ID
-
-        next_token = None
-        dims = {}
-        tsd = CompGCE._connect_google_monitoring().timeseriesDescriptors()
-        nowtime = CompGCE._get_google_now()
-        labels=[CompGCE.CUSTOM_METRIC_DOMAIN + 'GroupID==' + CompGCE.AUTOSCALE_GROUP]
-
-        while True:
-            start = time.time()
-            metrics = None
-            while True:
-                try:
-                    metrics = tsd.list(pageToken=next_token, project=metric_namespace,
-                                       metric=CompGCE.CUSTOM_METRIC_DOMAIN + metric_name,
-                                       youngest=nowtime, labels=labels,
-                                       timespan=CompGCE.GET_METRIC_DIMENSIONS_TIMESPAN).execute()
-                    break
-                except:
-                    if time.time() < start + 20:
-                        time.sleep(3)
-                    else:
-                        raise
-            if metrics.get("timeseries") is None:
-                break
-            for m in metrics["timeseries"]:
-                for n_dim, v_dim in m["labels"].iteritems():
-                    key = n_dim.split('/')[-1]
-                    dims[key] = dims.get(key, []) + [v_dim]
-            next_token = metrics.get("nextPageToken")
-            if next_token is None:
-                break
-        if len(dims) == 0:
-            CompGCE.log_warn("invalid metric " + '.'.join([metric_namespace, metric_name]))
-            return None
-        return dims
-
-    @staticmethod
-    def get_cluster_stats(stat_name, namespace=None):
-        dims = CompGCE._get_metric_dimensions(stat_name, namespace)
-        if dims is None:
-            return None
-
-        instances = CompGCE.get_all_instances()
-
-        stats = {}
-        if 'InstanceID' in dims:
-            for instance in dims['InstanceID']:
-                if (instances is None) or (instance in instances):
-                    instance_load = CompGCE.get_instance_stats(instance, stat_name, namespace)
-                    if instance_load is not None:
-                        stats[instance] = instance_load
-
-        return stats
-
-    @staticmethod
     def get_cluster_average_stats(stat_name, namespace=None, results=None):
         if results is None:
             results = CompGCE.get_cluster_stats(stat_name, namespace)
 
         vals = results.values()
-        if len(vals) > 0:
+        if len(vals) > 0 and vals[0] != None:
             return float(sum(vals)) / len(vals)
         return None
 
@@ -541,15 +350,6 @@ class CompGCE(JBPluginCloud):
         return c
 
     @staticmethod
-    def _connect_google_monitoring():
-        c = getattr(CompGCE.threadlocal, 'cm_conn', None)
-        if c is None:
-            creds = GoogleCredentials.get_application_default()
-            CompGCE.threadlocal.cm_conn = c = build("cloudmonitoring", "v2beta2",
-                                                    credentials=creds)
-        return c
-
-    @staticmethod
     @retry_on_errors(retries=2)
     def _instance_attrs(instance_name=None):
         if instance_name is None:
@@ -593,13 +393,13 @@ class CompGCE(JBPluginCloud):
 
     @staticmethod
     @retry_on_errors(retries=2)
-    def _increment_num_instances():
+    def _increment_num_instances(num_instances):
         conn = CompGCE._connect_gce().instanceGroupManagers()
         curr = conn.get(project=CompGCE.INSTALL_ID, zone=CompGCE._zone(),
                         instanceGroupManager=CompGCE.AUTOSCALE_GROUP).execute()['targetSize']
         return conn.resize(project=CompGCE.INSTALL_ID, zone=CompGCE._zone(),
                            instanceGroupManager=CompGCE.AUTOSCALE_GROUP,
-                           size=curr + 1).execute()
+                           size=curr + num_instances).execute()
 
     DB_PLUGIN = None
     @staticmethod
@@ -631,14 +431,14 @@ class CompGCE(JBPluginCloud):
         return True
 
     @staticmethod
-    def _add_instance():
+    def _add_instance(num_instances=1):
         try:
             # Execute policy only after a reasonable wait period to let a new machine boot up.
             # This will prevent thrashing AWS APIs and triggering AWS throttling.
             # Cooldown policy can also apply after that.
             if CompGCE._should_scale_up():
                 if CompGCE.SCALE_UP_POLICY == 'addinstance':
-                    CompGCE._increment_num_instances()
+                    CompGCE._increment_num_instances(num_instances)
         except:
             CompGCE.log_exception("Error requesting scale up")
 
@@ -690,3 +490,44 @@ class CompGCE(JBPluginCloud):
     @staticmethod
     def get_available_instances():
         JBoxInstanceProps.get_available_instances(CompGCE.get_install_id())
+
+    @staticmethod
+    def publish_stats(stat_name, stat_unit, stat_value):
+        """ Publish custom cloudwatch statistics. Used for status monitoring and auto scaling. """
+        CompGCE.publish_stats_multi([(stat_name, stat_unit, stat_value)])
+
+    @staticmethod
+    def publish_stats_multi(stats):
+        CompGCE.get_monitoring_plugin().publish_stats_multi(stats, CompGCE.get_instance_id(),
+                                                            CompGCE.get_instance_id(),
+                                                            CompGCE.get_install_id(),
+                                                            CompGCE.AUTOSCALE_GROUP)
+
+    @staticmethod
+    def get_instance_stats(instance, stat_name, namespace=None):
+        if namespace == None:
+            namespace = CompGCE.get_install_id()
+        return CompGCE.get_monitoring_plugin().get_instance_stats(instance, stat_name,
+                                                                  CompGCE.get_instance_id(),
+                                                                  namespace, CompGCE.AUTOSCALE_GROUP)
+
+    @staticmethod
+    def get_cluster_stats(stat_name, namespace=None):
+        if namespace == None:
+            namespace = CompGCE.INSTALL_ID
+        dims = CompGCE.get_monitoring_plugin().get_metric_dimensions(stat_name, namespace,
+                                                                     CompGCE.AUTOSCALE_GROUP)
+        if dims is None:
+            return None
+
+        instances = CompGCE.get_all_instances()
+
+        stats = {}
+        if 'InstanceID' in dims:
+            for instance in dims['InstanceID']:
+                if (instances is None) or (instance in instances):
+                    instance_load = CompGCE.get_instance_stats(instance, stat_name, namespace)
+                    if instance_load is not None:
+                        stats[instance] = instance_load
+
+        return stats

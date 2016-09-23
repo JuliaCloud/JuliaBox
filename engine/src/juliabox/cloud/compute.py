@@ -72,6 +72,10 @@ class JBPluginCloud(LoggerMixin):
 
     JBP_MIGRATE = "cloud.migrate"
 
+    JBP_MONITORING = "cloud.monitoring"
+    JBP_MONITORING_GOOGLE = "cloud.monitoring.google"
+    JBP_MONITORING_GOOGLE_V2 = "cloud.monitoring.google.v2"
+
     __metaclass__ = JBoxPluginType
 
 
