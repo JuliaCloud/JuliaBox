@@ -71,11 +71,19 @@ class GitHubAuthHandler(JBPluginHandler, OAuth2Mixin):
                     error="Invalid login request", success=""))
                 return
             user = yield self.get_authenticated_user(redirect_uri=self_redirect_uri, code=code)
-            if not user:
+            err = user.get('error')
+            if err and err[0] == 'bad_verification_code':    # Invalid code, get new code.
+                self.redirect(self_redirect_uri)
+                return
+            if not user.has_key('access_token'):
+                self.log_error('GitHub auth error: Key `access_token` not found in response: %r', user)
                 self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
                     error="GitHub authentication failed due to unexpected error.  Please try again.",
                     success=""))
                 return
+            user['access_token'] = user['access_token'][0]
+            user['token_type'] = user['token_type'][0]
+
             user_info = yield self.get_user_info(user)
             user_id = user_info.get('email')
 
@@ -157,13 +165,6 @@ class GitHubAuthHandler(JBPluginHandler, OAuth2Mixin):
             return
         args = dict()
         tornado.httputil.parse_body_arguments(response.headers.get("Content-Type"), response.body, args, None)
-        if not args.has_key('access_token'):
-            GitHubAuthHandler.log_error('GitHub auth error: Key `access_token` not found in response: %r\nResponse body: %r\nResponse headers: %r',
-                                        args, response.body, list(response.headers.get_all()))
-            future.set_result(None)
-            return
-        args['access_token'] = args['access_token'][0]
-        args['token_type'] = args['token_type'][0]
         future.set_result(args)
 
     def get_auth_http_client(self):
