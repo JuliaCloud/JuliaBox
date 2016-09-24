@@ -8,6 +8,7 @@ from juliabox.jbox_container import BaseContainer
 from juliabox.vol import VolMgr, JBoxVol
 import docker.utils
 from docker.utils import Ulimit
+import time
 
 
 class SessContainer(BaseContainer):
@@ -110,7 +111,7 @@ class SessContainer(BaseContainer):
     @staticmethod
     def launch_by_name(name, email, reuse=True):
         SessContainer.log_info("Launching container %s", name)
-
+        tstart = time.time()
         cont = SessContainer.get_by_name(name)
 
         if (cont is not None) and not reuse:
@@ -126,9 +127,15 @@ class SessContainer(BaseContainer):
             #else:
             #    cont.restart()
         except:
+            spent = time.time() - tstart
+            SessContainer.log_info("Failure launching container %s, time spent %f s",
+                                   name, spent)
             cont.delete()
             raise
 
+        spent = time.time() - tstart
+        SessContainer.log_info("Success launching container %s, time spent %f s",
+                               name, spent)
         return cont
 
     @staticmethod
