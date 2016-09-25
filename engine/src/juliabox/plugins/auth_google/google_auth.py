@@ -16,7 +16,7 @@ from tornado.auth import OAuth2Mixin, _auth_return_future, AuthError
 from oauth2client import GOOGLE_REVOKE_URI, GOOGLE_TOKEN_URI
 from oauth2client.client import OAuth2Credentials, _extract_id_token
 
-from juliabox.jbox_util import JBoxCfg
+from juliabox.jbox_util import JBoxCfg, gen_random_secret
 from juliabox.handlers import JBPluginHandler, JBPluginUI
 from juliabox.db import JBoxUserV2, JBoxUserProfile
 
@@ -96,6 +96,19 @@ class GoogleAuthHandler(JBPluginHandler, OAuth2Mixin):
 
         code = self.get_argument('code', False)
         if code is not False:
+            cookie = self.get_state_cookie()
+            secret = None
+            task = None
+            if state:
+                state = json.loads(base64.b64decode(state))
+                secret = state.get('secret')
+                task = state.get('task')
+
+            if not cookie or not secret or cookie != secret:
+                self.log_warn("GitHub auth:  Invalid login attempt")
+                self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
+                    error="Invalid login request", success=""))
+                return
             user = yield self.get_authenticated_user(redirect_uri=self_redirect_uri, code=code)
             if not user:
                 self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
@@ -130,7 +143,7 @@ class GoogleAuthHandler(JBPluginHandler, OAuth2Mixin):
                 traceback.print_exc()
             user_id = user_info['email']
 
-            if state == 'store_creds':
+            if task == 'store_creds':
                 creds = self.make_credentials(user)
                 credtok = creds.to_json()
                 self.post_auth_store_credentials(user_id, "gdrive", credtok)
@@ -139,16 +152,20 @@ class GoogleAuthHandler(JBPluginHandler, OAuth2Mixin):
                 self.post_auth_launch_container(user_id)
                 return
         else:
+            secret = gen_random_secret()
+            new_state = {'secret': secret}
             if state == 'ask_gdrive':
                 user_id = self.get_user_id()
+                new_state['task'] = 'store_creds'
                 scope = ['https://www.googleapis.com/auth/drive']
                 extra_params = {'access_type': 'offline', 'prompt': 'consent',
-                                'login_hint': user_id, 'include_granted_scopes': 'true',
-                                'state': 'store_creds'}
+                                'login_hint': user_id, 'include_granted_scopes': 'true'}
             else:
                 scope = ['profile', 'email']
                 extra_params = {'approval_prompt': 'auto'}
 
+            extra_params['state'] = base64.b64encode(json.dumps(new_state))
+            self.set_state_cookie(secret)
             yield self.authorize_redirect(redirect_uri=self_redirect_uri,
                                           client_id=self.settings[self._OAUTH_SETTINGS_KEY]['key'],
                                           scope=scope,
