@@ -91,7 +91,7 @@ print('Creating scale_up_time')
 if table_exists('scale_up_time'):
     print('\texists already!')
 else:
-    table_create('scale_up_time', ['scale_up_time'], ['INT'])
+    table_create('scale_up_time', ['scale_up_time', 'last_increment'], ['INT', 'INT'])
     c.execute('INSERT INTO scale_up_time (scale_up_time) VALUES (%d)' % int(time.time()))
     conn.commit()
     print('\tcreated.')
