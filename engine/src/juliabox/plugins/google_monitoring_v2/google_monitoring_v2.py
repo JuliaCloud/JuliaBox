@@ -92,7 +92,7 @@ class GoogleMonitoringV2(JBPluginCloud):
 
     @staticmethod
     def publish_stats_multi(stats, instance_id, this_id, install_id,
-                            autoscale_group):
+                            autoscale_group, zone):
         timeseries = []
         label = {GoogleMonitoringV2.CUSTOM_METRIC_DOMAIN + 'InstanceID': instance_id,
                  GoogleMonitoringV2.CUSTOM_METRIC_DOMAIN + 'GroupID' : autoscale_group}

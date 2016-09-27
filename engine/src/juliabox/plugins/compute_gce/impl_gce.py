@@ -501,7 +501,8 @@ class CompGCE(JBPluginCloud):
         CompGCE.get_monitoring_plugin().publish_stats_multi(stats, CompGCE.get_instance_id(),
                                                             CompGCE.get_instance_id(),
                                                             CompGCE.get_install_id(),
-                                                            CompGCE.AUTOSCALE_GROUP)
+                                                            CompGCE.AUTOSCALE_GROUP,
+                                                            CompGCE._zone())
 
     @staticmethod
     def get_instance_stats(instance, stat_name, namespace=None):
