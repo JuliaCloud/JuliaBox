@@ -12,6 +12,9 @@
     # Max size of user home. Default 500MB. User home is backed up within 10 minutes of the container stopping.
     "disk_limit" : 500000000,
 
+    # Number of seconds to reserve a disk when setting it up for a user.
+    "disk_reserve_secs": 180,
+
     # Installation specific session key. Used for encryption and signing. 
     "sesskey" : "$$SESSKEY",
     
