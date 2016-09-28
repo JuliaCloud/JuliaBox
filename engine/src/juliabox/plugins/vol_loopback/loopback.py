@@ -22,6 +22,7 @@ class JBoxLoopbackVol(JBoxVol):
         JBoxLoopbackVol.DISK_LIMIT = JBoxCfg.get('disk_limit')
         JBoxLoopbackVol.FS_LOC = os.path.expanduser(JBoxCfg.get('mnt_location'))
         JBoxLoopbackVol.MAX_DISKS = JBoxCfg.get('numdisksmax')
+        JBoxLoopbackVol.DISK_RESERVE_SECS = JBoxCfg.get('disk_reserve_secs', 180)
         JBoxLoopbackVol.LOCK = threading.Lock()
         JBoxLoopbackVol.refresh_disk_use_status()
 
@@ -99,7 +100,7 @@ class JBoxLoopbackVol(JBoxVol):
         try:
             disk_id = JBoxLoopbackVol._get_unused_disk_id(begin_idx=begin_idx)
             if disk_id >= 0:
-                JBoxLoopbackVol._mark_disk_used(disk_id, for_secs=120)
+                JBoxLoopbackVol._mark_disk_used(disk_id, for_secs=JBoxLoopbackVol.DISK_RESERVE_SECS)
             return disk_id
         finally:
             JBoxLoopbackVol.LOCK.release()
