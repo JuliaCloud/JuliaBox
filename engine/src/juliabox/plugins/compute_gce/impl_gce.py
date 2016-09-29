@@ -196,6 +196,14 @@ class CompGCE(JBPluginCloud):
             CompGCE.log_debug("not terminating as this is the only machine")
             return False
 
+        scaler = CompGCE._get_scaler_plugin()
+        if scaler:
+            cluster_load = CompGCE.get_cluster_stats('Load')
+            cluster_load = {k: v for k, v in cluster_load.iteritems() if CompGCE.get_image_recentness(k) >= 0}
+            avg_load = CompGCE.get_cluster_average_stats('Load', results=cluster_load)
+            ctx = {'avg_load': avg_load, 'num_active_machines': len(cluster_load)}
+            return scaler.machines_to_add(ctx) < 0
+
         return True
 
     @staticmethod
