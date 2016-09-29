@@ -145,7 +145,7 @@ class SessContainer(BaseContainer):
         tmin = datetime.datetime(datetime.MINYEAR, 1, 1, tzinfo=pytz.utc)
 
         stop_before = (tnow - datetime.timedelta(seconds=max_timeout)) if (max_timeout > 0) else tmin
-        stop_inacive_before = (tnow - datetime.timedelta(seconds=inactive_timeout)) if (inactive_timeout > 0) else tmin
+        stop_inactive_before = (tnow - datetime.timedelta(seconds=inactive_timeout)) if (inactive_timeout > 0) else tmin
 
         all_containers = BaseContainer.session_containers(allcontainers=True)
         all_cnames = {}
@@ -181,7 +181,7 @@ class SessContainer(BaseContainer):
                 SessContainer.log_warn("Running beyond allowed time %s. Scheduling cleanup.", cont.debug_str())
                 SessContainer.invalidate_container(cont.get_name())
                 JBoxAsyncJob.async_backup_and_cleanup(cont.dockid)
-            elif (last_ping is not None) and c_is_active and (last_ping < stop_inacive_before):
+            elif (last_ping is not None) and c_is_active and (last_ping < stop_inactive_before):
                 # if inactive for too long, stop it
                 # SessContainer.log_info("last_ping " + str(last_ping) + " stop_before: " + str(stop_before) +
                 #           " cond: " + str(last_ping < stop_before))
