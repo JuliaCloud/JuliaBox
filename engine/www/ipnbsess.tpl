@@ -43,7 +43,7 @@
 
         JuliaBox.set_plugin_features({% raw plugin_features %});
         JuliaBox.init_inpage_alert($('#msg_body'), $('#in_page_alert'));
-        ping_timer = setInterval(do_ping, 15000);
+        ping_timer = setInterval(do_ping, 60000);
     });
 </script>
 {% include "../../../www/session_modules.tpl" %}

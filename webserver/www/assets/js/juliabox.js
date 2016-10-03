@@ -4,7 +4,7 @@ var JuliaBox = (function($, _, undefined){
 	var _gauth = null;
 	var _locked = 0;
 	var _ping_fails = 0;
-	var _max_ping_fails = 4;
+	var _max_ping_fails = 10;
 	var _loggedout = false;
 	var _plugin_features = {}
 
