@@ -11,6 +11,7 @@ from juliabox.db import JBoxUserV2, JBoxDynConfig, JBoxSessionProps, JBoxInstanc
 
 # import any plugins that contribute tables
 import juliabox.plugins.course_homework
+import juliabox.plugins.email_whitelist
 
 
 def table_exists(table_name):
