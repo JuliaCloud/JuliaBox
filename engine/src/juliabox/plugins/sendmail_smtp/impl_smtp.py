@@ -49,6 +49,9 @@ class JBoxSMTP(JBPluginCloud):
     @staticmethod
     def _make_mail_entry(rcpt, sender):
         plugin = JBoxSMTP._get_db_plugin()
+        if plugin == None:
+            JBoxSMTP.log_warn("No mail DB, not logging mail sent")
+            return
         conn = plugin.conn()
         c = conn.cursor()
 
@@ -63,13 +66,13 @@ class JBoxSMTP(JBPluginCloud):
         plugin = JBoxSMTP._get_db_plugin()
         conn = plugin.conn()
         c = conn.cursor()
-        
+
         last24 = int(time.time()) - 24*60*60
         c.execute('SELECT COUNT(*) FROM mails WHERE timestamp > %d' % last24)
         ret = c.fetchone()[0]
         c.close()
         return ret
-        
+
     @staticmethod
     def get_email_rates():
         JBoxSMTP.connect()
