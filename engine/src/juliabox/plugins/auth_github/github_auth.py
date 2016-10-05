@@ -189,7 +189,7 @@ class GitHubAuthHandler(JBPluginHandler, OAuth2Mixin):
             if profile.can_set(JBoxUserProfile.ATTR_ORGANIZATION, val):
                 updated |= profile.set_profile(JBoxUserProfile.ATTR_ORGANIZATION, val, 'github')
 
-        if 'name' in user_info:
+        if user_info.get('name'):
             val = user_info['name'].split(' ', 1)
             firstname = val[0]
             lastname = val[1] if len(val) > 1 else ''
