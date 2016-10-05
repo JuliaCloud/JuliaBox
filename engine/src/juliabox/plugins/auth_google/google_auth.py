@@ -262,7 +262,9 @@ class GoogleAuthHandler(JBPluginHandler, OAuth2Mixin):
             if profile.can_set(JBoxUserProfile.ATTR_LAST_NAME, val):
                 updated |= profile.set_profile(JBoxUserProfile.ATTR_LAST_NAME, val, 'google')
 
-        client_ip = self.get_client_ip()
+        xff = self.request.headers.get('X-Forwarded-For')
+        client_ip = xff.split(',')[0] if xff else self.get_client_ip()
+
         if profile.can_set(JBoxUserProfile.ATTR_IP, client_ip):
             updated |= profile.set_profile(JBoxUserProfile.ATTR_IP, client_ip, 'http')
 
