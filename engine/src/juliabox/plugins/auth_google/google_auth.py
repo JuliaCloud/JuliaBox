@@ -105,7 +105,7 @@ class GoogleAuthHandler(JBPluginHandler, OAuth2Mixin):
                 task = state.get('task')
 
             if not cookie or not secret or cookie != secret:
-                self.log_warn("GitHub auth:  Invalid login attempt")
+                self.log_warn("Google auth:  Invalid login attempt")
                 self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=self.state(
                     error="Invalid login request", success=""))
                 return
