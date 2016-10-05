@@ -474,7 +474,7 @@ var JuliaBox = (function($, _, undefined){
     	inform_logged_out: function (pingfail) {
     		if(!_loggedout) {
 	    		_loggedout = true;
-	    		msg = "Your session has terminated / timed out. Please log in again.";
+		        msg = "Your session has terminated / timed out. Please log in again. If you have any unsaved notebook tabs open, you can save them once you are logged in.";
 	    		if(pingfail) {
 	    		    msg += "<br/><br/>You may also get logged out if JuliaBox servers are not reachable from your browser <br/>" +
 	    		           "or you have too many JuliaBox windows open."
