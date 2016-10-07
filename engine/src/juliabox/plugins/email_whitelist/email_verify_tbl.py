@@ -17,33 +17,21 @@ class EmailVerifyDB(JBPluginDB):
     KEYS_TYPES = [JBPluginDB.VCHAR]
     TYPES = [JBPluginDB.VCHAR, JBPluginDB.VCHAR, JBPluginDB.INT]
 
-    def __init__(self, user_id, email, create=False):
-        count = self.query_count(user_id__eq=user_id, email__eq=email)
-        if count > 0 and create:
-            raise RuntimeError("Email verify record exists, but create was requested")
-        if count == 0 and (not create):
-            raise RuntimeError("Email verify record does not exist")
+    def __init__(self, user_id):
+        count = self.query_count(user_id__eq=user_id)
+        create = (count == 0)
 
         if create:
             data = {
                 'user_id': user_id,
-                'email': email,
+                'email': '',
                 'verification_code': gen_random_secret(),
                 'is_verified': 0
             }
             self.create(data)
 
-        self.item = self.fetch(user_id=user_id, email=email)
+        self.item = self.fetch(user_id=user_id)
         self.is_new = create
-
-    @classmethod
-    def get_verified_emails(cls, user_id):
-        records = cls.query(user_id__eq=user_id, is_verified__eq=1)
-        verified_email_list = []
-        for rec in records:
-            verified_email_list.append(rec['email'])
-        return verified_email_list
-
 
     def set_email(self, email):
         self.set_attrib('email', email)

@@ -54,15 +54,10 @@ class EmailWhitelistHandler(JBPluginHandler):
         if EmailWhitelistHandler.is_whitelisted(user_id):
             return True
 
-        # Check if any of the users verified email addresses match
-        verified_emails = EmailVerifyDB.get_verified_emails(user_id)
-        for allowed_mail in EmailWhitelistHandler.WHITELIST:
-            for verified_email in verified_emails:
-                if EmailWhitelistHandler.is_whitelisted(verified_email):
-                    return True
-
-        # No match, create a pending email verify request
-        EmailVerifyDB(user_id, "pending_email_form_response", create=True)
+        # No match on user_id, create a pending email verify request if needed
+        verify_record = EmailVerifyDB(user_id)
+        if verify_record.is_verified():
+            return True
 
         handler.render(os.path.join(EmailWhitelistHandler.TEMPLATE_PATH, "email_whitelist.tpl"), cfg=JBoxCfg.nv, user_id=user_id, message="Please enter white-listed email as per tutor instructions:")
 

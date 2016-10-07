@@ -51,7 +51,7 @@ class EmailVerifyHandler(JBPluginHandler):
             return
 
         if verification_code == None:
-            record = EmailVerifyDB(user_id, "pending_email_form_response", create=False)
+            record = EmailVerifyDB(user_id)
             record.set_email(email)
 
             base_uri = self.request.protocol + "://" + self.request.host + self.request.uri.split('?')[0]
@@ -64,7 +64,7 @@ class EmailVerifyHandler(JBPluginHandler):
 
             self.render(os.path.join(EmailWhitelistHandler.TEMPLATE_PATH, "message.tpl"), cfg=JBoxCfg.nv, message="Email sent. Please click the link in the mail.")
         else:
-            record = EmailVerifyDB(user_id, email, create=False)
+            record = EmailVerifyDB(user_id)
             if record.verify(verification_code):
                 s = dict(error="", success="Verification OK, please log in again", info="", pending_activation=False, user_id="")
                 self.rendertpl("index.tpl", cfg=JBoxCfg.nv, state=s)
