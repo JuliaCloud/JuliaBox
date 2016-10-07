@@ -24,7 +24,7 @@ class JBoxSMTP(JBPluginCloud):
     def configure():
         mail_data = JBoxCfg.get('user_activation')
         JBoxSMTP.SENDER = mail_data['sender']
-        JBoxSMTP.SENDER_PASSWORD = mail_data['sender_password']
+        JBoxSMTP.SENDER_PASSWORD = mail_data.get('sender_password', "")
         JBoxSMTP.SMTP_URL = mail_data['smtp_url']
         JBoxSMTP.SMTP_PORT_NO = mail_data['smtp_port_no']
         JBoxSMTP.MAX_24HRS = mail_data['max_24hrs']
@@ -35,8 +35,12 @@ class JBoxSMTP(JBPluginCloud):
         if not JBoxSMTP.CONN:
             JBoxSMTP.configure()
             JBoxSMTP.CONN = smtplib.SMTP(JBoxSMTP.SMTP_URL, JBoxSMTP.SMTP_PORT_NO)
-            JBoxSMTP.CONN.starttls()
-            JBoxSMTP.CONN.login(JBoxSMTP.SENDER, JBoxSMTP.SENDER_PASSWORD)
+            try:
+                JBoxSMTP.CONN.starttls()
+                JBoxSMTP.CONN.login(JBoxSMTP.SENDER, JBoxSMTP.SENDER_PASSWORD)
+            except smtplib.SMTPException:
+                JBoxSMTP.log_info("Server does not support TLS, proceeding without authentication")
+
         return JBoxSMTP.CONN
 
     DB_PLUGIN = None
