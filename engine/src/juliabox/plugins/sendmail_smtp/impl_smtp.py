@@ -24,7 +24,7 @@ class JBoxSMTP(JBPluginCloud):
     def configure():
         mail_data = JBoxCfg.get('user_activation')
         JBoxSMTP.SENDER = mail_data['sender']
-        JBoxSMTP.SENDER_PASSWORD = mail_data['sender_password']
+        JBoxSMTP.SENDER_PASSWORD = mail_data.get('sender_password', "")
         JBoxSMTP.SMTP_URL = mail_data['smtp_url']
         JBoxSMTP.SMTP_PORT_NO = mail_data['smtp_port_no']
         JBoxSMTP.MAX_24HRS = mail_data['max_24hrs']
@@ -35,8 +35,12 @@ class JBoxSMTP(JBPluginCloud):
         if not JBoxSMTP.CONN:
             JBoxSMTP.configure()
             JBoxSMTP.CONN = smtplib.SMTP(JBoxSMTP.SMTP_URL, JBoxSMTP.SMTP_PORT_NO)
-            JBoxSMTP.CONN.starttls()
-            JBoxSMTP.CONN.login(JBoxSMTP.SENDER, JBoxSMTP.SENDER_PASSWORD)
+            try:
+                JBoxSMTP.CONN.starttls()
+                JBoxSMTP.CONN.login(JBoxSMTP.SENDER, JBoxSMTP.SENDER_PASSWORD)
+            except smtplib.SMTPException:
+                JBoxSMTP.log_info("Server does not support TLS, proceeding without authentication")
+
         return JBoxSMTP.CONN
 
     DB_PLUGIN = None
@@ -49,6 +53,9 @@ class JBoxSMTP(JBPluginCloud):
     @staticmethod
     def _make_mail_entry(rcpt, sender):
         plugin = JBoxSMTP._get_db_plugin()
+        if plugin == None:
+            JBoxSMTP.log_warn("No mail DB, not logging mail sent")
+            return
         conn = plugin.conn()
         c = conn.cursor()
 
@@ -63,13 +70,13 @@ class JBoxSMTP(JBPluginCloud):
         plugin = JBoxSMTP._get_db_plugin()
         conn = plugin.conn()
         c = conn.cursor()
-        
+
         last24 = int(time.time()) - 24*60*60
         c.execute('SELECT COUNT(*) FROM mails WHERE timestamp > %d' % last24)
         ret = c.fetchone()[0]
         c.close()
         return ret
-        
+
     @staticmethod
     def get_email_rates():
         JBoxSMTP.connect()
