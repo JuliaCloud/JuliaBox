@@ -74,7 +74,7 @@ Before commencing installation:
 1.	 If `git` is not yet installed:
 	- `sudo apt-get install git`.
 2.	Clone JuliaBox sources:
-	- `git clone https://github.com/JuliaLang/JuliaBox.git`.
+	- `git clone https://github.com/JuliaCloud/JuliaBox.git`.
 
 Now continue according to your desired configuration.
 
